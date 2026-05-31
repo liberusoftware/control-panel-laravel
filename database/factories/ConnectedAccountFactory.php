@@ -3,9 +3,9 @@
 namespace Database\Factories;
 
 use App\Models\ConnectedAccount;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
-use JoelButcher\Socialstream\Providers;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\ConnectedAccount>
@@ -17,10 +17,12 @@ class ConnectedAccountFactory extends Factory
     public function definition(): array
     {
         return [
-            'provider' => $this->faker->randomElement(Providers::all()),
+            'user_id' => User::factory(),
+            'provider' => $this->faker->randomElement(['github', 'gitlab', 'google', 'facebook']),
             'provider_id' => $this->faker->numerify('########'),
-            'token' => Str::random(432),
-            'refresh_token' => Str::random(432),
+            'token' => Str::random(40),
+            'refresh_token' => Str::random(40),
+            'expires_at' => null,
         ];
     }
 }
