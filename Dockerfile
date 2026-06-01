@@ -27,7 +27,8 @@ RUN composer install \
     --no-ansi \
     --no-scripts \
     --prefer-dist \
-    --ignore-platform-req=ext-pcntl,ext-ftp
+    --ignore-platform-req=ext-pcntl \
+    --ignore-platform-req=ext-ftp
 
 ###########################################
 # Main application stage
