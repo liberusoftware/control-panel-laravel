@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: control-panel-queue
+  namespace: control-panel
+  labels:
+    app: control-panel
+    component: queue
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: control-panel
+      component: queue
+  template:
+    metadata:
+      labels:
+        app: control-panel
+        component: queue
+    spec:
+      containers:
+      - name: queue-worker
+        image: ghcr.io/liberu-control-panel/control-panel-laravel:latest
+        command:
+        - php
+        - artisan
+        - horizon
+        envFrom:
+        - configMapRef:
+            name: control-panel-config
+        - secretRef:
+            name: control-panel-secrets
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - php
+            - artisan
+            - horizon:status
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          timeoutSeconds: 10
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        fsGroup: 1000
+      terminationGracePeriodSeconds: 60
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: control-panel-scheduler
+  namespace: control-panel
+  labels:
+    app: control-panel
+    component: scheduler
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: control-panel
+            component: scheduler
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: scheduler
+            image: ghcr.io/liberu-control-panel/control-panel-laravel:latest
+            command:
+            - php
+            - artisan
+            - schedule:run
+            envFrom:
+            - configMapRef:
+                name: control-panel-config
+            - secretRef:
+                name: control-panel-secrets
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+          securityContext:
+            fsGroup: 1000

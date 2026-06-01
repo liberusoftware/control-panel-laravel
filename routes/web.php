@@ -25,5 +25,5 @@ Route::redirect('/dashboard', '/app')->name('dashboard');
 Route::get('/team-invitations/{invitation}', [TeamInvitationController::class, 'accept'])
     ->middleware(['signed', 'verified', 'auth', AuthenticateSession::class])
     ->name('team-invitations.accept');
-// Socialstream OAuth routes (disabled - Socialstream package not installed)
-// require __DIR__.'/socialstream.php';
+// Socialstream OAuth routes
+require __DIR__.'/socialstream.php';

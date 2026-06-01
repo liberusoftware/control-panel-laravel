@@ -13,6 +13,7 @@ resources:
 - redis.yaml
 - nginx-configmap.yaml
 - deployment.yaml
+- queue-worker.yaml
 - service.yaml
 - ingress.yaml
 - network-policy.yaml

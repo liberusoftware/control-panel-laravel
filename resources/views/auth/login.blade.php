@@ -57,6 +57,10 @@
 
                 <a href="/forgot-password" class="underline text-sm text-gray-600 hover:text-gray-900" >Forgot password?</a>
             </form>
+
+            @if(\JoelButcher\Socialstream\Socialstream::show())
+                <x-socialstream />
+            @endif
         </div>
     </div>
 @endsection

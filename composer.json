@@ -27,6 +27,8 @@
         "livewire/livewire": "^4.0",
         "phpseclib/phpseclib": "~3.0",
         "spatie/laravel-menu": "^4.2",
+        "bursteri/socialstream": "^7.0",
+        "laravel/socialite": "^5.0",
         "spatie/laravel-permission": "^7.0",
         "spiral/roadrunner-cli": "^2.6.0",
         "spiral/roadrunner-http": "^3.3.0"

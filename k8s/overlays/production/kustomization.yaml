@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
 - ../../base
+- hpa.yaml
 
 namespace: control-panel
 
@@ -26,6 +27,3 @@ configMapGenerator:
 images:
 - name: ghcr.io/liberu-control-panel/control-panel-laravel
   newTag: latest
-
-resources:
-- hpa.yaml

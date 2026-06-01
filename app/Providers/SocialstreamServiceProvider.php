@@ -2,7 +2,15 @@
 
 namespace App\Providers;
 
+use App\Actions\Socialstream\CreateConnectedAccount;
+use App\Actions\Socialstream\CreateUserFromProvider;
+use App\Actions\Socialstream\GenerateRedirectForProvider;
+use App\Actions\Socialstream\HandleInvalidState;
+use App\Actions\Socialstream\ResolveSocialiteUser;
+use App\Actions\Socialstream\SetUserPassword;
+use App\Actions\Socialstream\UpdateConnectedAccount;
 use Illuminate\Support\ServiceProvider;
+use JoelButcher\Socialstream\Socialstream;
 
 class SocialstreamServiceProvider extends ServiceProvider
 {
@@ -13,7 +21,12 @@ class SocialstreamServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Socialstream package is not installed.
-        // OAuth connected account functionality is available via ConnectedAccount model directly.
+        Socialstream::createConnectedAccountsUsing(CreateConnectedAccount::class);
+        Socialstream::createUsersFromProviderUsing(CreateUserFromProvider::class);
+        Socialstream::generateRedirectForProviderUsing(GenerateRedirectForProvider::class);
+        Socialstream::handleInvalidStateUsing(HandleInvalidState::class);
+        Socialstream::resolvesSocialiteUsersUsing(ResolveSocialiteUser::class);
+        Socialstream::setUserPasswordsUsing(SetUserPassword::class);
+        Socialstream::updateConnectedAccountsUsing(UpdateConnectedAccount::class);
     }
 }
