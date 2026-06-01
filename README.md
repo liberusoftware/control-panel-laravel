@@ -28,7 +28,7 @@
 > **🚀 Production-Ready Kubernetes Deployment**  
 > Kubernetes is the **recommended deployment method** for production environments, offering auto-scaling, high availability, and enterprise-grade orchestration. See our [Complete Kubernetes Installation Guide](docs/KUBERNETES_INSTALLATION.md) and [Managed Kubernetes Setup](docs/MANAGED_KUBERNETES_SETUP.md) for AWS EKS, Azure AKS, Google GKE, and DigitalOcean DOKS.
 
-Key features
+Key features:
 
 - **Production-ready Kubernetes deployment** with auto-scaling, high availability, and container orchestration
 - User and team management with Jetstream and role-based policies
