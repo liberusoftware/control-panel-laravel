@@ -20,6 +20,17 @@ print_warning() { print_message "$YELLOW" "WARN: $1"; }
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
+require_php() {
+    command_exists php || { print_error "PHP is required but not found."; exit 1; }
+    PHP_MIN="8.5"
+    PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
+    if ! php -r "exit(version_compare('$PHP_VER','$PHP_MIN','>=') ? 0 : 1);" 2>/dev/null; then
+        print_error "PHP >= $PHP_MIN required (found $PHP_VER)."
+        exit 1
+    fi
+    print_success "PHP $PHP_VER found"
+}
+
 # ---------------------------------------------------------------------------
 # Composer
 # ---------------------------------------------------------------------------
@@ -111,6 +122,21 @@ prompt_env_configured() {
 }
 
 # ---------------------------------------------------------------------------
+# Storage
+# ---------------------------------------------------------------------------
+setup_storage() {
+    print_header "Storage Setup"
+
+    chmod -R 775 storage bootstrap/cache 2>/dev/null || true
+
+    if [ ! -L "public/storage" ]; then
+        php artisan storage:link && print_success "Storage link created"
+    else
+        print_info "Storage link already exists"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # Laravel bootstrap
 # ---------------------------------------------------------------------------
 laravel_bootstrap() {
@@ -118,9 +144,13 @@ laravel_bootstrap() {
 
     php artisan key:generate --no-interaction && print_success "App key generated"
 
+    setup_storage
+
     php artisan migrate --force && print_success "Migrations complete"
 
     php artisan db:seed --no-interaction && print_success "Database seeded" || print_warning "Seeding failed (non-fatal)"
+
+    php artisan filament:upgrade --no-interaction 2>/dev/null && print_success "Filament upgraded" || true
 
     php artisan optimize:clear
     php artisan config:cache
@@ -143,11 +173,28 @@ run_tests() {
 }
 
 # ---------------------------------------------------------------------------
+# Docker helpers
+# ---------------------------------------------------------------------------
+docker_compose_cmd() {
+    if docker compose version >/dev/null 2>&1; then
+        docker compose "$@"
+    else
+        docker-compose "$@"
+    fi
+}
+
+docker_artisan() {
+    local service="${DOCKER_APP_SERVICE:-app}"
+    docker_compose_cmd exec "$service" php artisan "$@"
+}
+
+# ---------------------------------------------------------------------------
 # Installations
 # ---------------------------------------------------------------------------
 install_standalone() {
     print_header "Standalone Installation"
 
+    require_php
     setup_env
     prompt_env_configured
     install_composer_dependencies
@@ -157,8 +204,10 @@ install_standalone() {
     run_tests
 
     print_success "Installation complete."
+    print_info "Queue worker: php artisan horizon"
+    print_info "Scheduler:    php artisan schedule:work"
 
-    read -rp "Start the server now? (y/n) " yn
+    read -rp "Start the Octane server now? (y/n) " yn
     case "$yn" in
         [Yy]*) php artisan octane:start ;;
         *)     print_info "Start later with: php artisan octane:start" ;;
@@ -177,11 +226,20 @@ install_docker() {
 
     setup_env
 
-    if docker compose version >/dev/null 2>&1; then
-        docker compose up -d --build
-    else
-        docker-compose up -d --build
-    fi
+    docker_compose_cmd up -d --build
+
+    print_info "Waiting for containers to be healthy..."
+    sleep 5
+
+    docker_artisan key:generate --no-interaction   2>/dev/null && print_success "App key generated"   || true
+    docker_artisan storage:link                    2>/dev/null && print_success "Storage link created"  || true
+    docker_artisan migrate --force                 2>/dev/null && print_success "Migrations complete"   || true
+    docker_artisan db:seed --no-interaction        2>/dev/null && print_success "Database seeded"       || true
+    docker_artisan filament:upgrade --no-interaction 2>/dev/null && print_success "Filament upgraded"   || true
+    docker_artisan optimize:clear                  2>/dev/null || true
+    docker_artisan config:cache                    2>/dev/null || true
+    docker_artisan route:cache                     2>/dev/null || true
+    docker_artisan view:cache                      2>/dev/null || true
 
     print_success "Docker containers started. App available at http://localhost:8000"
 }
@@ -195,12 +253,12 @@ install_kubernetes() {
     [ -d "$K8S_DIR" ] || { print_error "No k8s/ directory found."; exit 1; }
 
     OVERLAY="${K8S_OVERLAY:-production}"
+    NAMESPACE="${K8S_NAMESPACE:-control-panel}"
     OVERLAY_DIR="$K8S_DIR/overlays/$OVERLAY"
 
     if [ -d "$OVERLAY_DIR" ]; then
         print_info "Deploying overlay: $OVERLAY"
 
-        # Check for kustomize
         if command_exists kustomize; then
             kustomize build "$OVERLAY_DIR" | kubectl apply -f -
         else
@@ -212,8 +270,20 @@ install_kubernetes() {
     fi
 
     print_success "Kubernetes resources applied."
-    print_info "Check status with: kubectl get pods -n control-panel"
-    print_info "Override overlay with: K8S_OVERLAY=development $0"
+    print_info "Check status with:  kubectl get pods -n $NAMESPACE"
+    print_info "View logs with:     kubectl logs -n $NAMESPACE -l app=control-panel --follow"
+    print_info "Override overlay:   K8S_OVERLAY=development $0"
+    print_info "Override namespace: K8S_NAMESPACE=my-ns $0"
+
+    read -rp "Wait for rollout to complete? (y/n) " yn
+    case "$yn" in
+        [Yy]*)
+            kubectl rollout status deployment/control-panel -n "$NAMESPACE" --timeout=5m \
+                && print_success "Rollout complete" \
+                || print_warning "Rollout timed out — check pod events"
+            ;;
+        *) print_info "Monitor with: kubectl rollout status deployment/control-panel -n $NAMESPACE" ;;
+    esac
 }
 
 # ---------------------------------------------------------------------------

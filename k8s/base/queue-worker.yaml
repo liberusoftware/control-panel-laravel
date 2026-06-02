@@ -47,6 +47,23 @@ spec:
           periodSeconds: 60
           timeoutSeconds: 10
           failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - php
+            - artisan
+            - horizon:status
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - php
+              - artisan
+              - horizon:terminate
         securityContext:
           runAsNonRoot: true
           runAsUser: 1000
@@ -56,7 +73,7 @@ spec:
             - ALL
       securityContext:
         fsGroup: 1000
-      terminationGracePeriodSeconds: 60
+      terminationGracePeriodSeconds: 300
 ---
 apiVersion: batch/v1
 kind: CronJob

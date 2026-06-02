@@ -53,4 +53,11 @@ interface ModuleInterface
      * Get module configuration.
      */
     public function getConfig(): array;
+
+    /**
+     * Run a health check and return status details.
+     *
+     * @return array{healthy: bool, issues: list<string>}
+     */
+    public function checkHealth(): array;
 }

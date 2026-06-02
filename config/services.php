@@ -44,4 +44,46 @@ return [
         'instance_uri' => env('GITLAB_INSTANCE_URI', 'https://gitlab.com'),
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL') . '/oauth/google/callback'),
+    ],
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', env('APP_URL') . '/oauth/facebook/callback'),
+    ],
+
+    'bitbucket' => [
+        'client_id' => env('BITBUCKET_CLIENT_ID'),
+        'client_secret' => env('BITBUCKET_CLIENT_SECRET'),
+        'redirect' => env('BITBUCKET_REDIRECT_URI', env('APP_URL') . '/oauth/bitbucket/callback'),
+    ],
+
+    'linkedin' => [
+        'client_id' => env('LINKEDIN_CLIENT_ID'),
+        'client_secret' => env('LINKEDIN_CLIENT_SECRET'),
+        'redirect' => env('LINKEDIN_REDIRECT_URI', env('APP_URL') . '/oauth/linkedin/callback'),
+    ],
+
+    'linkedin-openid' => [
+        'client_id' => env('LINKEDIN_OPENID_CLIENT_ID', env('LINKEDIN_CLIENT_ID')),
+        'client_secret' => env('LINKEDIN_OPENID_CLIENT_SECRET', env('LINKEDIN_CLIENT_SECRET')),
+        'redirect' => env('LINKEDIN_OPENID_REDIRECT_URI', env('APP_URL') . '/oauth/linkedin-openid/callback'),
+    ],
+
+    'slack' => [
+        'client_id' => env('SLACK_CLIENT_ID'),
+        'client_secret' => env('SLACK_CLIENT_SECRET'),
+        'redirect' => env('SLACK_REDIRECT_URI', env('APP_URL') . '/oauth/slack/callback'),
+    ],
+
+    'twitter-oauth-2' => [
+        'client_id' => env('TWITTER_CLIENT_ID'),
+        'client_secret' => env('TWITTER_CLIENT_SECRET'),
+        'redirect' => env('TWITTER_REDIRECT_URI', env('APP_URL') . '/oauth/twitter-oauth-2/callback'),
+    ],
+
 ];

@@ -61,10 +61,12 @@ class SocialstreamRegistrationTest extends TestCase
         $socialiteUser->shouldReceive('getNickname')->andReturn('testuser');
         $socialiteUser->shouldReceive('getEmail')->andReturn('oauth-test@example.com');
         $socialiteUser->shouldReceive('getAvatar')->andReturn(null);
-        $socialiteUser->shouldReceive('token')->andReturn('fake-token');
-        $socialiteUser->shouldReceive('refreshToken')->andReturn(null);
-        $socialiteUser->shouldReceive('expiresIn')->andReturn(3600);
         $socialiteUser->shouldReceive('approvedScopes')->andReturn([]);
+        // token, tokenSecret, refreshToken and expiresIn are public properties on SocialiteUser
+        $socialiteUser->token = 'fake-access-token';
+        $socialiteUser->tokenSecret = null;
+        $socialiteUser->refreshToken = null;
+        $socialiteUser->expiresIn = 3600;
 
         Socialite::shouldReceive('driver')
             ->with($socialiteProvider)

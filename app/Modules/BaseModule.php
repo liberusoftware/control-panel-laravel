@@ -151,6 +151,25 @@ abstract class BaseModule implements ModuleInterface
         }
     }
 
+    public function checkHealth(): array
+    {
+        $issues = [];
+
+        foreach ($this->dependencies as $dep) {
+            $record = ModuleModel::findByName($dep);
+            if (!$record || !$record->enabled) {
+                $issues[] = "Dependency '{$dep}' is not enabled.";
+            }
+        }
+
+        $migrationPath = $this->getModulePath() . '/database/migrations';
+        if (File::exists($migrationPath) && count(File::files($migrationPath)) === 0) {
+            $issues[] = 'Migrations directory exists but is empty.';
+        }
+
+        return ['healthy' => empty($issues), 'issues' => $issues];
+    }
+
     protected function onEnable(): void {}
     protected function onDisable(): void {}
     protected function onInstall(): void {}
