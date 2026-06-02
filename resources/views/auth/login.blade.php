@@ -55,7 +55,7 @@
                     </button>                    
                 </div>
 
-                <a href="/forgot-password" class="underline text-sm text-gray-600 hover:text-gray-900" >Forgot password?</a>
+                <a href="{{ route('password.request') }}" class="underline text-sm text-gray-600 hover:text-gray-900">{{ __('Forgot password?') }}</a>
             </form>
 
             @if(\JoelButcher\Socialstream\Socialstream::show())

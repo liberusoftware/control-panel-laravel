@@ -20,6 +20,9 @@ print_warning() { print_message "$YELLOW" "WARN: $1"; }
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
+# ---------------------------------------------------------------------------
+# PHP checks
+# ---------------------------------------------------------------------------
 require_php() {
     command_exists php || { print_error "PHP is required but not found."; exit 1; }
     PHP_MIN="8.5"
@@ -29,6 +32,13 @@ require_php() {
         exit 1
     fi
     print_success "PHP $PHP_VER found"
+
+    local required_exts="pdo pdo_mysql mbstring openssl tokenizer xml ctype json bcmath fileinfo"
+    for ext in $required_exts; do
+        php -m 2>/dev/null | grep -qi "^${ext}$" \
+            && print_success "  ext-${ext}" \
+            || print_warning "  ext-${ext} not found — may cause issues"
+    done
 }
 
 # ---------------------------------------------------------------------------
@@ -62,8 +72,8 @@ install_composer_dependencies() {
 
     ensure_composer || { print_error "Cannot proceed without Composer"; exit 1; }
 
-    print_info "Running: $COMPOSER_CMD install --no-interaction --prefer-dist"
-    $COMPOSER_CMD install --no-interaction --prefer-dist
+    print_info "Running: $COMPOSER_CMD install --no-interaction --prefer-dist --optimize-autoloader"
+    $COMPOSER_CMD install --no-interaction --prefer-dist --optimize-autoloader
     print_success "Composer dependencies installed"
 }
 
@@ -78,7 +88,11 @@ install_npm_dependencies() {
         return 0
     fi
 
-    npm install && print_success "npm dependencies installed" || print_warning "npm install failed (non-fatal)"
+    if [ -f "package-lock.json" ]; then
+        npm ci && print_success "npm dependencies installed (ci)" || print_warning "npm ci failed (non-fatal)"
+    else
+        npm install && print_success "npm dependencies installed" || print_warning "npm install failed (non-fatal)"
+    fi
 }
 
 build_frontend_assets() {
@@ -108,6 +122,18 @@ setup_env() {
 
     cp .env.example .env
     print_success "Copied .env.example to .env"
+}
+
+generate_app_key() {
+    local current_key
+    current_key=$(grep -E '^APP_KEY=' .env 2>/dev/null | cut -d= -f2- | tr -d '"'"'" || true)
+
+    if [ -n "$current_key" ] && [ "$current_key" != "" ]; then
+        print_info "APP_KEY already set — skipping key:generate"
+        return 0
+    fi
+
+    php artisan key:generate --no-interaction && print_success "App key generated"
 }
 
 prompt_env_configured() {
@@ -142,15 +168,17 @@ setup_storage() {
 laravel_bootstrap() {
     print_header "Laravel Bootstrap"
 
-    php artisan key:generate --no-interaction && print_success "App key generated"
+    generate_app_key
 
     setup_storage
 
     php artisan migrate --force && print_success "Migrations complete"
 
-    php artisan db:seed --no-interaction && print_success "Database seeded" || print_warning "Seeding failed (non-fatal)"
+    php artisan db:seed --no-interaction && print_success "Database seeded" \
+        || print_warning "Seeding failed (non-fatal)"
 
-    php artisan filament:upgrade --no-interaction 2>/dev/null && print_success "Filament upgraded" || true
+    php artisan filament:upgrade --no-interaction 2>/dev/null \
+        && print_success "Filament upgraded" || true
 
     php artisan optimize:clear
     php artisan config:cache
@@ -188,6 +216,31 @@ docker_artisan() {
     docker_compose_cmd exec "$service" php artisan "$@"
 }
 
+wait_for_container_health() {
+    local service="$1"
+    local max_attempts="${2:-30}"
+    local interval="${3:-5}"
+
+    print_info "Waiting for '${service}' to be healthy..."
+    local i=0
+    while [ $i -lt "$max_attempts" ]; do
+        local status
+        status=$(docker_compose_cmd ps --format json 2>/dev/null \
+            | python3 -c "import sys,json; [print(c.get('Health','')) for line in sys.stdin for c in [json.loads(line)] if c.get('Service')=='${service}']" 2>/dev/null \
+            || echo "")
+
+        case "$status" in
+            healthy)  print_success "'${service}' is healthy"; return 0 ;;
+            unhealthy) print_error "'${service}' is unhealthy"; return 1 ;;
+        esac
+
+        i=$((i + 1))
+        sleep "$interval"
+    done
+
+    print_warning "'${service}' health check timed out — continuing anyway"
+}
+
 # ---------------------------------------------------------------------------
 # Installations
 # ---------------------------------------------------------------------------
@@ -217,7 +270,10 @@ install_standalone() {
 install_docker() {
     print_header "Docker Installation"
 
-    command_exists docker || { print_error "Docker not found. Install from https://docs.docker.com/get-docker/"; exit 1; }
+    command_exists docker || {
+        print_error "Docker not found. Install from https://docs.docker.com/get-docker/"
+        exit 1
+    }
 
     if ! docker compose version >/dev/null 2>&1 && ! command_exists docker-compose; then
         print_error "Docker Compose not found."
@@ -228,18 +284,17 @@ install_docker() {
 
     docker_compose_cmd up -d --build
 
-    print_info "Waiting for containers to be healthy..."
-    sleep 5
+    wait_for_container_health "${DOCKER_APP_SERVICE:-app}" 36 5
 
-    docker_artisan key:generate --no-interaction   2>/dev/null && print_success "App key generated"   || true
-    docker_artisan storage:link                    2>/dev/null && print_success "Storage link created"  || true
-    docker_artisan migrate --force                 2>/dev/null && print_success "Migrations complete"   || true
-    docker_artisan db:seed --no-interaction        2>/dev/null && print_success "Database seeded"       || true
-    docker_artisan filament:upgrade --no-interaction 2>/dev/null && print_success "Filament upgraded"   || true
-    docker_artisan optimize:clear                  2>/dev/null || true
-    docker_artisan config:cache                    2>/dev/null || true
-    docker_artisan route:cache                     2>/dev/null || true
-    docker_artisan view:cache                      2>/dev/null || true
+    docker_artisan key:generate --no-interaction  2>/dev/null && print_success "App key generated"   || print_info "APP_KEY already set"
+    docker_artisan storage:link                   2>/dev/null && print_success "Storage link created" || true
+    docker_artisan migrate --force                2>/dev/null && print_success "Migrations complete"  || true
+    docker_artisan db:seed --no-interaction       2>/dev/null && print_success "Database seeded"      || true
+    docker_artisan filament:upgrade --no-interaction 2>/dev/null && print_success "Filament upgraded" || true
+    docker_artisan optimize:clear                 2>/dev/null || true
+    docker_artisan config:cache                   2>/dev/null || true
+    docker_artisan route:cache                    2>/dev/null || true
+    docker_artisan view:cache                     2>/dev/null || true
 
     print_success "Docker containers started. App available at http://localhost:8000"
 }
@@ -247,7 +302,10 @@ install_docker() {
 install_kubernetes() {
     print_header "Kubernetes Installation"
 
-    command_exists kubectl || { print_error "kubectl not found. See https://kubernetes.io/docs/tasks/tools/"; exit 1; }
+    command_exists kubectl || {
+        print_error "kubectl not found. See https://kubernetes.io/docs/tasks/tools/"
+        exit 1
+    }
 
     K8S_DIR="k8s"
     [ -d "$K8S_DIR" ] || { print_error "No k8s/ directory found."; exit 1; }
@@ -270,10 +328,10 @@ install_kubernetes() {
     fi
 
     print_success "Kubernetes resources applied."
-    print_info "Check status with:  kubectl get pods -n $NAMESPACE"
-    print_info "View logs with:     kubectl logs -n $NAMESPACE -l app=control-panel --follow"
-    print_info "Override overlay:   K8S_OVERLAY=development $0"
-    print_info "Override namespace: K8S_NAMESPACE=my-ns $0"
+    print_info "Check status with:      kubectl get pods -n $NAMESPACE"
+    print_info "View logs with:         kubectl logs -n $NAMESPACE -l app=control-panel --follow"
+    print_info "Override overlay:       K8S_OVERLAY=development $0"
+    print_info "Override namespace:     K8S_NAMESPACE=my-ns $0"
 
     read -rp "Wait for rollout to complete? (y/n) " yn
     case "$yn" in
@@ -284,6 +342,9 @@ install_kubernetes() {
             ;;
         *) print_info "Monitor with: kubectl rollout status deployment/control-panel -n $NAMESPACE" ;;
     esac
+
+    print_info "Set APP_KEY in the secret before first run:"
+    print_info "  kubectl create secret generic control-panel-secrets --from-literal=APP_KEY=\$(php artisan key:generate --show) -n $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -"
 }
 
 # ---------------------------------------------------------------------------

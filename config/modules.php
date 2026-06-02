@@ -147,8 +147,32 @@ return [
     */
 
     'requirements' => [
-        'php' => '8.1',
-        'laravel' => '11.0',
+        'php' => '8.5',
+        'laravel' => '13.0',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load Composer Modules
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, the module system will also scan external paths and
+    | Composer packages for modules.
+    |
+    */
+
+    'load_composer_modules' => env('MODULES_LOAD_COMPOSER', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | External Module Paths
+    |--------------------------------------------------------------------------
+    |
+    | Additional filesystem paths to scan for modules. Useful for packages
+    | that ship modules outside of app/Modules.
+    |
+    */
+
+    'external_paths' => [],
 
 ];

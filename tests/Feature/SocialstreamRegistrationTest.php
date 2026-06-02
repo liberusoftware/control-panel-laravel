@@ -87,11 +87,13 @@ class SocialstreamRegistrationTest extends TestCase
     public static function socialiteProvidersDataProvider(): array
     {
         return [
-            'github' => ['github'],
-            'google' => ['google'],
-            'facebook' => ['facebook'],
-            'gitlab' => ['gitlab'],
-            'bitbucket' => ['bitbucket'],
+            'github'         => ['github'],
+            'google'         => ['google'],
+            'facebook'       => ['facebook'],
+            'gitlab'         => ['gitlab'],
+            'bitbucket'      => ['bitbucket'],
+            'linkedin-openid' => ['linkedin-openid'],
+            'slack'          => ['slack'],
         ];
     }
 }
