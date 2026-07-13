@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class EmailAccount extends Model
 {
@@ -49,6 +51,31 @@ class EmailAccount extends Model
         'keep_copy_on_server' => 'boolean',
     ];
 
+    protected $hidden = [
+        'password',
+    ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (EmailAccount $account): void {
+            if ($account->isDirty('password') && !Hash::needsRehash($account->password)) {
+                $account->password = Hash::make($account->password);
+            }
+
+            if (!auth()->check()) {
+                return;
+            }
+
+            $account->user_id ??= auth()->id();
+
+            if ($account->domain_id && !$account->domain()->where('user_id', auth()->id())->exists()) {
+                throw ValidationException::withMessages([
+                    'domain_id' => 'The selected domain does not belong to your account.',
+                ]);
+            }
+        });
+    }
+
     /**
      * Get the user that owns the email account.
      */
@@ -65,4 +92,3 @@ class EmailAccount extends Model
         return $this->belongsTo(Domain::class);
     }
 }
-

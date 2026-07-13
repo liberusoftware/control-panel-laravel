@@ -33,6 +33,8 @@ class GitDeployment extends Model
     ];
 
     protected $casts = [
+        'deploy_key' => 'encrypted',
+        'webhook_secret' => 'encrypted',
         'auto_deploy' => 'boolean',
         'use_oauth' => 'boolean',
         'last_deployed_at' => 'datetime',

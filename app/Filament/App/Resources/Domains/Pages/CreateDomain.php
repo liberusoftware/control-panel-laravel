@@ -56,6 +56,7 @@ class CreateDomain extends CreateRecord
 
         $domain = Domain::create([
             ...$this->form->getState(),
+            'user_id' => $user->id,
             'hosting_plan_id' => $hostingPlan->id,
         ]);
 

@@ -43,15 +43,15 @@ services:
   redis:
     image: redis:7-alpine
     restart: always
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
-    ports:
-      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
     volumes:
       - redis-data:/data
     networks:
       - proxy-network
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -65,8 +65,6 @@ services:
       MYSQL_DATABASE: ${DB_DATABASE:-myapp}
       MYSQL_USER: ${DB_USERNAME:-myapp}
       MYSQL_PASSWORD_FILE: /run/secrets/db_password
-    ports:
-      - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/custom.cnf:/etc/mysql/conf.d/custom.cnf:ro
@@ -90,8 +88,6 @@ services:
       POSTGRES_DB: ${DB_DATABASE:-myapp}
       POSTGRES_USER: ${DB_USERNAME:-myapp}
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-    ports:
-      - "5432:5432"
     volumes:
       - postgresql-data:/var/lib/postgresql/data
     secrets:
@@ -117,7 +113,7 @@ services:
     restart: always
     environment:
       - APP_ENV=${APP_ENV:-production}
-      - APP_KEY=${APP_KEY}
+      - APP_KEY=${APP_KEY:?Set APP_KEY}
       - APP_DEBUG=${APP_DEBUG:-false}
       - DB_CONNECTION=${DB_CONNECTION:-mysql}
       - DB_HOST=${DB_HOST:-mysql}
@@ -125,7 +121,7 @@ services:
       - DB_USERNAME=${DB_USERNAME:-myapp}
       - DB_PASSWORD_FILE=/run/secrets/db_password
       - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Set REDIS_PASSWORD}
       - VIRTUAL_HOST=${CONTROL_PANEL_DOMAIN}
       - LETSENCRYPT_HOST=${CONTROL_PANEL_DOMAIN}
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
@@ -157,14 +153,14 @@ services:
     command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
     environment:
       - APP_ENV=${APP_ENV:-production}
-      - APP_KEY=${APP_KEY}
+      - APP_KEY=${APP_KEY:?Set APP_KEY}
       - DB_CONNECTION=${DB_CONNECTION:-mysql}
       - DB_HOST=${DB_HOST:-mysql}
       - DB_DATABASE=${DB_DATABASE:-myapp}
       - DB_USERNAME=${DB_USERNAME:-myapp}
       - DB_PASSWORD_FILE=/run/secrets/db_password
       - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Set REDIS_PASSWORD}
     volumes:
       - app-storage:/var/www/html/storage
     depends_on:
@@ -193,14 +189,14 @@ services:
     command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction & sleep 60; done"
     environment:
       - APP_ENV=${APP_ENV:-production}
-      - APP_KEY=${APP_KEY}
+      - APP_KEY=${APP_KEY:?Set APP_KEY}
       - DB_CONNECTION=${DB_CONNECTION:-mysql}
       - DB_HOST=${DB_HOST:-mysql}
       - DB_DATABASE=${DB_DATABASE:-myapp}
       - DB_USERNAME=${DB_USERNAME:-myapp}
       - DB_PASSWORD_FILE=/run/secrets/db_password
       - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Set REDIS_PASSWORD}
     volumes:
       - app-storage:/var/www/html/storage
     depends_on:

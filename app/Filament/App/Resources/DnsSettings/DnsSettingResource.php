@@ -61,14 +61,15 @@ class DnsSettingResource extends Resource {
                     ->schema([
                         Select::make('domain_id')
                             ->label('Domain')
-                            ->relationship('domain', 'domain_name')
+                            ->relationship(
+                                'domain',
+                                'domain_name',
+                                fn (Builder $query) => $query->where('user_id', auth()->id())
+                            )
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->helperText('Select the domain for this DNS record')
-                            ->createOptionForm([
-                                TextInput::make('domain_name')->required(),
-                            ]),
+                            ->helperText('Select one of your domains for this DNS record'),
                         
                         Select::make('record_type')
                             ->label('Record Type')
@@ -289,7 +290,11 @@ class DnsSettingResource extends Resource {
             ->filters([
                 Tables\Filters\SelectFilter::make('domain_id')
                     ->label('Domain')
-                    ->relationship('domain', 'domain_name')
+                    ->relationship(
+                        'domain',
+                        'domain_name',
+                        fn (Builder $query) => $query->where('user_id', auth()->id())
+                    )
                     ->searchable()
                     ->preload()
                     ->multiple(),
@@ -346,6 +351,12 @@ class DnsSettingResource extends Resource {
         return [
             //
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereHas('domain', fn (Builder $query) => $query->where('user_id', auth()->id()));
     }
 
     public static function getPages(): array {

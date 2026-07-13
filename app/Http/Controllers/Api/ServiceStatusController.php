@@ -21,6 +21,7 @@ class ServiceStatusController extends Controller
      */
     public function checkAll(Request $request): JsonResponse
     {
+        $this->authorizeSystemStatus($request);
         $status = $this->serviceChecker->checkAllServices();
 
         return response()->json($status);
@@ -31,6 +32,7 @@ class ServiceStatusController extends Controller
      */
     public function missing(Request $request): JsonResponse
     {
+        $this->authorizeSystemStatus($request);
         $missing = $this->serviceChecker->getMissingServices();
 
         return response()->json([
@@ -44,6 +46,7 @@ class ServiceStatusController extends Controller
      */
     public function stopped(Request $request): JsonResponse
     {
+        $this->authorizeSystemStatus($request);
         $stopped = $this->serviceChecker->getStoppedServices();
 
         return response()->json([
@@ -57,6 +60,7 @@ class ServiceStatusController extends Controller
      */
     public function installCommands(Request $request): JsonResponse
     {
+        $this->authorizeSystemStatus($request);
         $commands = $this->serviceChecker->getInstallationCommands();
 
         return response()->json([
@@ -70,6 +74,7 @@ class ServiceStatusController extends Controller
      */
     public function checkService(Request $request, string $service): JsonResponse
     {
+        $this->authorizeSystemStatus($request);
         $method = 'check' . ucfirst($service);
         
         if (!method_exists($this->serviceChecker, $method)) {
@@ -81,5 +86,13 @@ class ServiceStatusController extends Controller
         $status = $this->serviceChecker->$method();
 
         return response()->json($status);
+    }
+
+    protected function authorizeSystemStatus(Request $request): void
+    {
+        abort_unless(
+            $request->user()->hasRole(config('filament-shield.super_admin.name', 'super_admin')),
+            403
+        );
     }
 }

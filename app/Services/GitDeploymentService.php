@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Domain;
 use App\Models\GitDeployment;
+use App\Rules\ValidDomainName;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Exception;
@@ -84,9 +85,11 @@ class GitDeploymentService
         try {
             $deployPath = $this->getDeploymentPath($domain, $deployment);
             $repoPath = "{$deployPath}/.git";
+            $escapedDeployPath = escapeshellarg($deployPath);
+            $escapedRepoPath = escapeshellarg($repoPath);
 
             // Check if repository already exists
-            $exists = $this->sshService->executeCommand($connection, "test -d {$repoPath} && echo 'exists' || echo 'new'");
+            $exists = $this->sshService->executeCommand($connection, "test -d {$escapedRepoPath} && echo 'exists' || echo 'new'");
             $isNew = trim($exists) === 'new';
 
             if ($isNew) {
@@ -102,35 +105,15 @@ class GitDeploymentService
             // Get current commit hash
             $commitHash = trim($this->sshService->executeCommand(
                 $connection,
-                "cd {$deployPath} && git rev-parse HEAD"
+                "cd {$escapedDeployPath} && git rev-parse HEAD"
             ));
             
             $deployment->update(['last_commit_hash' => $commitHash]);
             $log[] = "Current commit: {$commitHash}";
 
-            // Execute build command if provided
-            if ($deployment->build_command) {
-                $log[] = "Running build command...";
-                $buildOutput = $this->sshService->executeCommand(
-                    $connection,
-                    "cd {$deployPath} && {$deployment->build_command}"
-                );
-                $log[] = "Build output: " . $buildOutput;
-            }
-
-            // Execute deploy command if provided
-            if ($deployment->deploy_command) {
-                $log[] = "Running deploy command...";
-                $deployOutput = $this->sshService->executeCommand(
-                    $connection,
-                    "cd {$deployPath} && {$deployment->deploy_command}"
-                );
-                $log[] = "Deploy output: " . $deployOutput;
-            }
-
             // Set proper permissions
             $log[] = "Setting permissions...";
-            $this->sshService->executeCommand($connection, "chmod -R 755 {$deployPath}");
+            $this->sshService->executeCommand($connection, "chmod -R 755 {$escapedDeployPath}");
 
             return implode("\n", $log);
 
@@ -145,7 +128,7 @@ class GitDeploymentService
     protected function cloneRepository($connection, GitDeployment $deployment, string $deployPath): void
     {
         // Create deployment directory
-        $this->sshService->executeCommand($connection, "mkdir -p " . dirname($deployPath));
+        $this->sshService->executeCommand($connection, 'mkdir -p ' . escapeshellarg(dirname($deployPath)));
 
         // Determine clone URL and authentication method
         $cloneUrl = $deployment->repository_url;
@@ -164,7 +147,7 @@ class GitDeploymentService
             // Setup SSH key if private repository
             $this->setupDeployKey($connection, $deployment);
             $keyPath = $this->getDeployKeyPath($deployment);
-            $gitSshCommand = "GIT_SSH_COMMAND='ssh -i {$keyPath} -o StrictHostKeyChecking=no' ";
+            $gitSshCommand = "GIT_SSH_COMMAND='ssh -i {$keyPath} -o StrictHostKeyChecking=accept-new' ";
         }
 
         // Clone command
@@ -209,7 +192,7 @@ class GitDeploymentService
             // Setup SSH key if private repository
             $this->setupDeployKey($connection, $deployment);
             $keyPath = $this->getDeployKeyPath($deployment);
-            $gitSshCommand = "GIT_SSH_COMMAND='ssh -i {$keyPath} -o StrictHostKeyChecking=no' ";
+            $gitSshCommand = "GIT_SSH_COMMAND='ssh -i {$keyPath} -o StrictHostKeyChecking=accept-new' ";
         }
 
         // Pull command
@@ -263,6 +246,18 @@ class GitDeploymentService
      */
     protected function getDeploymentPath(Domain $domain, GitDeployment $deployment): string
     {
+        if (!(new ValidDomainName())->passes('domain', $domain->domain_name)) {
+            throw new Exception('Invalid deployment domain.');
+        }
+
+        $pathSegments = explode('/', trim($deployment->deploy_path, '/'));
+        if (
+            !preg_match('/^\/[A-Za-z0-9._\/-]*$/', $deployment->deploy_path)
+            || array_intersect($pathSegments, ['.', '..'])
+        ) {
+            throw new Exception('Invalid deployment path.');
+        }
+
         // If running in container, use container path
         $container = $domain->getWebContainer();
         
@@ -279,26 +274,30 @@ class GitDeploymentService
      */
     public function isValidRepositoryUrl(string $url): bool
     {
-        // Check for common git URL patterns
-        $patterns = [
-            '/^https?:\/\/.+\.git$/',                          // HTTPS with .git
-            '/^https?:\/\/(github|gitlab|bitbucket)\.com\//', // Common hosts
-            '/^git@.+:.+\.git$/',                              // SSH format
-            '/^ssh:\/\/.+\.git$/',                             // SSH protocol
-        ];
+        $allowedHosts = array_map(
+            'strtolower',
+            config('deployments.allowed_git_hosts', ['github.com', 'gitlab.com', 'bitbucket.org'])
+        );
 
-        foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $url)) {
-                return true;
-            }
+        if (preg_match('/^git@([^:]+):(.+)$/', $url, $matches)) {
+            return in_array(strtolower($matches[1]), $allowedHosts, true) && $matches[2] !== '';
         }
 
-        // Also allow HTTPS URLs without .git suffix
-        if (preg_match('/^https?:\/\/.+\/.+/', $url)) {
-            return true;
+        $parts = parse_url($url);
+        if ($parts === false || !in_array($parts['scheme'] ?? '', ['https', 'ssh'], true)) {
+            return false;
         }
 
-        return false;
+        if (
+            !empty($parts['pass'])
+            || (($parts['scheme'] ?? '') === 'https' && !empty($parts['user']))
+            || empty($parts['host'])
+            || empty($parts['path'])
+        ) {
+            return false;
+        }
+
+        return in_array(strtolower($parts['host']), $allowedHosts, true);
     }
 
     /**
@@ -371,17 +370,18 @@ class GitDeploymentService
 
             try {
                 $deployPath = $this->getDeploymentPath($domain, $deployment);
+                $escapedDeployPath = escapeshellarg($deployPath);
 
                 // Get current branch
                 $branch = trim($this->sshService->executeCommand(
                     $connection,
-                    "cd {$deployPath} && git rev-parse --abbrev-ref HEAD"
+                    "cd {$escapedDeployPath} && git rev-parse --abbrev-ref HEAD"
                 ));
 
                 // Get latest commit
                 $commit = trim($this->sshService->executeCommand(
                     $connection,
-                    "cd {$deployPath} && git log -1 --format='%H|%an|%ae|%ar|%s'"
+                    "cd {$escapedDeployPath} && git log -1 --format='%H|%an|%ae|%ar|%s'"
                 ));
 
                 if ($commit) {

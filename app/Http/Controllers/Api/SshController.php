@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Domain;
 use App\Models\Server;
 use App\Models\ServerCredential;
+use App\Models\User;
 use App\Services\SshConnectionService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -72,8 +73,13 @@ class SshController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'public_key' => 'required|string',
-            'username' => 'required|string|alpha_dash|max:32',
+            'public_key' => [
+                'required',
+                'string',
+                'max:16384',
+                'regex:/^(ssh-(?:rsa|ed25519)|ecdsa-sha2-nistp(?:256|384|521)) [A-Za-z0-9+\/=]+(?: [^\r\n]*)?$/',
+            ],
+            'username' => 'prohibited',
         ]);
 
         if ($validator->fails()) {
@@ -81,11 +87,12 @@ class SshController extends Controller
         }
 
         $data = $validator->validated();
+        $username = $this->siteUsername($request->user());
 
         try {
             // Update domain with SSH credentials
             $domain->update([
-                'ssh_username' => $data['username'],
+                'ssh_username' => $username,
             ]);
 
             // If domain has an associated server, deploy the key
@@ -93,7 +100,7 @@ class SshController extends Controller
                 $server = Server::find($domain->server_id);
                 
                 if ($server) {
-                    $this->deployPublicKeyToServer($server, $data['username'], $data['public_key']);
+                    $this->deployPublicKeyToServer($server, $username, $data['public_key']);
                 }
             }
 
@@ -104,7 +111,7 @@ class SshController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to deploy SSH key to domain: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Failed to deploy SSH key: ' . $e->getMessage()
+                'error' => 'Failed to deploy SSH key'
             ], 500);
         }
     }
@@ -114,7 +121,7 @@ class SshController extends Controller
      */
     public function deployKeyToServer(Request $request, Server $server): JsonResponse
     {
-        if ($server->user_id !== $request->user()->id) {
+        if (!$request->user()->hasRole(config('filament-shield.super_admin.name', 'super_admin'))) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -139,7 +146,7 @@ class SshController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to deploy SSH key to server: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Failed to deploy SSH key: ' . $e->getMessage()
+                'error' => 'Failed to deploy SSH key'
             ], 500);
         }
     }
@@ -149,7 +156,7 @@ class SshController extends Controller
      */
     public function testConnection(Request $request, Server $server): JsonResponse
     {
-        if ($server->user_id !== $request->user()->id) {
+        if (!$request->user()->hasRole(config('filament-shield.super_admin.name', 'super_admin'))) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -170,7 +177,7 @@ class SshController extends Controller
         } catch (\Exception $e) {
             Log::error('SSH connection test failed: ' . $e->getMessage());
             return response()->json([
-                'error' => 'SSH connection test failed: ' . $e->getMessage(),
+                'error' => 'SSH connection test failed',
                 'connected' => false,
             ], 500);
         }
@@ -181,6 +188,10 @@ class SshController extends Controller
      */
     public function createCredential(Request $request): JsonResponse
     {
+        if (!$request->user()->hasRole(config('filament-shield.super_admin.name', 'super_admin'))) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'server_id' => 'required|exists:servers,id',
             'username' => 'required|string|alpha_dash|max:32',
@@ -198,11 +209,8 @@ class SshController extends Controller
 
         $data = $validator->validated();
         
-        // Verify server ownership
+        // Global server credentials are restricted to super administrators.
         $server = Server::findOrFail($data['server_id']);
-        if ($server->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
 
         try {
             $credential = ServerCredential::create([
@@ -223,7 +231,7 @@ class SshController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to create server credential: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Failed to create credential: ' . $e->getMessage()
+                'error' => 'Failed to create credential'
             ], 500);
         }
     }
@@ -247,5 +255,21 @@ class SshController extends Controller
         // Set proper permissions
         $this->sshService->execute($server, "chmod 600 /home/{$username}/.ssh/authorized_keys");
         $this->sshService->execute($server, "chown -R {$username}:{$username} /home/{$username}/.ssh");
+    }
+
+    protected function siteUsername(User $user): string
+    {
+        $raw = strtolower(preg_replace('/[^a-z0-9_-]/i', '', $user->username ?? ''));
+        $raw = substr($raw, 0, 20);
+
+        if ($raw === '') {
+            return 'cp-user-' . $user->id;
+        }
+
+        if (preg_match('/^[0-9-]/', $raw)) {
+            $raw = 'u' . $raw;
+        }
+
+        return substr('cp-user-' . $raw, 0, 32);
     }
 }

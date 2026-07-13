@@ -39,7 +39,11 @@ class GitDeploymentResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('domain_id')
                             ->label('Domain')
-                            ->relationship('domain', 'domain_name')
+                            ->relationship(
+                                'domain',
+                                'domain_name',
+                                fn (Builder $query) => $query->where('user_id', auth()->id())
+                            )
                             ->required()
                             ->searchable()
                             ->preload(),
@@ -49,6 +53,10 @@ class GitDeploymentResource extends Resource
                             ->default('/public_html')
                             ->required()
                             ->maxLength(255)
+                            ->rules([
+                                'regex:/^\/[A-Za-z0-9._\/-]*$/',
+                                'not_regex:/(^|\/)\.\.?($|\/)/',
+                            ])
                             ->helperText('Path relative to domain root where code will be deployed'),
                     ])
                     ->columns(2),
@@ -92,22 +100,6 @@ class GitDeploymentResource extends Resource
                             ->rows(5)
                             ->columnSpanFull()
                             ->helperText('SSH private key for accessing private repositories (optional)'),
-                    ])
-                    ->columns(2),
-
-                Section::make('Build & Deploy Commands')
-                    ->schema([
-                        Forms\Components\Textarea::make('build_command')
-                            ->label('Build Command')
-                            ->rows(3)
-                            ->placeholder('npm install && npm run build')
-                            ->helperText('Commands to run after code is pulled (optional)'),
-
-                        Forms\Components\Textarea::make('deploy_command')
-                            ->label('Deploy Command')
-                            ->rows(3)
-                            ->placeholder('composer install --no-dev')
-                            ->helperText('Commands to run for deployment (optional)'),
                     ])
                     ->columns(2),
 
@@ -289,5 +281,11 @@ class GitDeploymentResource extends Resource
             'create' => Pages\CreateGitDeployment::route('/create'),
             'edit' => Pages\EditGitDeployment::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereHas('domain', fn (Builder $query) => $query->where('user_id', auth()->id()));
     }
 }

@@ -84,8 +84,8 @@ class WebhookController extends Controller
     public function generic(Request $request, GitDeployment $deployment): JsonResponse
     {
         try {
-            // Validate webhook secret via query parameter or header
-            $secret = $request->query('secret') ?? $request->header('X-Webhook-Secret');
+            // Keep secrets out of URLs and access logs.
+            $secret = $request->header('X-Webhook-Secret');
 
             if (!$secret || !hash_equals($deployment->webhook_secret, $secret)) {
                 Log::warning("Invalid webhook secret for deployment {$deployment->id}");

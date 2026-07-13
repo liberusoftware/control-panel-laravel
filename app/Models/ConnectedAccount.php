@@ -25,8 +25,17 @@ class ConnectedAccount extends Model
     ];
 
     protected $casts = [
+        'token' => 'encrypted',
+        'secret' => 'encrypted',
+        'refresh_token' => 'encrypted',
         'created_at' => 'datetime',
         'expires_at' => 'datetime',
+    ];
+
+    protected $hidden = [
+        'token',
+        'secret',
+        'refresh_token',
     ];
 
     public function user(): BelongsTo

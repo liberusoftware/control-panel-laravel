@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Domain;
 use App\Models\Database;
 use App\Models\WordPressApplication;
+use App\Rules\ValidDomainName;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -106,26 +107,29 @@ class WordPressService
         }
 
         try {
+            $escapedInstallPath = escapeshellarg($installPath);
+
             // Create installation directory
             $log[] = "Creating installation directory: {$installPath}";
-            $this->sshService->executeCommand($connection, "mkdir -p {$installPath}");
+            $this->sshService->executeCommand($connection, "mkdir -p {$escapedInstallPath}");
 
             // Download WordPress
             $log[] = "Downloading WordPress...";
             $tmpPath = "/tmp/wordpress-" . Str::random(10);
-            $this->sshService->executeCommand($connection, "mkdir -p {$tmpPath}");
-            $this->sshService->executeCommand($connection, "cd {$tmpPath} && wget -q " . self::WORDPRESS_DOWNLOAD_URL);
-            $this->sshService->executeCommand($connection, "cd {$tmpPath} && tar -xzf latest.tar.gz");
+            $escapedTmpPath = escapeshellarg($tmpPath);
+            $this->sshService->executeCommand($connection, "mkdir -p {$escapedTmpPath}");
+            $this->sshService->executeCommand($connection, "cd {$escapedTmpPath} && wget -q " . escapeshellarg(self::WORDPRESS_DOWNLOAD_URL));
+            $this->sshService->executeCommand($connection, "cd {$escapedTmpPath} && tar -xzf latest.tar.gz");
             
             // Move WordPress files
             $log[] = "Installing WordPress files...";
-            $this->sshService->executeCommand($connection, "cp -r {$tmpPath}/wordpress/* {$installPath}/");
-            $this->sshService->executeCommand($connection, "rm -rf {$tmpPath}");
+            $this->sshService->executeCommand($connection, "cp -r {$escapedTmpPath}/wordpress/. {$escapedInstallPath}/");
+            $this->sshService->executeCommand($connection, "rm -rf -- {$escapedTmpPath}");
 
             // Set permissions
             $log[] = "Setting permissions...";
-            $this->sshService->executeCommand($connection, "chmod -R 755 {$installPath}");
-            $this->sshService->executeCommand($connection, "chmod -R 775 {$installPath}/wp-content");
+            $this->sshService->executeCommand($connection, "chmod -R 755 {$escapedInstallPath}");
+            $this->sshService->executeCommand($connection, 'chmod -R 775 ' . escapeshellarg("{$installPath}/wp-content"));
 
             // Create wp-config.php
             $log[] = "Configuring WordPress...";
@@ -166,10 +170,11 @@ class WordPressService
         );
 
         // Create wp-config.php
-        $configPath = "{$installPath}/wp-config.php";
+        $configPath = escapeshellarg("{$installPath}/wp-config.php");
+        $encodedConfig = escapeshellarg(base64_encode($config));
         $this->sshService->executeCommand(
             $connection,
-            "cat > {$configPath} << 'WPCONFIG'\n{$config}\nWPCONFIG"
+            "printf '%s' {$encodedConfig} | base64 -d > {$configPath}"
         );
     }
 
@@ -186,6 +191,11 @@ class WordPressService
         $secureAuthSalt = Str::random(64);
         $loggedInSalt = Str::random(64);
         $nonceSalt = Str::random(64);
+        $dbName = var_export($dbName, true);
+        $dbUser = var_export($dbUser, true);
+        $dbPassword = var_export($dbPassword, true);
+        $dbHost = var_export($dbHost, true);
+        $siteUrl = var_export($siteUrl, true);
 
         return <<<PHP
 <?php
@@ -195,10 +205,10 @@ class WordPressService
  */
 
 // Database Settings
-define('DB_NAME', '{$dbName}');
-define('DB_USER', '{$dbUser}');
-define('DB_PASSWORD', '{$dbPassword}');
-define('DB_HOST', '{$dbHost}');
+define('DB_NAME', {$dbName});
+define('DB_USER', {$dbUser});
+define('DB_PASSWORD', {$dbPassword});
+define('DB_HOST', {$dbHost});
 define('DB_CHARSET', 'utf8mb4');
 define('DB_COLLATE', '');
 
@@ -219,8 +229,8 @@ define('NONCE_SALT',       '{$nonceSalt}');
 define('WP_DEBUG', false);
 
 // Site URL
-define('WP_HOME', '{$siteUrl}');
-define('WP_SITEURL', '{$siteUrl}');
+define('WP_HOME', {$siteUrl});
+define('WP_SITEURL', {$siteUrl});
 
 // Absolute path to the WordPress directory
 if (!defined('ABSPATH')) {
@@ -249,7 +259,7 @@ PHP;
         $domain = $wp->domain;
         
         $command = sprintf(
-            "cd %s && wp core install --url='%s' --title='%s' --admin_user='%s' --admin_email='%s' --admin_password='%s' --skip-email",
+            "cd %s && wp core install --url=%s --title=%s --admin_user=%s --admin_email=%s --admin_password=%s --skip-email",
             escapeshellarg($installPath),
             escapeshellarg($wp->site_url),
             escapeshellarg($wp->site_title),
@@ -266,6 +276,15 @@ PHP;
      */
     protected function getInstallationPath(Domain $domain, WordPressApplication $wp): string
     {
+        $segments = explode('/', trim($wp->install_path, '/'));
+        if (
+            !(new ValidDomainName())->passes('domain', $domain->domain_name)
+            || !preg_match('/^\/[A-Za-z0-9._\/-]*$/', $wp->install_path)
+            || array_intersect($segments, ['.', '..'])
+        ) {
+            throw new Exception('Invalid WordPress installation path.');
+        }
+
         // If running in container, use container path
         $container = $domain->getWebContainer();
         
@@ -300,18 +319,19 @@ PHP;
 
             try {
                 $installPath = $this->getInstallationPath($domain, $wp);
+                $escapedInstallPath = escapeshellarg($installPath);
 
                 if ($this->hasWpCli($connection)) {
                     // Update via WP-CLI
                     $this->sshService->executeCommand(
                         $connection,
-                        "cd {$installPath} && wp core update"
+                        "cd {$escapedInstallPath} && wp core update"
                     );
 
                     // Get new version
                     $version = trim($this->sshService->executeCommand(
                         $connection,
-                        "cd {$installPath} && wp core version"
+                        "cd {$escapedInstallPath} && wp core version"
                     ));
 
                     $wp->update([
