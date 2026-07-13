@@ -69,7 +69,11 @@ class LaravelApplicationResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('domain_id')
                             ->label('Domain')
-                            ->relationship('domain', 'domain_name')
+                            ->relationship(
+                                'domain',
+                                'domain_name',
+                                fn (Builder $query) => $query->where('user_id', auth()->id())
+                            )
                             ->required()
                             ->searchable()
                             ->preload()
@@ -77,7 +81,11 @@ class LaravelApplicationResource extends Resource
 
                         Forms\Components\Select::make('database_id')
                             ->label('Database')
-                            ->relationship('database', 'database_name')
+                            ->relationship(
+                                'database',
+                                'name',
+                                fn (Builder $query) => $query->where('user_id', auth()->id())
+                            )
                             ->searchable()
                             ->preload()
                             ->helperText('Optional: Select a database for the application'),
@@ -98,6 +106,10 @@ class LaravelApplicationResource extends Resource
                             ->default(config('repositories.default_install_path'))
                             ->required()
                             ->maxLength(255)
+                            ->rules([
+                                'regex:/^\/[A-Za-z0-9._\/-]*$/',
+                                'not_regex:/(^|\/)\.\.?($|\/)/',
+                            ])
                             ->helperText('Path relative to domain root'),
 
                         Forms\Components\Select::make('php_version')
@@ -270,5 +282,11 @@ class LaravelApplicationResource extends Resource
             'create' => Pages\CreateLaravelApplication::route('/create'),
             'edit' => Pages\EditLaravelApplication::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereHas('domain', fn (Builder $query) => $query->where('user_id', auth()->id()));
     }
 }

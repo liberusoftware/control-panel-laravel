@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class EmailController extends Controller
 {
@@ -18,7 +19,7 @@ class EmailController extends Controller
     {
         $emailAccounts = EmailAccount::where('user_id', $request->user()->id)
             ->with('domain')
-            ->paginate($request->get('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 100));
 
         return response()->json($emailAccounts);
     }
@@ -43,7 +44,12 @@ class EmailController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'domain_id' => 'required|exists:domains,id',
+            'domain_id' => [
+                'required',
+                Rule::exists('domains', 'id')->where(
+                    fn ($query) => $query->where('user_id', $request->user()->id)
+                ),
+            ],
             'email_address' => 'required|email|max:255|unique:email_accounts,email_address',
             'password' => 'required|string|min:8',
             'quota' => 'nullable|integer|min:0',

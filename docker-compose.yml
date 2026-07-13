@@ -57,12 +57,12 @@ services:
   mysql:
     image: mysql:8.0
     ports:
-      - '${FORWARD_DB_PORT:-3306}:3306'
+      - '127.0.0.1:${FORWARD_DB_PORT:-3306}:3306'
     environment:
-      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-secret}'
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:?Set DB_PASSWORD}'
       MYSQL_DATABASE: '${DB_DATABASE:-liberu}'
       MYSQL_USER: '${DB_USERNAME:-liberu}'
-      MYSQL_PASSWORD: '${DB_PASSWORD:-secret}'
+      MYSQL_PASSWORD: '${DB_PASSWORD:?Set DB_PASSWORD}'
     volumes:
       - mysql:/var/lib/mysql
     networks:
@@ -76,7 +76,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - '${FORWARD_REDIS_PORT:-6379}:6379'
+      - '127.0.0.1:${FORWARD_REDIS_PORT:-6379}:6379'
     volumes:
       - redis:/data
     networks:

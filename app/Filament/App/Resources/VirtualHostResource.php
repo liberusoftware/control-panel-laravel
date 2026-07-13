@@ -4,6 +4,7 @@ namespace App\Filament\App\Resources;
 
 use App\Filament\App\Resources\VirtualHostResource\Pages;
 use App\Models\VirtualHost;
+use App\Rules\ValidDomainName;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -40,6 +41,7 @@ class VirtualHostResource extends Resource
                             ->label('Hostname')
                             ->required()
                             ->maxLength(255)
+                            ->rule(new ValidDomainName())
                             ->unique(ignoreRecord: true)
                             ->helperText('e.g., example.com or www.example.com'),
 
@@ -49,12 +51,7 @@ class VirtualHostResource extends Resource
                                 $query->where('user_id', auth()->id())
                             )
                             ->searchable()
-                            ->preload()
-                            ->createOptionForm([
-                                Forms\Components\TextInput::make('domain_name')
-                                    ->required()
-                                    ->maxLength(255),
-                            ]),
+                            ->preload(),
 
                         Forms\Components\Select::make('server_id')
                             ->label('Server')
@@ -67,12 +64,6 @@ class VirtualHostResource extends Resource
 
                 Section::make('Configuration')
                     ->schema([
-                        Forms\Components\TextInput::make('document_root')
-                            ->label('Document Root')
-                            ->placeholder('/home/<username>/<hostname>/public_html')
-                            ->helperText('Leave blank to use the default home-directory path (/home/<username>/<hostname>/public_html). In standalone mode this is auto-resolved from the system username.')
-                            ->maxLength(255),
-
                         Forms\Components\Select::make('php_version')
                             ->label('PHP Version')
                             ->options(VirtualHost::getPhpVersions())

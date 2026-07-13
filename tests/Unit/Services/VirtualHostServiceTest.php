@@ -241,6 +241,22 @@ class VirtualHostServiceTest extends TestCase
         $this->assertStringNotContainsString('/var/www', $path);
     }
 
+    #[Test]
+    public function privileged_service_boundary_rejects_unsafe_hostnames()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->callProtected('validatedHostname', "example.com\nroot /etc;");
+    }
+
+    #[Test]
+    public function privileged_service_boundary_normalizes_safe_hostnames()
+    {
+        $hostname = $this->callProtected('validatedHostname', 'WWW.Example.COM');
+
+        $this->assertSame('www.example.com', $hostname);
+    }
+
     // ------------------------------------------------------------------
     // Helper: call protected method via reflection
     // ------------------------------------------------------------------

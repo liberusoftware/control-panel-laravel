@@ -198,7 +198,7 @@ class DeploymentAwareService
             $composeFile = storage_path('app/docker-compose-' . $domain->domain_name . '.yml');
             
             if (file_exists($composeFile)) {
-                exec("docker-compose -f {$composeFile} down -v 2>&1", $output, $returnCode);
+                exec('docker-compose -f ' . escapeshellarg($composeFile) . ' down -v 2>&1', $output, $returnCode);
                 
                 if ($returnCode === 0) {
                     unlink($composeFile);
@@ -285,7 +285,7 @@ class DeploymentAwareService
     {
         try {
             $containerName = $domain->domain_name;
-            exec("docker inspect {$containerName} 2>&1", $output, $returnCode);
+            exec('docker inspect ' . escapeshellarg($containerName) . ' 2>&1', $output, $returnCode);
             
             if ($returnCode === 0) {
                 $info = json_decode(implode("\n", $output), true);
@@ -370,7 +370,11 @@ class DeploymentAwareService
             $sshService = app(SshConnectionService::class);
             $kubectlPath = config('kubernetes.kubectl_path', '/usr/local/bin/kubectl');
             
-            $command = "{$kubectlPath} rollout restart deployment/{$deploymentName} -n {$namespace}";
+            $command = escapeshellarg($kubectlPath)
+                . ' rollout restart '
+                . escapeshellarg("deployment/{$deploymentName}")
+                . ' -n '
+                . escapeshellarg($namespace);
             $result = $sshService->execute($server, $command);
             
             return $result['success'];
@@ -387,7 +391,7 @@ class DeploymentAwareService
     {
         try {
             $containerName = $domain->domain_name;
-            exec("docker restart {$containerName} 2>&1", $output, $returnCode);
+            exec('docker restart ' . escapeshellarg($containerName) . ' 2>&1', $output, $returnCode);
             
             return $returnCode === 0;
         } catch (Exception $e) {

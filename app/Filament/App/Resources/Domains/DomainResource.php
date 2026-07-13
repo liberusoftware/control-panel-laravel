@@ -79,11 +79,7 @@ class DomainResource extends Resource
                                     ->relationship('server', 'name')
                                     ->searchable()
                                     ->preload()
-                                    ->helperText('Select the server where this domain will be hosted')
-                                    ->createOptionForm([
-                                        TextInput::make('name')->required(),
-                                        TextInput::make('ip_address')->required()->ip(),
-                                    ]),
+                                    ->helperText('Select the server where this domain will be hosted'),
                             ]),
 
                         Grid::make(2)
@@ -318,5 +314,8 @@ class DomainResource extends Resource
         ];
     }
 
-
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('user_id', auth()->id());
+    }
 }

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,7 +40,7 @@ Route::get('/health/live', function () {
     } catch (\Throwable $e) {
         return response()->json([
             'status' => 'dead',
-            'error' => $e->getMessage(),
+            'error' => 'Liveness check failed',
             'timestamp' => now()->toIso8601String(),
         ], 500);
     }
@@ -59,7 +60,7 @@ Route::get('/health/ready', function () {
             $checks['database'] = true;
         } catch (\Throwable $e) {
             $checks['database'] = false;
-            $errors[] = 'Database: ' . $e->getMessage();
+            $errors[] = 'Database check failed';
         }
 
         // Check Redis cache connection (if configured)
@@ -69,7 +70,7 @@ Route::get('/health/ready', function () {
                 $checks['redis'] = true;
             } catch (\Throwable $e) {
                 $checks['redis'] = false;
-                $errors[] = 'Redis: ' . $e->getMessage();
+                $errors[] = 'Redis check failed';
             }
         } else {
             $checks['redis'] = 'not configured';
@@ -83,7 +84,7 @@ Route::get('/health/ready', function () {
             $checks['storage'] = true;
         } catch (\Throwable $e) {
             $checks['storage'] = false;
-            $errors[] = 'Storage: ' . $e->getMessage();
+            $errors[] = 'Storage check failed';
         }
 
         // Determine overall status
@@ -99,7 +100,7 @@ Route::get('/health/ready', function () {
     } catch (\Throwable $e) {
         return response()->json([
             'status' => 'error',
-            'error' => $e->getMessage(),
+            'error' => 'Readiness check failed',
             'timestamp' => now()->toIso8601String(),
         ], 500);
     }
@@ -138,14 +139,19 @@ Route::get('/health/startup', function () {
     } catch (\Throwable $e) {
         return response()->json([
             'status' => 'error',
-            'error' => $e->getMessage(),
+            'error' => 'Startup check failed',
             'timestamp' => now()->toIso8601String(),
         ], 500);
     }
 })->name('health.startup');
 
 // Detailed health check with metrics (for monitoring systems)
-Route::get('/health/detailed', function () {
+Route::get('/health/detailed', function (Request $request) {
+    abort_unless(
+        $request->user()?->hasRole(config('filament-shield.super_admin.name', 'super_admin')),
+        403
+    );
+
     try {
         $metrics = [
             'app' => [
@@ -210,4 +216,4 @@ Route::get('/health/detailed', function () {
             'timestamp' => now()->toIso8601String(),
         ], 500);
     }
-})->name('health.detailed');
+})->middleware('auth')->name('health.detailed');

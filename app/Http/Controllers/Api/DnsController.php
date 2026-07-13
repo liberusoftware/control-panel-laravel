@@ -41,7 +41,7 @@ class DnsController extends Controller
             $query->where('record_type', $request->record_type);
         }
 
-        $dnsSettings = $query->paginate($request->get('per_page', 15));
+        $dnsSettings = $query->paginate(min(max($request->integer('per_page', 15), 1), 100));
 
         return response()->json($dnsSettings);
     }

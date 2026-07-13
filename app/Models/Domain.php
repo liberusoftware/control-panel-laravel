@@ -45,6 +45,8 @@ class Domain extends Model
     protected $casts = [
         'registration_date' => 'date',
         'expiration_date' => 'date',
+        'sftp_password' => 'encrypted',
+        'ssh_password' => 'encrypted',
     ];
 
     /**
@@ -231,4 +233,3 @@ class Domain extends Model
         return $this->hasMany(GitDeployment::class);
     }
 }
-

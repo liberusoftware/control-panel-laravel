@@ -47,8 +47,8 @@ class BackupScheduleResource extends Resource
                             )
                             ->searchable()
                             ->preload()
-                            ->nullable()
-                            ->helperText('Leave empty to back up all domains'),
+                            ->required()
+                            ->helperText('Only your own domains can be scheduled for backup'),
 
                         Forms\Components\Select::make('type')
                             ->label('Backup Type')
@@ -75,13 +75,8 @@ class BackupScheduleResource extends Resource
                             ->required()
                             ->helperText('Older backups will be pruned automatically'),
 
-                        Forms\Components\Select::make('destination_id')
-                            ->label('Backup Destination')
-                            ->relationship('destination', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->nullable()
-                            ->helperText('Leave empty to use local storage'),
+                        Forms\Components\Hidden::make('destination_id')
+                            ->default(null),
 
                         Forms\Components\Toggle::make('is_active')
                             ->label('Enable Schedule')
@@ -158,9 +153,6 @@ class BackupScheduleResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->where(function (Builder $q) {
-                $q->whereNull('domain_id')
-                  ->orWhereHas('domain', fn (Builder $d) => $d->where('user_id', auth()->id()));
-            });
+            ->whereHas('domain', fn (Builder $query) => $query->where('user_id', auth()->id()));
     }
 }

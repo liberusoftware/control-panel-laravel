@@ -34,6 +34,11 @@ class UserHostingPlanResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->hasRole(config('filament-shield.super_admin.name', 'super_admin')) ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema

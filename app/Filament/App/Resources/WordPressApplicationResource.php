@@ -41,7 +41,11 @@ class WordPressApplicationResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('domain_id')
                             ->label('Domain')
-                            ->relationship('domain', 'domain_name')
+                            ->relationship(
+                                'domain',
+                                'domain_name',
+                                fn (Builder $query) => $query->where('user_id', auth()->id())
+                            )
                             ->required()
                             ->searchable()
                             ->preload()
@@ -49,7 +53,11 @@ class WordPressApplicationResource extends Resource
 
                         Forms\Components\Select::make('database_id')
                             ->label('Database')
-                            ->relationship('database', 'database_name')
+                            ->relationship(
+                                'database',
+                                'name',
+                                fn (Builder $query) => $query->where('user_id', auth()->id())
+                            )
                             ->required()
                             ->searchable()
                             ->preload()
@@ -77,6 +85,10 @@ class WordPressApplicationResource extends Resource
                             ->default('/public_html')
                             ->required()
                             ->maxLength(255)
+                            ->rules([
+                                'regex:/^\/[A-Za-z0-9._\/-]*$/',
+                                'not_regex:/(^|\/)\.\.?($|\/)/',
+                            ])
                             ->helperText('Path relative to domain root'),
 
                         Forms\Components\Select::make('php_version')
@@ -109,7 +121,8 @@ class WordPressApplicationResource extends Resource
                         Forms\Components\TextInput::make('admin_password')
                             ->label('Admin Password')
                             ->password()
-                            ->required()
+                            ->required(fn (string $operation): bool => $operation === 'create')
+                            ->dehydrated(fn (?string $state): bool => filled($state))
                             ->minLength(8)
                             ->maxLength(255)
                             ->revealable()
@@ -257,5 +270,11 @@ class WordPressApplicationResource extends Resource
             'create' => Pages\CreateWordPressApplication::route('/create'),
             'edit' => Pages\EditWordPressApplication::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->whereHas('domain', fn (Builder $query) => $query->where('user_id', auth()->id()));
     }
 }

@@ -40,8 +40,14 @@ class Database extends Model
         'is_active' => 'boolean',
         'use_ssl' => 'boolean',
         'external_password' => 'encrypted',
+        'ssl_key' => 'encrypted',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
+    ];
+
+    protected $hidden = [
+        'external_password',
+        'ssl_key',
     ];
 
     protected $attributes = [

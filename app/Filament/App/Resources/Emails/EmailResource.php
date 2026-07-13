@@ -22,6 +22,7 @@ use App\Filament\App\Resources\Domains\PostfixConfigGenerator;
 use App\Filament\App\Resources\Domains\ContainerRestarter;
 use App\Models\EmailAccount;
 use Filament\Forms\Components\Repeater;
+use Illuminate\Database\Eloquent\Builder;
 
 class EmailResource extends Resource
 {
@@ -39,13 +40,24 @@ class EmailResource extends Resource
     {
         return $schema
             ->components([
+                Forms\Components\Select::make('domain_id')
+                    ->label('Domain')
+                    ->relationship(
+                        'domain',
+                        'domain_name',
+                        fn (Builder $query) => $query->where('user_id', auth()->id())
+                    )
+                    ->required()
+                    ->searchable()
+                    ->preload(),
                 TextInput::make('email_address')
                     ->email()
                     ->required()
                     ->maxLength(255),
                 TextInput::make('password')
                     ->password()
-                    ->required()
+                    ->required(fn (string $operation): bool => $operation === 'create')
+                    ->dehydrated(fn (?string $state): bool => filled($state))
                     ->maxLength(255),
                 Repeater::make('forwarding_rules')
                     ->schema([
@@ -89,6 +101,11 @@ class EmailResource extends Resource
         return [
             'index' => ManageEmails::route('/'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('user_id', auth()->id());
     }
 
     protected function handleRecordCreation(array $data): EmailAccount

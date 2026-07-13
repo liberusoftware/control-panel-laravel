@@ -77,9 +77,11 @@ class GitDeploymentTest extends TestCase
         $this->assertTrue($service->isValidRepositoryUrl('https://github.com/user/repo.git'));
         $this->assertTrue($service->isValidRepositoryUrl('https://gitlab.com/user/repo'));
         $this->assertTrue($service->isValidRepositoryUrl('git@github.com:user/repo.git'));
-        $this->assertTrue($service->isValidRepositoryUrl('ssh://git@example.com/repo.git'));
 
         // Invalid URLs
+        $this->assertFalse($service->isValidRepositoryUrl('ssh://git@example.com/repo.git'));
+        $this->assertFalse($service->isValidRepositoryUrl('https://127.0.0.1/internal.git'));
+        $this->assertFalse($service->isValidRepositoryUrl('https://user:token@github.com/user/repo.git'));
         $this->assertFalse($service->isValidRepositoryUrl('not-a-url'));
         $this->assertFalse($service->isValidRepositoryUrl('http://'));
     }

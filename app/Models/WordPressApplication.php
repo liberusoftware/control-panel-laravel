@@ -30,6 +30,7 @@ class WordPressApplication extends Model
     ];
 
     protected $casts = [
+        'admin_password' => 'encrypted',
         'installed_at' => 'datetime',
         'last_update_check' => 'datetime',
     ];

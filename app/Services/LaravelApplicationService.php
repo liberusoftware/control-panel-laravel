@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Domain;
 use App\Models\Database;
 use App\Models\LaravelApplication;
+use App\Rules\ValidDomainName;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -25,6 +26,8 @@ class LaravelApplicationService
     public function installApplication(LaravelApplication $app): bool
     {
         try {
+            $this->assertConfiguredRepository($app);
+
             $domain = $app->domain;
             $server = $domain->server;
 
@@ -78,28 +81,32 @@ class LaravelApplicationService
         }
 
         try {
+            $escapedInstallPath = escapeshellarg($installPath);
+
             // Create installation directory
             $log[] = "Creating installation directory: {$installPath}";
-            $this->sshService->executeCommand($connection, "mkdir -p {$installPath}");
+            $this->sshService->executeCommand($connection, "mkdir -p {$escapedInstallPath}");
 
             // Clone repository
             $log[] = "Cloning repository from GitHub...";
             $repoUrl = "https://github.com/{$app->repository_url}.git";
             $tmpPath = "/tmp/laravel-app-" . Str::random(10);
+            $escapedRepoUrl = escapeshellarg($repoUrl);
+            $escapedTmpPath = escapeshellarg($tmpPath);
             
-            $this->sshService->executeCommand($connection, "git clone {$repoUrl} {$tmpPath}");
+            $this->sshService->executeCommand($connection, "git clone -- {$escapedRepoUrl} {$escapedTmpPath}");
             
             // Move application files
             $log[] = "Installing application files...";
-            $this->sshService->executeCommand($connection, "cp -r {$tmpPath}/* {$installPath}/");
-            $this->sshService->executeCommand($connection, "cp {$tmpPath}/.env.example {$installPath}/.env 2>/dev/null || true");
-            $this->sshService->executeCommand($connection, "rm -rf {$tmpPath}");
+            $this->sshService->executeCommand($connection, "cp -r {$escapedTmpPath}/. {$escapedInstallPath}/");
+            $this->sshService->executeCommand($connection, "cp {$escapedTmpPath}/.env.example {$escapedInstallPath}/.env 2>/dev/null || true");
+            $this->sshService->executeCommand($connection, "rm -rf -- {$escapedTmpPath}");
 
             // Set permissions
             $log[] = "Setting permissions...";
-            $this->sshService->executeCommand($connection, "chmod -R 755 {$installPath}");
-            $this->sshService->executeCommand($connection, "chmod -R 775 {$installPath}/storage");
-            $this->sshService->executeCommand($connection, "chmod -R 775 {$installPath}/bootstrap/cache");
+            $this->sshService->executeCommand($connection, "chmod -R 755 {$escapedInstallPath}");
+            $this->sshService->executeCommand($connection, 'chmod -R 775 ' . escapeshellarg("{$installPath}/storage"));
+            $this->sshService->executeCommand($connection, 'chmod -R 775 ' . escapeshellarg("{$installPath}/bootstrap/cache"));
 
             // Configure environment
             $log[] = "Configuring environment...";
@@ -108,26 +115,26 @@ class LaravelApplicationService
             // Install Composer dependencies
             $log[] = "Installing Composer dependencies...";
             $composerCmd = $this->getComposerCommand();
-            $this->sshService->executeCommand($connection, "cd {$installPath} && {$composerCmd} install --no-dev --optimize-autoloader");
+            $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && {$composerCmd} install --no-dev --optimize-autoloader");
 
             // Generate application key
             $log[] = "Generating application key...";
-            $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan key:generate --force");
+            $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan key:generate --force");
 
             // Run migrations
             if ($app->database_id) {
                 $log[] = "Running database migrations...";
-                $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan migrate --force");
+                $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan migrate --force");
             }
 
             // Clear and cache configuration
             $log[] = "Optimizing application...";
-            $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan config:cache");
-            $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan route:cache");
-            $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan view:cache");
+            $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan config:cache");
+            $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan route:cache");
+            $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan view:cache");
 
             // Get application version from git
-            $version = trim($this->sshService->executeCommand($connection, "cd {$installPath} && git describe --tags --abbrev=0 2>/dev/null || echo 'dev-main'"));
+            $version = trim($this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && git describe --tags --abbrev=0 2>/dev/null || echo 'dev-main'"));
             $app->update(['version' => $version]);
 
             return implode("\n", $log);
@@ -160,12 +167,15 @@ class LaravelApplicationService
             $envVars['DB_PASSWORD'] = $database->password;
         }
 
-        // Update .env file
+        $escapedInstallPath = escapeshellarg($installPath);
+
+        // Update .env file without interpolating values into shell or sed syntax.
         foreach ($envVars as $key => $value) {
-            $escapedValue = addslashes($value);
+            $line = $key . '=' . json_encode((string) $value, JSON_UNESCAPED_SLASHES);
             $this->sshService->executeCommand(
                 $connection,
-                "cd {$installPath} && sed -i 's/^{$key}=.*/{$key}={$escapedValue}/' .env"
+                "cd {$escapedInstallPath} && sed -i " . escapeshellarg("/^{$key}=/d")
+                    . " .env && printf '%s\\n' " . escapeshellarg($line) . " >> .env"
             );
         }
     }
@@ -183,6 +193,8 @@ class LaravelApplicationService
      */
     protected function getInstallationPath(Domain $domain, LaravelApplication $app): string
     {
+        $this->assertSafeInstallTarget($domain->domain_name, $app->install_path);
+
         // If running in container, use container path
         $container = $domain->getWebContainer();
         
@@ -200,6 +212,8 @@ class LaravelApplicationService
     public function updateApplication(LaravelApplication $app): bool
     {
         try {
+            $this->assertConfiguredRepository($app);
+
             $domain = $app->domain;
             $server = $domain->server;
 
@@ -217,34 +231,35 @@ class LaravelApplicationService
 
             try {
                 $installPath = $this->getInstallationPath($domain, $app);
+                $escapedInstallPath = escapeshellarg($installPath);
 
                 // Get the current branch name
                 $currentBranch = trim($this->sshService->executeCommand(
                     $connection,
-                    "cd {$installPath} && git rev-parse --abbrev-ref HEAD"
+                    "cd {$escapedInstallPath} && git rev-parse --abbrev-ref HEAD"
                 ));
 
                 // Pull latest changes from repository
-                $this->sshService->executeCommand($connection, "cd {$installPath} && git pull origin {$currentBranch}");
+                $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && git pull origin " . escapeshellarg($currentBranch));
 
                 // Update Composer dependencies
                 $composerCmd = $this->getComposerCommand();
-                $this->sshService->executeCommand($connection, "cd {$installPath} && {$composerCmd} install --no-dev --optimize-autoloader");
+                $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && {$composerCmd} install --no-dev --optimize-autoloader");
 
                 // Run migrations
                 if ($app->database_id) {
-                    $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan migrate --force");
+                    $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan migrate --force");
                 }
 
                 // Clear and cache configuration
-                $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan config:clear");
-                $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan cache:clear");
-                $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan config:cache");
-                $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan route:cache");
-                $this->sshService->executeCommand($connection, "cd {$installPath} && php artisan view:cache");
+                $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan config:clear");
+                $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan cache:clear");
+                $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan config:cache");
+                $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan route:cache");
+                $this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && php artisan view:cache");
 
                 // Get new version
-                $version = trim($this->sshService->executeCommand($connection, "cd {$installPath} && git describe --tags --abbrev=0 2>/dev/null || echo 'dev-main'"));
+                $version = trim($this->sshService->executeCommand($connection, "cd {$escapedInstallPath} && git describe --tags --abbrev=0 2>/dev/null || echo 'dev-main'"));
 
                 $app->update([
                     'status' => 'installed',
@@ -274,6 +289,32 @@ class LaravelApplicationService
     public function getAvailableRepositories(): array
     {
         return config('repositories.repositories', []);
+    }
+
+    protected function assertConfiguredRepository(LaravelApplication $app): void
+    {
+        $repository = $this->getRepositoryBySlug($app->repository_slug);
+
+        if (!$repository || !hash_equals($repository['repository'], $app->repository_url)) {
+            throw new Exception('Repository is not in the configured allowlist.');
+        }
+
+        if (!preg_match('/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/', $app->repository_url)) {
+            throw new Exception('Invalid repository identifier.');
+        }
+    }
+
+    protected function assertSafeInstallTarget(string $domain, string $path): void
+    {
+        $segments = explode('/', trim($path, '/'));
+
+        if (
+            !(new ValidDomainName())->passes('domain', $domain)
+            || !preg_match('/^\/[A-Za-z0-9._\/-]*$/', $path)
+            || array_intersect($segments, ['.', '..'])
+        ) {
+            throw new Exception('Invalid application installation path.');
+        }
     }
 
     /**

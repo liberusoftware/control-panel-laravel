@@ -6,6 +6,7 @@ use App\Models\VirtualHost;
 use App\Models\Domain;
 use App\Models\Server;
 use App\Models\User;
+use App\Rules\ValidDomainName;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -28,19 +29,19 @@ class VirtualHostService
     public function create(array $data): array
     {
         try {
+            $data['hostname'] = $this->validatedHostname($data['hostname'] ?? '');
+
             // Resolve the document root before persisting.
             // In standalone mode the canonical location is /home/<username>/<hostname>/public_html;
             // for container deployments we keep the traditional /var/www layout.
-            if (!isset($data['document_root'])) {
-                if ($this->detectionService->isStandalone()) {
-                    $user     = User::find($data['user_id']);
-                    $username = $this->deriveSystemUsername($user?->username, $data['user_id']);
-                    $data['document_root'] = $this->standaloneHelper->getPublicHtmlDirectory(
-                        $username, $data['hostname'] ?? ''
-                    );
-                } else {
-                    $data['document_root'] = '/var/www/html';
-                }
+            if ($this->detectionService->isStandalone()) {
+                $user     = User::find($data['user_id']);
+                $username = $this->deriveSystemUsername($user?->username, $data['user_id']);
+                $data['document_root'] = $this->standaloneHelper->getPublicHtmlDirectory(
+                    $username, $data['hostname'] ?? ''
+                );
+            } else {
+                $data['document_root'] = '/var/www/html';
             }
 
             $virtualHost = VirtualHost::create([
@@ -130,11 +131,25 @@ class VirtualHostService
     }
 
     /**
+     * Validate hostnames at the privileged service boundary, not only in HTTP forms.
+     */
+    protected function validatedHostname(string $hostname): string
+    {
+        $hostname = strtolower(trim($hostname));
+
+        if (!(new ValidDomainName())->passes('hostname', $hostname)) {
+            throw new \InvalidArgumentException('Invalid virtual host hostname.');
+        }
+
+        return $hostname;
+    }
+
+    /**
      * Generate nginx configuration for virtual host
      */
     protected function generateNginxConfig(VirtualHost $virtualHost): string
     {
-        $hostname = $virtualHost->hostname;
+        $hostname = $this->validatedHostname($virtualHost->hostname);
         $documentRoot = $virtualHost->document_root;
         $phpVersion = $virtualHost->php_version;
         
@@ -201,7 +216,9 @@ class VirtualHostService
             // The parent /home/<username> directory must be traversable by nginx (755) but
             // NOT owned by nginx – nginx reads the site root inside it which is 750/755.
             $homeDir      = $this->standaloneHelper->getHomeDirectory($username);
-            $documentRoot = $virtualHost->document_root;
+            $hostname = $this->validatedHostname($hostname);
+            $documentRoot = $this->standaloneHelper->getPublicHtmlDirectory($username, $hostname);
+            $virtualHost->forceFill(['document_root' => $documentRoot])->save();
 
             // Create /home/<username> with correct ownership
             $this->standaloneHelper->executeCommand(['sudo', 'mkdir', '-p', $homeDir]);
@@ -368,6 +385,16 @@ class VirtualHostService
     public function update(VirtualHost $virtualHost, array $data): array
     {
         try {
+            unset($data['document_root']);
+            $hostname = $this->validatedHostname($data['hostname'] ?? $virtualHost->hostname);
+            $data['hostname'] = $hostname;
+            $data['document_root'] = $this->detectionService->isStandalone()
+                ? $this->standaloneHelper->getPublicHtmlDirectory(
+                    $this->getSystemUsername($virtualHost),
+                    $hostname
+                )
+                : '/var/www/html';
+
             $virtualHost->update($data);
 
             // Regenerate nginx config if relevant fields changed
@@ -404,6 +431,8 @@ class VirtualHostService
     public function delete(VirtualHost $virtualHost): array
     {
         try {
+            $this->validatedHostname($virtualHost->hostname);
+
             // Remove based on environment
             if ($this->detectionService->isStandalone()) {
                 $this->removeFromStandalone($virtualHost);
