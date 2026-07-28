@@ -57,6 +57,8 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+
     'asset_url' => env('ASSET_URL', '/'),
 
     /*

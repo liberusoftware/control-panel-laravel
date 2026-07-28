@@ -8,6 +8,7 @@ use App\Services\WebsiteService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class WebsiteController extends Controller
 {
@@ -25,7 +26,7 @@ class WebsiteController extends Controller
     {
         $websites = Website::where('user_id', $request->user()->id)
             ->with(['server'])
-            ->paginate($request->get('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 100));
 
         return response()->json($websites);
     }
@@ -59,7 +60,7 @@ class WebsiteController extends Controller
             'php_version' => 'nullable|string|in:8.1,8.2,8.3,8.4',
             'database_type' => 'nullable|string|in:mysql,mariadb,postgresql,sqlite,none',
             'document_root' => 'nullable|string|max:255',
-            'server_id' => 'nullable|exists:servers,id',
+            'server_id' => ['nullable', Rule::exists('servers', 'id')],
             'ssl_enabled' => 'nullable|boolean',
             'auto_ssl' => 'nullable|boolean',
         ]);
@@ -102,7 +103,7 @@ class WebsiteController extends Controller
             'php_version' => 'nullable|string|in:8.1,8.2,8.3,8.4',
             'database_type' => 'nullable|string|in:mysql,mariadb,postgresql,sqlite,none',
             'document_root' => 'nullable|string|max:255',
-            'server_id' => 'nullable|exists:servers,id',
+            'server_id' => ['nullable', Rule::exists('servers', 'id')],
             'ssl_enabled' => 'nullable|boolean',
             'auto_ssl' => 'nullable|boolean',
             'status' => 'nullable|string|in:active,inactive,pending,maintenance,error',

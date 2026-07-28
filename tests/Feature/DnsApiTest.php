@@ -37,7 +37,7 @@ class DnsApiTest extends TestCase
      */
     public function test_can_list_dns_records()
     {
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         // Create some DNS records
         DnsSetting::factory()->count(3)->create([
@@ -66,7 +66,7 @@ class DnsApiTest extends TestCase
      */
     public function test_can_create_a_record()
     {
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         $response = $this->postJson('/api/dns', [
             'domain_id' => $this->domain->id,
@@ -95,7 +95,7 @@ class DnsApiTest extends TestCase
      */
     public function test_can_create_mx_record()
     {
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         $response = $this->postJson('/api/dns', [
             'domain_id' => $this->domain->id,
@@ -123,7 +123,7 @@ class DnsApiTest extends TestCase
      */
     public function test_validation_fails_for_invalid_a_record()
     {
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         $response = $this->postJson('/api/dns', [
             'domain_id' => $this->domain->id,
@@ -144,7 +144,7 @@ class DnsApiTest extends TestCase
      */
     public function test_validation_fails_for_mx_without_priority()
     {
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         $response = $this->postJson('/api/dns', [
             'domain_id' => $this->domain->id,
@@ -163,7 +163,7 @@ class DnsApiTest extends TestCase
      */
     public function test_can_update_dns_record()
     {
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         $dnsRecord = DnsSetting::factory()->create([
             'domain_id' => $this->domain->id,
@@ -192,7 +192,7 @@ class DnsApiTest extends TestCase
      */
     public function test_can_delete_dns_record()
     {
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         $dnsRecord = DnsSetting::factory()->create([
             'domain_id' => $this->domain->id,
@@ -215,7 +215,7 @@ class DnsApiTest extends TestCase
      */
     public function test_can_bulk_create_dns_records()
     {
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         $response = $this->postJson('/api/dns/bulk', [
             'domain_id' => $this->domain->id,
@@ -264,7 +264,7 @@ class DnsApiTest extends TestCase
             'domain_id' => $otherDomain->id,
         ]);
 
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         $response = $this->getJson("/api/dns/{$otherDnsRecord->id}");
         $response->assertStatus(403);
@@ -278,7 +278,7 @@ class DnsApiTest extends TestCase
      */
     public function test_can_validate_dns_record()
     {
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         // Valid record
         $response = $this->postJson('/api/dns/validate', [
@@ -314,7 +314,7 @@ class DnsApiTest extends TestCase
      */
     public function test_ttl_validation()
     {
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
 
         // TTL too low
         $response = $this->postJson('/api/dns', [

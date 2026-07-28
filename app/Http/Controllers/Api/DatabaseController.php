@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class DatabaseController extends Controller
 {
@@ -27,7 +28,7 @@ class DatabaseController extends Controller
     {
         $databases = Database::where('user_id', $request->user()->id)
             ->with(['domain', 'databaseUsers'])
-            ->paginate($request->get('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 100));
 
         return response()->json($databases);
     }
@@ -53,7 +54,10 @@ class DatabaseController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:64|alpha_dash',
-            'domain_id' => 'nullable|exists:domains,id',
+            'domain_id' => [
+                'nullable',
+                Rule::exists('domains', 'id')->where('user_id', $request->user()->id),
+            ],
             'engine' => 'required|string|in:mysql,postgresql,mariadb',
             'charset' => 'nullable|string|max:50',
             'collation' => 'nullable|string|max:50',

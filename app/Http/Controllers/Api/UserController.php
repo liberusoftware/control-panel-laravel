@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -79,7 +80,8 @@ class UserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'abilities' => 'nullable|array',
+            'abilities' => 'nullable|array|max:4',
+            'abilities.*' => ['string', Rule::in(['create', 'read', 'update', 'delete'])],
         ]);
 
         if ($validator->fails()) {

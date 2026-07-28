@@ -8,6 +8,7 @@ use App\Services\VirtualHostService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class VirtualHostController extends Controller
 {
@@ -25,7 +26,7 @@ class VirtualHostController extends Controller
     {
         $virtualHosts = VirtualHost::where('user_id', $request->user()->id)
             ->with(['domain', 'server', 'sslCertificate'])
-            ->paginate($request->get('per_page', 15));
+            ->paginate(min(max($request->integer('per_page', 15), 1), 100));
 
         return response()->json($virtualHosts);
     }
@@ -51,7 +52,10 @@ class VirtualHostController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'hostname' => 'required|string|max:255|unique:virtual_hosts,hostname',
-            'domain_id' => 'nullable|exists:domains,id',
+            'domain_id' => [
+                'nullable',
+                Rule::exists('domains', 'id')->where('user_id', $request->user()->id),
+            ],
             'server_id' => 'nullable|exists:servers,id',
             'document_root' => 'nullable|string|max:255',
             'php_version' => 'nullable|string|in:8.1,8.2,8.3,8.4,8.5',
@@ -92,7 +96,10 @@ class VirtualHostController extends Controller
 
         $validator = Validator::make($request->all(), [
             'hostname' => 'sometimes|string|max:255|unique:virtual_hosts,hostname,' . $virtualHost->id,
-            'domain_id' => 'nullable|exists:domains,id',
+            'domain_id' => [
+                'nullable',
+                Rule::exists('domains', 'id')->where('user_id', $request->user()->id),
+            ],
             'server_id' => 'nullable|exists:servers,id',
             'document_root' => 'nullable|string|max:255',
             'php_version' => 'nullable|string|in:8.1,8.2,8.3,8.4,8.5',

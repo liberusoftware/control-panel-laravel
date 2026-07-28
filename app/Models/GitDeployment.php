@@ -36,6 +36,8 @@ class GitDeployment extends Model
         'auto_deploy' => 'boolean',
         'use_oauth' => 'boolean',
         'last_deployed_at' => 'datetime',
+        'deploy_key' => 'encrypted',
+        'webhook_secret' => 'encrypted',
     ];
 
     protected $hidden = [

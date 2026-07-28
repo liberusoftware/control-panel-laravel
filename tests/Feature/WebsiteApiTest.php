@@ -20,7 +20,7 @@ class WebsiteApiTest extends TestCase
         parent::setUp();
         
         $this->user = User::factory()->create();
-        Sanctum::actingAs($this->user);
+        Sanctum::actingAs($this->user, ['*']);
     }
 
     public function test_can_list_websites()
