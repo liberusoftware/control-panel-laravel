@@ -1,0 +1,12 @@
+{
+  "$schema": "https://getcomposer.org/schema.json",
+  "name": "liberusoftware/module-control-panel-accounts-livewire",
+  "description": "Livewire 4 adapter for Control Panel Accounts.",
+  "type": "liberu-module",
+  "license": "MIT",
+  "require": {"php": "^8.5", "livewire/livewire": "^4.0", "liberusoftware/module-control-panel-accounts": "^1.0"},
+  "autoload": {"psr-4": {"Liberu\\ControlPanel\\AccountsLivewire\\": "src/"}},
+  "extra": {"liberu": {"name": "control-panel-accounts-livewire"}},
+  "version": "1.0.0",
+  "config": {"allow-plugins": {"pestphp/pest-plugin": true}}
+}

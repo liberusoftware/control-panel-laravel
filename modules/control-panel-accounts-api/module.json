@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-accounts-api",
+  "display_name": "Control Panel Accounts API",
+  "description": "Authenticated HTTP transport for account lifecycle and quota operations.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\AccountsApi\\AccountsApiServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-accounts": "^1.0"}},
+  "capabilities": ["control-panel.accounts.api"],
+  "features": ["Account listing", "Account registration"],
+  "default_enabled": false
+}

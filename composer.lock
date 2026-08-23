@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "80b579744304287124310883ae516bed",
+    "content-hash": "edbb12b655af7faf8f010b3206c46d5c",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -6333,6 +6333,106 @@
                 "MIT"
             ],
             "description": "Control Panel customer, reseller, package, quota, delegation, branding, and suspension boundary.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-accounts-api",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-accounts-api",
+                "reference": "37ca3c5ca903130f0ea32fbd1751e0af75d0590e"
+            },
+            "require": {
+                "illuminate/http": "^13.0",
+                "illuminate/routing": "^13.0",
+                "liberusoftware/module-control-panel-accounts": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-accounts-api"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\AccountsApi\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Authenticated API adapter for Control Panel Accounts.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-accounts-filament",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-accounts-filament",
+                "reference": "8368fd74099e3382834b01532b8ebc9ac8280017"
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "liberusoftware/module-control-panel-accounts": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-accounts-filament"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\AccountsFilament\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament 5 adapter for Control Panel Accounts.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-accounts-livewire",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-accounts-livewire",
+                "reference": "7635ef45d4147bfe430ffb083de9246d07bb904d"
+            },
+            "require": {
+                "liberusoftware/module-control-panel-accounts": "^1.0",
+                "livewire/livewire": "^4.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-accounts-livewire"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\AccountsLivewire\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Livewire 4 adapter for Control Panel Accounts.",
             "transport-options": {
                 "symlink": false,
                 "relative": true

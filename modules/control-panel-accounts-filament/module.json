@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-accounts-filament",
+  "display_name": "Control Panel Accounts Filament",
+  "description": "Filament 5 operational surface for Accounts.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\AccountsFilament\\AccountsFilamentServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-accounts": "^1.0"}},
+  "capabilities": ["control-panel.accounts.filament"],
+  "features": ["Account operations plugin"],
+  "default_enabled": false,
+  "presentation": {"filament": {"admin": ["Liberu\\ControlPanel\\AccountsFilament\\AccountsFilamentPlugin"], "app": []}}
+}
