@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-accounts",
+  "display_name": "Control Panel Accounts",
+  "description": "Customer and reseller accounts, packages, quotas, delegation, branding, and suspension.",
+  "version": "1.0.0",
+  "category": "capability",
+  "provider": "Liberu\\ControlPanel\\Accounts\\AccountsServiceProvider",
+  "requires": {
+    "php": "^8.5",
+    "laravel": "^13.0",
+    "packages": {"liberusoftware/module-manager": "^1.0"}
+  },
+  "capabilities": ["control-panel.accounts"],
+  "features": [
+    "Customer and reseller hierarchy",
+    "Hosting packages and quotas",
+    "Delegation and branding",
+    "Account suspension and recovery"
+  ],
+  "default_enabled": false
+}

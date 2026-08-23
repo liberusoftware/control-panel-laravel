@@ -271,6 +271,7 @@
         "liberusoftware/module-control-panel-control-core-api": "^1.0",
         "liberusoftware/module-control-panel-control-core-filament": "^1.0",
         "liberusoftware/module-control-panel-control-core-livewire": "^1.0",
+        "liberusoftware/module-control-panel-accounts": "^1.0",
         "liberusoftware/theme-clear-signal": "^1.0",
         "liberusoftware/theme-dark": "^1.0",
         "liberusoftware/theme-default": "^1.0",
