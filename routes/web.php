@@ -1,29 +1,24 @@
 <?php
 
-use Illuminate\Session\Middleware\AuthenticateSession;
+use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Route;
-use Laravel\Jetstream\Http\Controllers\TeamInvitationController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
+Route::get('/', function () {
+    return view('welcome');
+});
 
-// Load health check routes (no authentication required)
-require __DIR__.'/health.php';
+// Authenticated home — super admins land in the "admin" panel, everyone else in
+// the user-facing "app" panel.
+Route::get('/dashboard', function () {
+    $user = auth()->user();
 
-Route::get('/', fn () => view('welcome'));
+    if ($user instanceof User && $user->isSuperAdmin()) {
+        $panel = Filament::getPanel('admin');
+        $tenant = $user->getDefaultTenant($panel);
 
-Route::redirect('/dashboard', '/app')->name('dashboard');
+        return redirect($tenant !== null ? $panel->getUrl($tenant) : '/'.$panel->getPath());
+    }
 
-Route::get('/team-invitations/{invitation}', [TeamInvitationController::class, 'accept'])
-    ->middleware(['signed', 'verified', 'auth', AuthenticateSession::class])
-    ->name('team-invitations.accept');
-// Socialstream OAuth routes
-require __DIR__.'/socialstream.php';
+    return redirect()->route('filament.app.pages.dashboard');
+})->middleware(['auth:sanctum', config('jetstream.auth_session')])->name('dashboard');

@@ -4,9 +4,8 @@ kind: Kustomization
 resources:
 - ../../base
 - hpa.yaml
-- hpa-queue.yaml
 
-namespace: control-panel
+namespace: boilerplate-laravel
 
 patches:
 - patch: |-
@@ -15,10 +14,10 @@ patches:
       value: 3
   target:
     kind: Deployment
-    name: control-panel
+    name: boilerplate-laravel
 
 configMapGenerator:
-- name: control-panel-config
+- name: boilerplate-config
   behavior: merge
   literals:
   - APP_ENV=production
@@ -26,5 +25,5 @@ configMapGenerator:
   - LOG_LEVEL=warning
 
 images:
-- name: ghcr.io/liberu-control-panel/control-panel-laravel
+- name: ghcr.io/liberusoftware/boilerplate-laravel
   newTag: latest

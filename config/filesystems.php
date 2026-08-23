@@ -9,7 +9,7 @@ return [
     |
     | Here you may specify the default filesystem disk that should be used
     | by the framework. The "local" disk, as well as a variety of cloud
-    | based disks are available to your application. Just store away!
+    | based disks are available to your application for file storage.
     |
     */
 
@@ -20,11 +20,11 @@ return [
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |
-    | Here you may configure as many filesystem "disks" as you wish, and you
-    | may even configure multiple disks of the same driver. Defaults have
-    | been set up for each driver as an example of the required values.
+    | Below you may configure as many filesystem disks as necessary, and you
+    | may even configure multiple disks for the same driver. Examples for
+    | most supported storage drivers are configured here for reference.
     |
-    | Supported Drivers: "local", "ftp", "sftp", "s3"
+    | Supported drivers: "local", "ftp", "sftp", "s3"
     |
     */
 
@@ -32,22 +32,19 @@ return [
 
         'local' => [
             'driver' => 'local',
-            'root' => storage_path('app'),
+            'root' => storage_path('app/private'),
+            'serve' => true,
             'throw' => false,
+            'report' => false,
         ],
 
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
-        ],
-
-        'backups' => [
-            'driver' => 'local',
-            'root' => storage_path('app/backups'),
-            'throw' => false,
+            'report' => false,
         ],
 
         's3' => [
@@ -60,32 +57,7 @@ return [
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
             'throw' => false,
-        ],
-
-        'ftp' => [
-            'driver' => 'ftp',
-            'host' => env('FTP_HOST'),
-            'username' => env('FTP_USERNAME'),
-            'password' => env('FTP_PASSWORD'),
-            'port' => env('FTP_PORT', 21),
-            'root' => env('FTP_ROOT', '/'),
-            'passive' => env('FTP_PASSIVE', true),
-            'ssl' => env('FTP_SSL', false),
-            'timeout' => env('FTP_TIMEOUT', 30),
-            'throw' => false,
-        ],
-
-        'sftp' => [
-            'driver' => 'sftp',
-            'host' => env('SFTP_HOST'),
-            'username' => env('SFTP_USERNAME'),
-            'password' => env('SFTP_PASSWORD'),
-            'privateKey' => env('SFTP_PRIVATE_KEY'),
-            'passphrase' => env('SFTP_PASSPHRASE'),
-            'port' => env('SFTP_PORT', 22),
-            'root' => env('SFTP_ROOT', '/'),
-            'timeout' => env('SFTP_TIMEOUT', 30),
-            'throw' => false,
+            'report' => false,
         ],
 
     ],

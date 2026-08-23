@@ -27,8 +27,7 @@ RUN composer install \
     --no-ansi \
     --no-scripts \
     --prefer-dist \
-    --ignore-platform-req=ext-pcntl \
-    --ignore-platform-req=ext-ftp
+    --ignore-platform-req=ext-pcntl
 
 ###########################################
 # Main application stage
@@ -133,11 +132,9 @@ COPY --chown=${USER}:${USER} composer.json composer.lock ./
 # Copy application code first so autoloader can resolve all files
 COPY --chown=${USER}:${USER} . .
 
-# Ensure composer cache dir is writable for non-root user and generate optimized autoloader
-ENV COMPOSER_CACHE_DIR=/tmp/composer-cache
-RUN mkdir -p ${COMPOSER_CACHE_DIR} && chmod -R 0777 ${COMPOSER_CACHE_DIR} && \
-    composer dump-autoload --classmap-authoritative --no-dev && \
-    composer clear-cache || true
+# Generate optimized autoloader now that all app files are present
+RUN composer dump-autoload --classmap-authoritative --no-dev && \
+    composer clear-cache
 
 # Create necessary Laravel directories
 RUN mkdir -p \

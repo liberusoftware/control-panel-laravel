@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: control-panel
+  name: boilerplate-laravel
   labels:
-    name: control-panel
-    app: liberu-control-panel
+    name: boilerplate-laravel
+    app: liberu-boilerplate

@@ -1,35 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: control-panel-queue
-  namespace: control-panel
+  name: boilerplate-queue
+  namespace: boilerplate-laravel
   labels:
-    app: control-panel
+    app: boilerplate-laravel
     component: queue
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: control-panel
+      app: boilerplate-laravel
       component: queue
   template:
     metadata:
       labels:
-        app: control-panel
+        app: boilerplate-laravel
         component: queue
     spec:
       containers:
       - name: queue-worker
-        image: ghcr.io/liberu-control-panel/control-panel-laravel:latest
+        image: ghcr.io/liberusoftware/boilerplate-laravel:latest
         command:
         - php
         - artisan
         - horizon
         envFrom:
         - configMapRef:
-            name: control-panel-config
+            name: boilerplate-config
         - secretRef:
-            name: control-panel-secrets
+            name: boilerplate-secrets
         resources:
           requests:
             memory: "128Mi"
@@ -78,10 +78,10 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: control-panel-scheduler
-  namespace: control-panel
+  name: boilerplate-scheduler
+  namespace: boilerplate-laravel
   labels:
-    app: control-panel
+    app: boilerplate-laravel
     component: scheduler
 spec:
   schedule: "* * * * *"
@@ -93,22 +93,22 @@ spec:
       template:
         metadata:
           labels:
-            app: control-panel
+            app: boilerplate-laravel
             component: scheduler
         spec:
           restartPolicy: OnFailure
           containers:
           - name: scheduler
-            image: ghcr.io/liberu-control-panel/control-panel-laravel:latest
+            image: ghcr.io/liberusoftware/boilerplate-laravel:latest
             command:
             - php
             - artisan
             - schedule:run
             envFrom:
             - configMapRef:
-                name: control-panel-config
+                name: boilerplate-config
             - secretRef:
-                name: control-panel-secrets
+                name: boilerplate-secrets
             resources:
               requests:
                 memory: "64Mi"

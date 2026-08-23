@@ -4,49 +4,25 @@ kind: Kustomization
 resources:
 - ../../base
 
-namespace: control-panel-dev
+namespace: boilerplate-dev
 
 patches:
-# Single replica for web app in dev
 - patch: |-
     - op: replace
       path: /spec/replicas
       value: 1
   target:
     kind: Deployment
-    name: control-panel
-# Single queue worker in dev
-- patch: |-
-    - op: replace
-      path: /spec/replicas
-      value: 1
-  target:
-    kind: Deployment
-    name: control-panel-queue
-# Relax resource limits for dev
-- patch: |-
-    - op: replace
-      path: /spec/template/spec/containers/0/resources
-      value:
-        requests:
-          memory: "128Mi"
-          cpu: "100m"
-        limits:
-          memory: "512Mi"
-          cpu: "500m"
-  target:
-    kind: Deployment
-    name: control-panel
+    name: boilerplate-laravel
 
 configMapGenerator:
-- name: control-panel-config
+- name: boilerplate-config
   behavior: merge
   literals:
-  - APP_ENV=local
+  - APP_ENV=development
   - APP_DEBUG=true
   - LOG_LEVEL=debug
-  - MODULES_CACHE=false
 
 images:
-- name: ghcr.io/liberu-control-panel/control-panel-laravel
+- name: ghcr.io/liberusoftware/boilerplate-laravel
   newTag: develop

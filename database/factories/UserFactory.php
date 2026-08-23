@@ -2,17 +2,24 @@
 
 namespace Database\Factories;
 
-use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
+use JoelButcher\Socialstream\Providers;
 use Laravel\Jetstream\Features as JetstreamFeatures;
+use Liberu\Foundation\Identity\Socialstream\Models\ConnectedAccount;
+use Liberu\Foundation\Organizations\Models\Team;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
     public function definition(): array
     {
         return [
@@ -28,6 +35,9 @@ class UserFactory extends Factory
         ];
     }
 
+    /**
+     * Indicate that the model's email address should be unverified.
+     */
     public function unverified(): static
     {
         return $this->state(fn (array $attributes) => [
@@ -35,7 +45,10 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function withPersonalTeam(callable $callback = null): static
+    /**
+     * Indicate that the user should have a personal team.
+     */
+    public function withPersonalTeam(?callable $callback = null): static
     {
         if (! JetstreamFeatures::hasTeamFeatures()) {
             return $this->state([]);
@@ -48,10 +61,27 @@ class UserFactory extends Factory
                     'user_id' => $user->id,
                     'personal_team' => true,
                 ])
-                ->when(is_callable($callback), $callback)
-                ->afterCreating(function (Team $team, User $user) {
-                    $user->forceFill(['current_team_id' => $team->id])->save();
-                }),
+                ->when(is_callable($callback), $callback),
+            'ownedTeams'
+        );
+    }
+
+    /**
+     * Indicate that the user should have a connected account for the given provider.
+     */
+    public function withConnectedAccount(string $provider, ?callable $callback = null): static
+    {
+        if (! Providers::enabled($provider)) {
+            return $this->state([]);
+        }
+
+        return $this->has(
+            ConnectedAccount::factory()
+                ->state(fn (array $attributes, User $user) => [
+                    'provider' => $provider,
+                    'user_id' => $user->id,
+                ])
+                ->when(is_callable($callback), $callback),
             'ownedTeams'
         );
     }

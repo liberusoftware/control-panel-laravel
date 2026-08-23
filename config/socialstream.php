@@ -4,25 +4,20 @@ use JoelButcher\Socialstream\Features;
 use JoelButcher\Socialstream\Providers;
 
 return [
-    'guard' => 'web',
+    'guard' => 'web', // used if Fortify is not installed
     'middleware' => ['web'],
     'prompt' => 'Or Login Via',
     'providers' => [
-        Providers::bitbucket(),
-        Providers::facebook(),
         Providers::github(),
-        Providers::gitlab(),
         Providers::google(),
-        Providers::linkedin(),
-        Providers::linkedinOpenId(),
-        Providers::slack(),
+        Providers::facebook(),
         Providers::twitterOAuth2(),
     ],
     'features' => [
         // Features::generateMissingEmails(),
-        Features::createAccountOnFirstLogin(),
-        Features::globalLogin(),
-        Features::authExistingUnlinkedUsers(),
+        // Features::createAccountOnFirstLogin(),
+        // Features::globalLogin(),
+        // Features::authExistingUnlinkedUsers(),
         Features::rememberSession(),
         Features::providerAvatars(),
         Features::refreshOAuthTokens(),

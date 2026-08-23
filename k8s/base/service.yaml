@@ -1,23 +1,21 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: control-panel
-  namespace: control-panel
+  name: boilerplate-laravel
+  namespace: boilerplate-laravel
   labels:
-    app: control-panel
-    component: application
+    app: boilerplate-laravel
 spec:
   type: ClusterIP
-  # Session affinity for consistent load balancing
   sessionAffinity: ClientIP
   sessionAffinityConfig:
     clientIP:
-      timeoutSeconds: 10800  # 3 hours
+      timeoutSeconds: 10800
   ports:
   - port: 80
-    targetPort: 80
+    targetPort: 8000
     protocol: TCP
     name: http
   selector:
-    app: control-panel
+    app: boilerplate-laravel
     component: application

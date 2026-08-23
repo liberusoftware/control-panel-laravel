@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: control-panel
-  namespace: control-panel
+  name: boilerplate-laravel
+  namespace: boilerplate-laravel
   labels:
-    app: control-panel
+    app: boilerplate-laravel
     component: application
 spec:
   replicas: 2
@@ -15,52 +15,39 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: control-panel
+      app: boilerplate-laravel
       component: application
   template:
     metadata:
       labels:
-        app: control-panel
+        app: boilerplate-laravel
         component: application
     spec:
       initContainers:
       - name: wait-for-mysql
-        image: busybox:1.35
-        command:
-        - sh
-        - -c
-        - |
-          until nc -z control-panel-mysql 3306; do
-            echo "Waiting for MySQL..."
-            sleep 2
-          done
-          echo "MySQL is ready!"
+        image: busybox:1.36
+        command: ["sh", "-c", "until nc -z boilerplate-mysql 3306; do echo 'Waiting for MySQL...'; sleep 2; done"]
       - name: migrations
-        image: ghcr.io/liberu-control-panel/control-panel-laravel:latest
-        command:
-        - sh
-        - -c
-        - |
-          php artisan migrate --force
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
+        image: ghcr.io/liberusoftware/boilerplate-laravel:latest
+        command: ["sh", "-c", "php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache"]
         envFrom:
         - configMapRef:
-            name: control-panel-config
+            name: boilerplate-config
         - secretRef:
-            name: control-panel-secrets
+            name: boilerplate-secrets
       containers:
-      - name: php-fpm
-        image: ghcr.io/liberu-control-panel/control-panel-laravel:latest
+      - name: app
+        image: ghcr.io/liberusoftware/boilerplate-laravel:latest
         ports:
-        - containerPort: 9000
-          name: php-fpm
+        - containerPort: 8000
+          name: http
+        - containerPort: 6001
+          name: rpc
         envFrom:
         - configMapRef:
-            name: control-panel-config
+            name: boilerplate-config
         - secretRef:
-            name: control-panel-secrets
+            name: boilerplate-secrets
         volumeMounts:
         - name: storage
           mountPath: /var/www/html/storage
@@ -75,97 +62,36 @@ spec:
             cpu: "1000m"
         startupProbe:
           httpGet:
-            path: /health/startup
-            port: 80
-            httpHeaders:
-            - name: X-Forwarded-Proto
-              value: https
+            path: /up
+            port: 8000
           initialDelaySeconds: 10
           periodSeconds: 5
-          timeoutSeconds: 3
           failureThreshold: 30
         livenessProbe:
           httpGet:
-            path: /health/live
-            port: 80
-            httpHeaders:
-            - name: X-Forwarded-Proto
-              value: https
+            path: /up
+            port: 8000
           initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 5
           failureThreshold: 3
         readinessProbe:
           httpGet:
-            path: /health/ready
-            port: 80
-            httpHeaders:
-            - name: X-Forwarded-Proto
-              value: https
+            path: /up
+            port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5
-          timeoutSeconds: 3
           failureThreshold: 3
-          successThreshold: 1
         securityContext:
           runAsNonRoot: true
           runAsUser: 1000
           allowPrivilegeEscalation: false
           capabilities:
-            drop:
-            - ALL
-      - name: nginx
-        image: nginx:1.25-alpine
-        ports:
-        - containerPort: 80
-          name: http
-        volumeMounts:
-        - name: nginx-config
-          mountPath: /etc/nginx/conf.d
-        - name: storage
-          mountPath: /var/www/html/storage
-          readOnly: true
-        - name: public
-          mountPath: /var/www/html/public
-          readOnly: true
-        resources:
-          requests:
-            memory: "64Mi"
-            cpu: "50m"
-          limits:
-            memory: "256Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 80
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 101
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-            add:
-            - NET_BIND_SERVICE
+            drop: [ALL]
       volumes:
       - name: storage
         persistentVolumeClaim:
-          claimName: control-panel-storage
+          claimName: boilerplate-storage
       - name: cache
         emptyDir: {}
-      - name: public
-        emptyDir: {}
-      - name: nginx-config
-        configMap:
-          name: control-panel-nginx-config
       securityContext:
         fsGroup: 1000

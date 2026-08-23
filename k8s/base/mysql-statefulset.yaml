@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: control-panel-mysql
-  namespace: control-panel
+  name: boilerplate-mysql
+  namespace: boilerplate-laravel
   labels:
-    app: control-panel
-    component: database
+    app: boilerplate-laravel
+    component: mysql
 spec:
-  serviceName: control-panel-mysql
+  serviceName: boilerplate-mysql
   replicas: 1
   selector:
     matchLabels:
-      app: control-panel
-      component: database
+      app: boilerplate-laravel
+      component: mysql
   template:
     metadata:
       labels:
-        app: control-panel
-        component: database
+        app: boilerplate-laravel
+        component: mysql
     spec:
       containers:
       - name: mysql
@@ -26,63 +26,69 @@ spec:
         - containerPort: 3306
           name: mysql
         env:
-        - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: control-panel-secrets
-              key: DB_ROOT_PASSWORD
         - name: MYSQL_DATABASE
           valueFrom:
             configMapKeyRef:
-              name: control-panel-config
+              name: boilerplate-config
               key: DB_DATABASE
         - name: MYSQL_USER
           valueFrom:
             secretKeyRef:
-              name: control-panel-secrets
+              name: boilerplate-secrets
               key: DB_USERNAME
         - name: MYSQL_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: control-panel-secrets
+              name: boilerplate-secrets
               key: DB_PASSWORD
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: boilerplate-secrets
+              key: DB_ROOT_PASSWORD
         volumeMounts:
         - name: mysql-data
           mountPath: /var/lib/mysql
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "250m"
+            memory: "256Mi"
+            cpu: "200m"
           limits:
-            memory: "2Gi"
+            memory: "1Gi"
             cpu: "1000m"
         livenessProbe:
           exec:
-            command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
+            command: [mysqladmin, ping, -h, localhost]
           initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 5
         readinessProbe:
           exec:
-            command:
-            - mysqladmin
-            - ping
-            - -h
-            - localhost
+            command: [mysqladmin, ping, -h, localhost]
           initialDelaySeconds: 5
           periodSeconds: 5
-          timeoutSeconds: 1
   volumeClaimTemplates:
   - metadata:
       name: mysql-data
     spec:
-      accessModes:
-        - ReadWriteOnce
+      accessModes: [ReadWriteOnce]
       resources:
         requests:
           storage: 20Gi
-      storageClassName: standard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: boilerplate-mysql
+  namespace: boilerplate-laravel
+  labels:
+    app: boilerplate-laravel
+    component: mysql
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3306
+    targetPort: 3306
+    protocol: TCP
+  selector:
+    app: boilerplate-laravel
+    component: mysql
