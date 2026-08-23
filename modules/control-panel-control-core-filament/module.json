@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-control-core-filament",
+  "display_name": "Control Panel Control Core Filament",
+  "description": "Filament 5 operational surfaces for Control Core.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\ControlCoreFilament\\ControlCoreFilamentServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-control-core": "^1.0"}},
+  "capabilities": ["control-panel.control-core.filament"],
+  "features": ["Node operations resource", "Capability inventory table"],
+  "default_enabled": false,
+  "presentation": {"filament": {"admin": ["Liberu\\ControlPanel\\ControlCoreFilament\\ControlCoreFilamentPlugin"], "app": []}}
+}

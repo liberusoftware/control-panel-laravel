@@ -1,15 +1,24 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "liberusoftware/boilerplate-laravel",
+    "name": "liberusoftware/control-panel-laravel",
     "type": "project",
-    "description": "Liberu boilerplate Laravel application.",
+    "description": "Liberu Control Panel Laravel application for hosting and infrastructure operations.",
     "keywords": [
         "laravel",
         "framework",
-        "boilerplate"
+        "control-panel",
+        "hosting",
+        "infrastructure"
     ],
     "license": "MIT",
     "repositories": [
+        {
+            "type": "path",
+            "url": "modules/*",
+            "options": {
+                "symlink": false
+            }
+        },
         {
             "type": "vcs",
             "url": "https://github.com/liberusoftware/composer-installer.git"
@@ -258,6 +267,10 @@
         "liberusoftware/settings": "^1.0",
         "liberusoftware/settings-filament": "^1.0",
         "liberusoftware/theme-base": "^2.0",
+        "liberusoftware/module-control-panel-control-core": "^1.0",
+        "liberusoftware/module-control-panel-control-core-api": "^1.0",
+        "liberusoftware/module-control-panel-control-core-filament": "^1.0",
+        "liberusoftware/module-control-panel-control-core-livewire": "^1.0",
         "liberusoftware/theme-clear-signal": "^1.0",
         "liberusoftware/theme-dark": "^1.0",
         "liberusoftware/theme-default": "^1.0",

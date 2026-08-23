@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-control-core-api",
+  "display_name": "Control Panel Control Core API",
+  "description": "Authenticated HTTP transport for Control Core.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\ControlCoreApi\\ControlCoreApiServiceProvider",
+  "requires": {
+    "php": "^8.5",
+    "laravel": "^13.0",
+    "packages": {"liberusoftware/module-control-panel-control-core": "^1.0"}
+  },
+  "capabilities": ["control-panel.control-core.api"],
+  "features": ["Authenticated node listing", "Node registration endpoint"],
+  "default_enabled": false
+}

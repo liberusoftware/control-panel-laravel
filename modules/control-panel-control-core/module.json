@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-control-core",
+  "display_name": "Control Panel Control Core",
+  "description": "Nodes, capabilities, credentials, inventory and safe operation coordination.",
+  "version": "1.0.0",
+  "category": "capability",
+  "provider": "Liberu\\ControlPanel\\ControlCore\\ControlCoreServiceProvider",
+  "requires": {
+    "php": "^8.5",
+    "laravel": "^13.0",
+    "packages": {
+      "liberusoftware/module-manager": "^1.0"
+    }
+  },
+  "capabilities": [
+    "control-panel.control-core"
+  ],
+  "features": [
+    "Node lifecycle and capability inventory",
+    "Encrypted node credentials",
+    "Desired and observed state",
+    "Idempotent operation locks"
+  ],
+  "default_enabled": false
+}

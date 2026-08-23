@@ -1,0 +1,26 @@
+openapi: 3.1.0
+info:
+  title: Control Panel Control Core API
+  version: 1.0.0
+paths:
+  /api/v1/control-panel/control-core/nodes:
+    get:
+      operationId: control.panel.control.core.nodes.list
+      security:
+        - sanctum: []
+      responses:
+        '200':
+          description: Authorized node collection.
+    post:
+      operationId: control.panel.control.core.nodes.create
+      security:
+        - sanctum: []
+      responses:
+        '201':
+          description: Node registered.
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum

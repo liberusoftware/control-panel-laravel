@@ -1,14 +1,14 @@
-# Liberu Boilerplate
+# Liberu Control Panel
 
-> Production-ready Laravel foundation for modular, single-tenant and multi-tenant applications.
+> Production-ready Laravel control panel for hosting, infrastructure, and operations.
 
 [Software](https://liberusoftware.com) · [Hosting](https://liberuhosting.com) · [Services](https://liberuservices.com) · [Liberu Group](https://liberugroup.com)
 
 [![PHP](https://img.shields.io/badge/PHP-8.5-777BB4?logo=php&logoColor=white)](https://www.php.net/) [![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/) [![Filament](https://img.shields.io/badge/Filament-5-FDAE4B)](https://filamentphp.com/) [![Livewire](https://img.shields.io/badge/Livewire-4-FB70A9)](https://livewire.laravel.com/)
 
-[![Install](https://github.com/liberusoftware/boilerplate-laravel/actions/workflows/install.yml/badge.svg?branch=main)](https://github.com/liberusoftware/boilerplate-laravel/actions/workflows/install.yml) [![Tests](https://github.com/liberusoftware/boilerplate-laravel/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/liberusoftware/boilerplate-laravel/actions/workflows/tests.yml) [![Docker](https://github.com/liberusoftware/boilerplate-laravel/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/liberusoftware/boilerplate-laravel/actions/workflows/docker.yml) [![Codecov](https://codecov.io/gh/liberusoftware/boilerplate-laravel/branch/main/graph/badge.svg)](https://codecov.io/gh/liberusoftware/boilerplate-laravel) [![Latest release](https://img.shields.io/github/v/release/liberusoftware/boilerplate-laravel?sort=semver)](https://github.com/liberusoftware/boilerplate-laravel/releases/latest) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
+[![Install](https://github.com/liberusoftware/control-panel-laravel/actions/workflows/install.yml/badge.svg?branch=main)](https://github.com/liberusoftware/control-panel-laravel/actions/workflows/install.yml) [![Tests](https://github.com/liberusoftware/control-panel-laravel/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/liberusoftware/control-panel-laravel/actions/workflows/tests.yml) [![Docker](https://github.com/liberusoftware/control-panel-laravel/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/liberusoftware/control-panel-laravel/actions/workflows/docker.yml) [![Codecov](https://codecov.io/gh/liberusoftware/control-panel-laravel/branch/main/graph/badge.svg)](https://codecov.io/gh/liberusoftware/control-panel-laravel) [![Latest release](https://img.shields.io/github/v/release/liberusoftware/control-panel-laravel?sort=semver)](https://github.com/liberusoftware/control-panel-laravel/releases/latest) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.md)
 
-Liberu Boilerplate is the deployable reference host for the Liberu Composer ecosystem. It combines independently released capability, presentation, and theme packages while keeping application bootstrapping, environment configuration, panel composition, and cross-package tests in one place.
+Liberu Control Panel is the deployable application for managing hosting and infrastructure operations. It combines independently released capability, API, Filament, Livewire, and theme packages while keeping application bootstrapping, environment configuration, panel composition, and cross-package tests in one place.
 
 ## Key features
 
@@ -20,6 +20,8 @@ Liberu Boilerplate is the deployable reference host for the Liberu Composer ecos
 - Independently versioned modules installed into tracked `/modules` directories
 - Independently versioned themes installed into tracked `/themes` directories with inheritance and safe fallback
 - Architecture tests for manifests, dependency direction, package ownership, and presentation boundaries
+- Control Core for nodes, capabilities, credentials, inventory, desired state, and safe operation coordination
+- Hosting operations for web services, DNS, mail, databases, files, backups, security, monitoring, containers, and Kubernetes
 
 ## Requirements
 
@@ -36,8 +38,8 @@ Liberu Boilerplate is the deployable reference host for the Liberu Composer ecos
 ## Quick start
 
 ```bash
-git clone https://github.com/liberusoftware/boilerplate-laravel.git
-cd boilerplate-laravel
+git clone https://github.com/liberusoftware/control-panel-laravel.git
+cd control-panel-laravel
 composer install
 cp .env.example .env
 php artisan key:generate
@@ -126,7 +128,7 @@ The test suite exercises application behaviour and every installed module provid
 
 The publishing helper derives repository names from directory names, using
 `module-` for entries in `modules/` and `theme-` for entries in `themes/`. It
-also handles this complete meta repository as `boilerplate-laravel`.
+also handles this complete application repository as `control-panel-laravel`.
 
 ```bash
 # Inspect all mappings without changing GitHub
@@ -179,7 +181,6 @@ API failures without printing the configured token.
 | Accounting | [liberusoftware/accounting-erp-laravel](https://github.com/liberusoftware/accounting-erp-laravel) | Ledgers, banking, tax, expenses, close, and reporting |
 | Automation | [liberusoftware/automation-laravel](https://github.com/liberusoftware/automation-laravel) | Governed workflows, provider-neutral AI, approvals, and connectors |
 | Billing | [liberusoftware/billing-laravel](https://github.com/liberusoftware/billing-laravel) | Billing, subscriptions, payments, invoices, and revenue operations |
-| Boilerplate | [liberusoftware/boilerplate-laravel](https://github.com/liberusoftware/boilerplate-laravel) | Modular Laravel foundation and reference implementation |
 | Browser game | [liberusoftware/browser-game-laravel](https://github.com/liberusoftware/browser-game-laravel) | Browser-based game platform and domain capabilities |
 | CMS | [liberusoftware/cms-laravel](https://github.com/liberusoftware/cms-laravel) | Content, publishing, pages, media, search, and delivery |
 | Control panel | [liberusoftware/control-panel-laravel](https://github.com/liberusoftware/control-panel-laravel) | Hosting, infrastructure, DNS, mail, backups, and operations |
@@ -204,4 +205,4 @@ Feedback and contributions are welcome. Report reproducible bugs, propose focuse
 
 ## Contributors
 
-Thank you to everyone who helps improve Liberu. [View the contributors graph](https://github.com/liberusoftware/boilerplate-laravel/graphs/contributors).
+Thank you to everyone who helps improve Liberu. [View the contributors graph](https://github.com/liberusoftware/control-panel-laravel/graphs/contributors).
