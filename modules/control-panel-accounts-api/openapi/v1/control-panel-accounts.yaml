@@ -1,0 +1,33 @@
+openapi: 3.1.0
+info:
+  title: Control Panel Accounts API
+  version: 1.0.0
+paths:
+  /api/v1/control-panel/accounts:
+    get:
+      operationId: control.panel.accounts.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Authorized account collection.}}
+    post:
+      operationId: control.panel.accounts.create
+      security: [{sanctum: []}]
+      parameters: [{name: Idempotency-Key, in: header, required: true, schema: {type: string}}]
+      responses: {'201': {description: Account created.}}
+  /api/v1/control-panel/accounts/{account}/suspend:
+    post:
+      operationId: control.panel.accounts.suspend
+      security: [{sanctum: []}]
+      responses: {'200': {description: Account suspended.}}
+  /api/v1/control-panel/accounts/{account}/delegations:
+    post:
+      operationId: control.panel.accounts.delegate
+      security: [{sanctum: []}]
+      responses: {'201': {description: Delegation created.}}
+  /api/v1/control-panel/accounts/{account}/branding:
+    patch:
+      operationId: control.panel.accounts.branding.update
+      security: [{sanctum: []}]
+      responses: {'200': {description: Branding updated.}}
+components:
+  securitySchemes:
+    sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

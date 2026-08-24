@@ -8,7 +8,10 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Accounts\AccountsServiceProvider;
 use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
+use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
+use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
+use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
 use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
 use Liberu\ControlPanel\Accounts\Events\AccountSuspended;
 use Liberu\ControlPanel\Accounts\Services\QuotaGuard;
@@ -55,5 +58,18 @@ it('rejects quota usage above the account limit', function (): void {
     ]);
 
     expect(fn () => app(QuotaGuard::class)->assertWithinQuota($account, ['websites' => 3]))
+        ->toThrow(ValidationException::class);
+});
+
+it('supports packages, delegation, and validated branding', function (): void {
+    $account = app(CreateAccount::class)->execute(['team_id' => 'team-1', 'owner_id' => 'user-1', 'name' => 'Customer']);
+    $package = app(CreateHostingPackage::class)->execute(['team_id' => 'team-1', 'name' => 'Starter', 'limits' => ['sites' => 1]]);
+    $delegation = app(DelegateAccount::class)->execute($account, ['delegate_id' => 'user-2', 'permissions' => ['view' => true]]);
+    $updated = app(UpdateBranding::class)->execute($account, ['name' => 'Customer Brand', 'primary_color' => '#336699']);
+
+    expect($package->limits)->toMatchArray(['sites' => 1])
+        ->and($delegation->delegate_id)->toBe('user-2')
+        ->and($updated->brand)->toMatchArray(['primary_color' => '#336699']);
+    expect(fn () => app(UpdateBranding::class)->execute($account, ['logo_url' => 'not-a-url']))
         ->toThrow(ValidationException::class);
 });
