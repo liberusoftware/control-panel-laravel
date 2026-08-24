@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-files",
+  "display_name": "Control Panel Files",
+  "description": "Home directories, permissions, SFTP, file operations, quotas, scanning, and retention.",
+  "version": "1.0.0",
+  "category": "capability",
+  "provider": "Liberu\\ControlPanel\\Files\\FilesServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-manager": "^1.0"}},
+  "capabilities": ["control-panel.files"],
+  "features": ["File records", "Quota accounting", "Scan state", "Retention state"],
+  "default_enabled": false
+}

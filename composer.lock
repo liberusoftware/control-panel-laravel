@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "213476c0a743532378bffa71df7efbb0",
+    "content-hash": "f3a8088c2f9f35f49ce0085901f2f651",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -7136,6 +7136,42 @@
                 "MIT"
             ],
             "description": "Livewire adapter for Control Panel DNS.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-files",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-files",
+                "reference": "c3db505c9797b134f9917f035715937624bc0532"
+            },
+            "require": {
+                "illuminate/database": "^13.0",
+                "illuminate/events": "^13.0",
+                "illuminate/support": "^13.0",
+                "illuminate/validation": "^13.0",
+                "liberusoftware/module-manager": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-files"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\Files\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Provider-neutral file records, quotas, scanning, and retention for Liberu Control Panel.",
             "transport-options": {
                 "symlink": false,
                 "relative": true
