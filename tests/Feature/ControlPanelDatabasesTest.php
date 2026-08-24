@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabase;
+use Liberu\ControlPanel\Databases\Actions\CreateDatabaseUser;
+use Liberu\ControlPanel\Databases\Actions\GrantDatabasePrivilege;
 use Liberu\ControlPanel\Databases\DatabasesServiceProvider;
 use Liberu\ControlPanel\Databases\Enums\DatabaseStatus;
 use Liberu\ControlPanel\Databases\Events\DatabaseCreated;
@@ -44,4 +46,17 @@ it('rejects archived database activation and missing identity', function (): voi
 
     expect(fn () => app(ActivateDatabase::class)->execute($database))->toThrow(ValidationException::class)
         ->and(fn () => app(CreateDatabase::class)->execute(['name' => 'missing-engine']))->toThrow(ValidationException::class);
+});
+
+it('stores encrypted database credentials and allow-listed privileges', function (): void {
+    $engine = DatabaseEngine::query()->firstOrFail();
+    $database = app(CreateDatabase::class)->execute(['team_id' => 'team-1', 'engine_id' => $engine->getKey(), 'name' => 'customer_app']);
+    $user = app(CreateDatabaseUser::class)->execute($database, ['username' => 'app_user', 'password' => 'a-very-long-secret-password']);
+    $privilege = app(GrantDatabasePrivilege::class)->execute($user, 'SELECT', 'customer_data.*');
+
+    expect($user->password)->toBe('a-very-long-secret-password')
+        ->and($user->toArray())->not->toHaveKey('password')
+        ->and($privilege->privilege)->toBe('select');
+    expect(fn () => app(GrantDatabasePrivilege::class)->execute($user, 'drop', '*'))
+        ->toThrow(ValidationException::class);
 });
