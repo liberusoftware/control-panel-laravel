@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-files-api",
+  "display_name": "Control Panel Files API",
+  "description": "Authenticated HTTP transport for safe file records and scan state.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\FilesApi\\FilesApiServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-files": "^1.0"}},
+  "capabilities": ["control-panel.files.api"],
+  "features": ["File listing", "File registration"],
+  "default_enabled": false
+}

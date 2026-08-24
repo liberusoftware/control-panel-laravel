@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-files-filament",
+  "display_name": "Control Panel Files Filament",
+  "description": "Filament panel boundary for safe file administration.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\FilesFilament\\FilesFilamentServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-files": "^1.0"}},
+  "capabilities": ["control-panel.files.filament"],
+  "features": ["File administration"],
+  "default_enabled": false
+}

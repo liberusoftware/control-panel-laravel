@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: Control Panel Files API
+  version: 1.0.0
+paths:
+  /api/v1/control-panel/files:
+    get:
+      operationId: control.panel.files.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Authorized paginated file records}}
+    post:
+      operationId: control.panel.files.create
+      security: [{sanctum: []}]
+      responses: {'201': {description: File record created}}
+components:
+  securitySchemes:
+    sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}
