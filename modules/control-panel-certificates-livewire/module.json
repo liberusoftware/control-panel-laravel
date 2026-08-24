@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-certificates-livewire",
+  "display_name": "Control Panel Certificates Livewire",
+  "description": "Livewire certificate inventory for the control panel.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\CertificatesLivewire\\CertificatesLivewireServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-certificates": "^1.0"}},
+  "capabilities": ["control-panel.certificates.livewire"],
+  "features": ["Certificate inventory"],
+  "default_enabled": false
+}

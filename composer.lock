@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "59b4390deeda5f1abf419e2f0896b6e9",
+    "content-hash": "39e60dd5092831d2fa3d6be812a315e1",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -6469,6 +6469,109 @@
                 "MIT"
             ],
             "description": "Provider-neutral certificate issuance and lifecycle for Liberu Control Panel.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-certificates-api",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-certificates-api",
+                "reference": "275fcdfe857394cbf042ac013238d7d9b1669af7"
+            },
+            "require": {
+                "illuminate/http": "^13.0",
+                "illuminate/routing": "^13.0",
+                "liberusoftware/module-control-panel-certificates": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-certificates-api"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\CertificatesApi\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Authenticated API adapter for Control Panel Certificates.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-certificates-filament",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-certificates-filament",
+                "reference": "d073b0db063aff72eb545bd1d349ee4199e7f84a"
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "liberusoftware/module-control-panel-certificates": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-certificates-filament",
+                    "filament": {
+                        "plugin": "Liberu\\ControlPanel\\CertificatesFilament\\CertificatesFilamentPlugin"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\CertificatesFilament\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament adapter for Control Panel Certificates.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-certificates-livewire",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-certificates-livewire",
+                "reference": "e00e28d3185f5083e3ec83dae83fcc82aba85f72"
+            },
+            "require": {
+                "liberusoftware/module-control-panel-certificates": "^1.0",
+                "livewire/livewire": "^4.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-certificates-livewire"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\CertificatesLivewire\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Livewire adapter for Control Panel Certificates.",
             "transport-options": {
                 "symlink": false,
                 "relative": true

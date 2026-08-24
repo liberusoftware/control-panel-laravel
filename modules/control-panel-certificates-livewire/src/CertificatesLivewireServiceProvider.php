@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Liberu\ControlPanel\CertificatesLivewire;
+
+use Illuminate\Support\ServiceProvider;
+use Liberu\ControlPanel\CertificatesLivewire\Components\CertificateInventory;
+use Livewire\Livewire;
+
+final class CertificatesLivewireServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'control-panel-certificates-livewire');
+        Livewire::component('module-control-panel-certificates::certificate-inventory', CertificateInventory::class);
+    }
+}

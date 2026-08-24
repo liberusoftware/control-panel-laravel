@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: Control Panel Certificates API
+  version: 1.0.0
+paths:
+  /api/v1/control-panel/certificates:
+    get:
+      operationId: control.panel.certificates.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Authorized paginated certificates}}
+    post:
+      operationId: control.panel.certificates.create
+      security: [{sanctum: []}]
+      responses: {'201': {description: Certificate issued}}
+components:
+  securitySchemes:
+    sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}
