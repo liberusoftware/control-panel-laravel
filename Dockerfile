@@ -19,6 +19,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy composer files
 COPY composer.json composer.lock ./
 
+# The application owns its module and theme packages through Composer path
+# repositories. They must be present in this dependency stage so a clean Docker
+# build resolves the locked package graph without relying on a developer checkout.
+COPY modules ./modules
+COPY themes ./themes
+
 # Install composer dependencies (no autoloader yet, will optimize in final stage)
 RUN composer install \
     --no-dev \
@@ -168,4 +174,3 @@ EXPOSE 8080
 ENTRYPOINT ["start-container"]
 
 HEALTHCHECK --start-period=5s --interval=2s --timeout=5s --retries=8 CMD php artisan octane:status || exit 1
-
