@@ -130,21 +130,27 @@ The publishing helper derives repository names from directory names, using
 `module-` for entries in `modules/` and `theme-` for entries in `themes/`. It
 also handles this complete application repository as `control-panel-laravel`.
 
+The package repositories are maintained as independent Git histories. Use the
+fleet tool to inspect, clone, validate, and update those existing repositories:
+
 ```bash
-# Inspect all mappings without changing GitHub
-scripts/publish-components
+# Inspect repository checkouts and their local/remote state
+scripts/fleet status
 
-# Create any missing public repositories in the organisation
-scripts/publish-components --create
+# Clone any package repositories that are not in the workspace yet
+scripts/fleet clone
 
-# After committing the complete worktree, split and push every component plus the meta repository
-scripts/publish-components --push
+# Run a validation command across the checked-out package repositories
+scripts/fleet run 'vendor/bin/pest'
+
+# Commit and push an intentional package-repository change
+scripts/fleet commit -m 'Describe the package change'
 ```
 
-Publishing requires authenticated `gh` and `git` access to the organisation.
-Push mode deliberately refuses a dirty worktree because subtree splits can only
-publish committed content. Existing repositories are updated without force, so
-non-fast-forward histories must be reconciled explicitly rather than overwritten.
+`fleet commit` and `fleet tag` require clean, pushed `main` branches and never
+force-update a package repository. Creating a new public repository remains an
+explicit GitHub administration step; package-to-repository mappings are
+validated by `.liberu-meta.json` and the Packagist dry run below.
 
 After the repositories are public, register every Composer package on Packagist:
 

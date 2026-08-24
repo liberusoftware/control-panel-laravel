@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Fan a command out across the package repositories (step 9's replacement).
 
-`publish-components` pushes this monorepo *into* 48 repositories. After the
+The former `publish-components` flow pushed this monorepo *into* package
+repositories. After the
 source-of-truth flip those repositories are the source, so there is nothing to
 push out — what is needed instead is a runner over checkouts that already are
 authoritative. See issue #633 for the decision and #639 for the shape.
