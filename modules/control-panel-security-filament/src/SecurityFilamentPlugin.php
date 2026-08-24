@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\SecurityFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\SecurityFilament\Resources\SecurityFindingResource;
 
 final class SecurityFilamentPlugin implements Plugin
 {
@@ -19,7 +20,10 @@ final class SecurityFilamentPlugin implements Plugin
         return 'control-panel-security-filament';
     }
 
-    public function register(Panel $panel): void {}
+    public function register(Panel $panel): void
+    {
+        $panel->resources([SecurityFindingResource::class]);
+    }
 
     public function boot(Panel $panel): void {}
 }
