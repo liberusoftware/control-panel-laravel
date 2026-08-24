@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-dns-api",
+  "display_name": "Control Panel DNS API",
+  "description": "Authenticated HTTP transport for DNS zone lifecycle.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\DnsApi\\DnsApiServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-dns": "^1.0"}},
+  "capabilities": ["control-panel.dns.api"],
+  "features": ["Zone listing", "Zone registration"],
+  "default_enabled": false
+}

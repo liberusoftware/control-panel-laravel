@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: Control Panel DNS API
+  version: 1.0.0
+paths:
+  /api/v1/control-panel/dns/zones:
+    get:
+      operationId: control.panel.dns.zones.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Authorized paginated zones}}
+    post:
+      operationId: control.panel.dns.zones.create
+      security: [{sanctum: []}]
+      responses: {'201': {description: Zone created}}
+components:
+  securitySchemes:
+    sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

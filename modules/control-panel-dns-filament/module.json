@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-dns-filament",
+  "display_name": "Control Panel DNS Filament",
+  "description": "Filament panel boundary for DNS zone administration.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\DnsFilament\\DnsFilamentServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-dns": "^1.0"}},
+  "capabilities": ["control-panel.dns.filament"],
+  "features": ["Zone administration"],
+  "default_enabled": false
+}

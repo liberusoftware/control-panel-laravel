@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Liberu\ControlPanel\DnsLivewire;
+
+use Illuminate\Support\ServiceProvider;
+use Liberu\ControlPanel\DnsLivewire\Components\ZoneInventory;
+use Livewire\Livewire;
+
+final class DnsLivewireServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'control-panel-dns-livewire');
+        Livewire::component('module-control-panel-dns::zone-inventory', ZoneInventory::class);
+    }
+}

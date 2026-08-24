@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0f1dc7baf4244f4a443b871912ca01c6",
+    "content-hash": "9f57dd3abbb42a14efd6b3dc27285f4a",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -6755,6 +6755,109 @@
                 "MIT"
             ],
             "description": "Provider-neutral DNS zones and records for Liberu Control Panel.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-dns-api",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-dns-api",
+                "reference": "c43d56e24b1853a188a308652f1d90be8ce4dba1"
+            },
+            "require": {
+                "illuminate/http": "^13.0",
+                "illuminate/routing": "^13.0",
+                "liberusoftware/module-control-panel-dns": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-dns-api"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\DnsApi\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Authenticated API adapter for Control Panel DNS.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-dns-filament",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-dns-filament",
+                "reference": "c2908cf2c32d8896fccb97615de26a34cc296995"
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "liberusoftware/module-control-panel-dns": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-dns-filament",
+                    "filament": {
+                        "plugin": "Liberu\\ControlPanel\\DnsFilament\\DnsFilamentPlugin"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\DnsFilament\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament adapter for Control Panel DNS.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-dns-livewire",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-dns-livewire",
+                "reference": "7dfa504d04ba5cdbba0bd6724fcae3fde6204e83"
+            },
+            "require": {
+                "liberusoftware/module-control-panel-dns": "^1.0",
+                "livewire/livewire": "^4.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-dns-livewire"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\DnsLivewire\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Livewire adapter for Control Panel DNS.",
             "transport-options": {
                 "symlink": false,
                 "relative": true

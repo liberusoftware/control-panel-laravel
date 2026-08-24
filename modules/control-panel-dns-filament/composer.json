@@ -1,0 +1,12 @@
+{
+  "$schema": "https://getcomposer.org/schema.json",
+  "name": "liberusoftware/module-control-panel-dns-filament",
+  "description": "Filament adapter for Control Panel DNS.",
+  "type": "liberu-module",
+  "license": "MIT",
+  "require": {"php": "^8.5", "filament/filament": "^5.0", "liberusoftware/module-control-panel-dns": "^1.0"},
+  "autoload": {"psr-4": {"Liberu\\ControlPanel\\DnsFilament\\": "src/"}},
+  "extra": {"liberu": {"name": "control-panel-dns-filament", "filament": {"plugin": "Liberu\\ControlPanel\\DnsFilament\\DnsFilamentPlugin"}}},
+  "version": "1.0.0",
+  "config": {"allow-plugins": {"pestphp/pest-plugin": true}}
+}
