@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\ControlCoreFilament;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeResource;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource;
 
 final class ControlCoreFilamentPlugin implements Plugin
 {
@@ -22,7 +23,7 @@ final class ControlCoreFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([NodeResource::class]);
+        $panel->resources([NodeResource::class, NodeCredentialResource::class]);
     }
 
     public function boot(Panel $panel): void {}

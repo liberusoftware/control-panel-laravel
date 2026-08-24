@@ -11,6 +11,9 @@ use Liberu\ControlPanel\ControlCore\Queries\ListNodes;
 use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCore\Actions\UpdateDesiredState;
 use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
+use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
+use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
+use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
 
 final class NodeController
 {
@@ -76,9 +79,40 @@ final class NodeController
         return response()->json(['data' => $this->resource($sync->execute($item, $data['capabilities']))]);
     }
 
+    public function credential(Request $request, string $node, RegisterNodeCredential $register): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'type' => ['required', 'string', 'in:ssh,api,token'],
+            'username' => ['nullable', 'string', 'max:120'],
+            'secret' => ['nullable', 'string', 'min:8'],
+            'public_key' => ['nullable', 'string', 'max:10000'],
+            'expires_at' => ['nullable', 'date'],
+            'metadata' => ['nullable', 'array'],
+        ]);
+
+        return response()->json(['data' => $this->credentialResource($register->execute(array_merge($data, ['team_id' => $teamId, 'node_id' => $item->getKey()]))),], 201);
+    }
+
+    public function revokeCredential(Request $request, string $credential, RevokeNodeCredential $revoke): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        $item = NodeCredential::query()->whereKey($credential)->where('team_id', $teamId)->firstOrFail();
+
+        return response()->json(['data' => $this->credentialResource($revoke->execute($item))]);
+    }
+
     /** @return array<string, mixed> */
     private function resource(Node $node): array
     {
         return ['id' => $node->getKey(), 'type' => 'control-panel-node', 'attributes' => $node->only(['name', 'hostname', 'platform', 'status', 'desired_state', 'observed_state', 'last_seen_at']), 'relationships' => ['capabilities' => $node->relationLoaded('capabilities') ? $node->capabilities->map(fn ($capability): array => $capability->only(['id', 'name', 'version', 'metadata']))->values() : []]];
+    }
+
+    /** @return array<string, mixed> */
+    private function credentialResource(NodeCredential $credential): array
+    {
+        return ['id' => $credential->getKey(), 'type' => 'control-panel-node-credential', 'attributes' => $credential->only(['node_id', 'name', 'type', 'username', 'status', 'expires_at', 'last_used_at', 'metadata'])];
     }
 }
