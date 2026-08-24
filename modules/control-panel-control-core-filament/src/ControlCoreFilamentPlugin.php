@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\ControlCoreFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeResource;
 
 final class ControlCoreFilamentPlugin implements Plugin
 {
@@ -19,7 +20,10 @@ final class ControlCoreFilamentPlugin implements Plugin
         return 'control-panel-control-core-filament';
     }
 
-    public function register(Panel $panel): void {}
+    public function register(Panel $panel): void
+    {
+        $panel->resources([NodeResource::class]);
+    }
 
     public function boot(Panel $panel): void {}
 }

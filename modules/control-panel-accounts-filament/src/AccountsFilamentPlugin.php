@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\AccountsFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\AccountsFilament\Resources\AccountResource;
 
 final class AccountsFilamentPlugin implements Plugin
 {
@@ -19,7 +20,10 @@ final class AccountsFilamentPlugin implements Plugin
         return 'control-panel-accounts-filament';
     }
 
-    public function register(Panel $panel): void {}
+    public function register(Panel $panel): void
+    {
+        $panel->resources([AccountResource::class]);
+    }
 
     public function boot(Panel $panel): void {}
 }
