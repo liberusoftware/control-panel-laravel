@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "39e60dd5092831d2fa3d6be812a315e1",
+    "content-hash": "9fd0505f96efa74a2c7ce4db52862064",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -6433,6 +6433,42 @@
                 "MIT"
             ],
             "description": "Livewire 4 adapter for Control Panel Accounts.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-backups",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-backups",
+                "reference": "6f1433919d1144a3bda5a61663391d384170409d"
+            },
+            "require": {
+                "illuminate/database": "^13.0",
+                "illuminate/events": "^13.0",
+                "illuminate/support": "^13.0",
+                "illuminate/validation": "^13.0",
+                "liberusoftware/module-manager": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-backups"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\Backups\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Provider-neutral backup policies, snapshots, restore, and verification for Liberu Control Panel.",
             "transport-options": {
                 "symlink": false,
                 "relative": true
