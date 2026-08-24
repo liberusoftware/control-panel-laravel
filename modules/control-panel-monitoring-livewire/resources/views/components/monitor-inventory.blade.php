@@ -1,0 +1,1 @@
+<section aria-labelledby="monitor-inventory-heading"><h2 id="monitor-inventory-heading">Monitors</h2><ul>@forelse($items as $item)<li>{{ $item->name }} — {{ $item->status }}</li>@empty<li>No monitors found.</li>@endforelse</ul></section>

@@ -1,0 +1,1 @@
+<section aria-labelledby="cluster-inventory-heading"><h2 id="cluster-inventory-heading">Kubernetes clusters</h2><ul>@forelse($items as $item)<li>{{ $item->name }} — {{ $item->status }}</li>@empty<li>No clusters found.</li>@endforelse</ul></section>

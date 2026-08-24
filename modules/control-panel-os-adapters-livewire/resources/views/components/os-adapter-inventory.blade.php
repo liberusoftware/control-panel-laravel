@@ -1,0 +1,1 @@
+<section aria-labelledby="os-adapter-inventory-heading"><h2 id="os-adapter-inventory-heading">OS adapters</h2><ul>@forelse($items as $item)<li>{{ $item->operating_system }} {{ $item->version }} — {{ $item->status }}</li>@empty<li>No OS adapters found.</li>@endforelse</ul></section>

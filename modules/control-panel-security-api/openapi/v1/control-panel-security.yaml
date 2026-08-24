@@ -1,0 +1,11 @@
+openapi: 3.1.0
+info: {title: Control Panel Security API, version: 1.0.0}
+paths:
+  /api/v1/control-panel/security:
+    get: {operationId: control.panel.security.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
+    post: {operationId: control.panel.security.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [subject_type, subject_id, code, severity, summary]}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+components:
+  securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
+  responses:
+    Resource: {description: Created resource, content: {application/json: {schema: {type: object}}}}
+    Collection: {description: Authorized team-scoped resources, content: {application/json: {schema: {type: object}}}}

@@ -1,0 +1,11 @@
+openapi: 3.1.0
+info: {title: Control Panel Containers API, version: 1.0.0}
+paths:
+  /api/v1/control-panel/containers:
+    get: {operationId: control.panel.containers.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
+    post: {operationId: control.panel.containers.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [node_id, name, image]}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+components:
+  securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
+  responses:
+    Resource: {description: Created resource, content: {application/json: {schema: {type: object}}}}
+    Collection: {description: Authorized team-scoped resources, content: {application/json: {schema: {type: object}}}}

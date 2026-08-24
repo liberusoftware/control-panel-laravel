@@ -1,0 +1,1 @@
+<section aria-labelledby="finding-inventory-heading"><h2 id="finding-inventory-heading">Security findings</h2><ul>@forelse($items as $item)<li>{{ $item->summary }} — {{ $item->severity }}</li>@empty<li>No security findings found.</li>@endforelse</ul></section>

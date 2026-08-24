@@ -1,0 +1,1 @@
+<section aria-labelledby="mail-inventory-heading"><h2 id="mail-inventory-heading">Mail accounts</h2><ul>@forelse($items as $item)<li>{{ $item->address }} — {{ $item->status }}</li>@empty<li>No mail accounts found.</li>@endforelse</ul></section>

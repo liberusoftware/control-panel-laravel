@@ -1,0 +1,1 @@
+<section aria-labelledby="workload-inventory-heading"><h2 id="workload-inventory-heading">Container workloads</h2><ul>@forelse($items as $item)<li>{{ $item->name }} — {{ $item->status }}</li>@empty<li>No workloads found.</li>@endforelse</ul></section>

@@ -1,0 +1,11 @@
+openapi: 3.1.0
+info: {title: Control Panel API and Automation API, version: 1.0.0}
+paths:
+  /api/v1/control-panel/api-and-automation:
+    get: {operationId: control.panel.api.and.automation.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
+    post: {operationId: control.panel.api.and.automation.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [name, kind]}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+components:
+  securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
+  responses:
+    Resource: {description: Created resource without credentials, content: {application/json: {schema: {type: object}}}}
+    Collection: {description: Authorized team-scoped resources without credentials, content: {application/json: {schema: {type: object}}}}
