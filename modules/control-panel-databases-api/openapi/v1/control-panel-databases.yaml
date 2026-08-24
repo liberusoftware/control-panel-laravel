@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: Control Panel Databases API
+  version: 1.0.0
+paths:
+  /api/v1/control-panel/databases:
+    get:
+      operationId: control.panel.databases.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Authorized paginated resources}}
+    post:
+      operationId: control.panel.databases.create
+      security: [{sanctum: []}]
+      responses: {'201': {description: Database created}}
+components:
+  securitySchemes:
+    sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-databases-filament",
+  "display_name": "Control Panel Databases Filament",
+  "description": "Filament resource for authorized database administration.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\DatabasesFilament\\DatabasesFilamentServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-databases": "^1.0"}},
+  "capabilities": ["control-panel.databases.filament"],
+  "features": ["Database resource"],
+  "default_enabled": false
+}
