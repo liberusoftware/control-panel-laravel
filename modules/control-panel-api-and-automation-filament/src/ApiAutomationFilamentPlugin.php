@@ -8,6 +8,10 @@ use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Liberu\ControlPanel\ApiAutomationFilament\Resources\AutomationDefinitionResource;
 use Liberu\ControlPanel\ApiAutomationFilament\Resources\WebhookEndpointResource;
+use Liberu\ControlPanel\ApiAutomationFilament\Resources\AutomationTemplateResource;
+use Liberu\ControlPanel\ApiAutomationFilament\Resources\AutomationScheduleResource;
+use Liberu\ControlPanel\ApiAutomationFilament\Resources\AutomationCommandResource;
+use Liberu\ControlPanel\ApiAutomationFilament\Resources\BillingProvisioningEventResource;
 
 final class ApiAutomationFilamentPlugin implements Plugin
 {
@@ -23,7 +27,7 @@ final class ApiAutomationFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([AutomationDefinitionResource::class, WebhookEndpointResource::class]);
+        $panel->resources([AutomationDefinitionResource::class, WebhookEndpointResource::class, AutomationTemplateResource::class, AutomationScheduleResource::class, AutomationCommandResource::class, BillingProvisioningEventResource::class]);
     }
 
     public function boot(Panel $panel): void {}

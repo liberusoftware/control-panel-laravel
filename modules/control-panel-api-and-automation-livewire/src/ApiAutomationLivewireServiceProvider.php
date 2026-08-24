@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\ApiAutomationLivewire;
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\ApiAutomationLivewire\Components\AutomationInventory;
 use Liberu\ControlPanel\ApiAutomationLivewire\Components\WebhookInventory;
+use Liberu\ControlPanel\ApiAutomationLivewire\Components\AutomationFeatureInventory;
 use Livewire\Livewire;
 
 final class ApiAutomationLivewireServiceProvider extends ServiceProvider
@@ -16,5 +17,6 @@ final class ApiAutomationLivewireServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'control-panel-api-and-automation-livewire');
         Livewire::component('module-control-panel-api-and-automation::automation-inventory', AutomationInventory::class);
         Livewire::component('module-control-panel-api-and-automation::webhook-inventory', WebhookInventory::class);
+        Livewire::component('module-control-panel-api-and-automation::feature-inventory', AutomationFeatureInventory::class);
     }
 }

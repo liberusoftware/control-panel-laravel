@@ -11,6 +11,10 @@ use Liberu\ControlPanel\ApiAutomation\Actions\RegisterApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
 use Liberu\ControlPanel\ApiAutomation\Queries\ListWebhooks;
+use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationTemplate;
+use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationSchedule;
+use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomationCommand;
+use Liberu\ControlPanel\ApiAutomation\Actions\RecordBillingProvisioningEvent;
 
 final class ApiAutomationServiceProvider extends ServiceProvider
 {
@@ -22,6 +26,10 @@ final class ApiAutomationServiceProvider extends ServiceProvider
         $this->app->scoped(RegisterWebhook::class);
         $this->app->scoped(StartOrchestration::class);
         $this->app->scoped(ListWebhooks::class);
+        $this->app->scoped(CreateAutomationTemplate::class);
+        $this->app->scoped(CreateAutomationSchedule::class);
+        $this->app->scoped(RegisterAutomationCommand::class);
+        $this->app->scoped(RecordBillingProvisioningEvent::class);
     }
 
     public function boot(): void
