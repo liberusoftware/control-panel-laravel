@@ -8,7 +8,7 @@ use Liberu\ControlPanel\ControlCoreApi\Http\Controllers\NodeController;
 use Liberu\ControlPanel\ControlCoreApi\Http\Controllers\OperationTaskController;
 
 Route::prefix('api/v1/control-panel/control-core')
-    ->middleware(['api', 'auth:sanctum'])
+    ->middleware(['api', 'auth:sanctum', 'throttle:60,1'])
     ->group(function (): void {
         Route::get('nodes', [NodeController::class, 'index'])->name('control-panel.control-core.nodes.index');
         Route::post('nodes', [NodeController::class, 'store'])->name('control-panel.control-core.nodes.store');

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\DatabasesApi\Http\Controllers;
 
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabase;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabaseUser;
 use Liberu\ControlPanel\Databases\Actions\GrantDatabasePrivilege;
@@ -46,7 +48,9 @@ final class DatabaseController
     {
         $teamId = $request->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
-        $data = $request->validate(['engine_id' => ['required', 'string', 'max:255'], 'name' => ['required', 'string', 'max:128'], 'account_id' => ['nullable', 'string', 'max:255'], 'metadata' => ['nullable', 'array']]);
+        $data = $request->validate(['engine_id' => ['required', 'uuid', Rule::exists('control_panel_database_engines', 'id')->where(function (Builder $query) use ($teamId): void {
+            $query->where('team_id', $teamId)->orWhereNull('team_id');
+        })], 'name' => ['required', 'string', 'max:128'], 'account_id' => ['nullable', 'string', 'max:255'], 'metadata' => ['nullable', 'array']]);
         $database = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($database)], 201);
