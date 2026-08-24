@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-certificates",
+  "display_name": "Control Panel Certificates",
+  "description": "ACME accounts, certificate issuance, deployment, renewal, revocation, and expiry monitoring.",
+  "version": "1.0.0",
+  "category": "capability",
+  "provider": "Liberu\\ControlPanel\\Certificates\\CertificatesServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-manager": "^1.0"}},
+  "capabilities": ["control-panel.certificates"],
+  "features": ["Certificate issuance", "Certificate renewal", "Expiry monitoring"],
+  "default_enabled": false
+}

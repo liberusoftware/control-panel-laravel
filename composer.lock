@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9f57dd3abbb42a14efd6b3dc27285f4a",
+    "content-hash": "59b4390deeda5f1abf419e2f0896b6e9",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -6433,6 +6433,42 @@
                 "MIT"
             ],
             "description": "Livewire 4 adapter for Control Panel Accounts.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-certificates",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-certificates",
+                "reference": "d7f28251b7b120e7f631bec53e2e1d7caf8a6397"
+            },
+            "require": {
+                "illuminate/database": "^13.0",
+                "illuminate/events": "^13.0",
+                "illuminate/support": "^13.0",
+                "illuminate/validation": "^13.0",
+                "liberusoftware/module-manager": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-certificates"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\Certificates\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Provider-neutral certificate issuance and lifecycle for Liberu Control Panel.",
             "transport-options": {
                 "symlink": false,
                 "relative": true
