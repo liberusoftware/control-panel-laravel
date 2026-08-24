@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-databases",
+  "display_name": "Control Panel Databases",
+  "description": "Engines, databases, users, privileges, backups, upgrades, health, and remote access.",
+  "version": "1.0.0",
+  "category": "capability",
+  "provider": "Liberu\\ControlPanel\\Databases\\DatabasesServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-manager": "^1.0"}},
+  "capabilities": ["control-panel.databases"],
+  "features": ["Database engines", "Database lifecycle", "Database health"],
+  "default_enabled": false
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://getcomposer.org/schema.json",
+  "name": "liberusoftware/module-control-panel-databases",
+  "description": "Provider-neutral database lifecycle for the Liberu Control Panel.",
+  "type": "liberu-module",
+  "license": "MIT",
+  "require": {"php": "^8.5", "illuminate/database": "^13.0", "illuminate/events": "^13.0", "illuminate/support": "^13.0", "illuminate/validation": "^13.0", "liberusoftware/module-manager": "^1.0"},
+  "autoload": {"psr-4": {"Liberu\\ControlPanel\\Databases\\": "src/"}},
+  "extra": {"liberu": {"name": "control-panel-databases"}},
+  "version": "1.0.0",
+  "config": {"allow-plugins": {"pestphp/pest-plugin": true}}
+}

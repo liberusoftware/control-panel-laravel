@@ -279,6 +279,7 @@
         "liberusoftware/module-control-panel-web-hosting-api": "^1.0",
         "liberusoftware/module-control-panel-web-hosting-filament": "^1.0",
         "liberusoftware/module-control-panel-web-hosting-livewire": "^1.0",
+        "liberusoftware/module-control-panel-databases": "^1.0",
         "liberusoftware/theme-clear-signal": "^1.0",
         "liberusoftware/theme-dark": "^1.0",
         "liberusoftware/theme-default": "^1.0",

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9473183c2ced0c5662c80913890fb250",
+    "content-hash": "2a22c498d2c18c4e4f7d630c0115ec02",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -6580,6 +6580,42 @@
                 "MIT"
             ],
             "description": "Livewire 4 adapter for Control Panel Control Core.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-databases",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-databases",
+                "reference": "1c5e3b4b59aaac5a32e3c67132ffdb54b0a6a354"
+            },
+            "require": {
+                "illuminate/database": "^13.0",
+                "illuminate/events": "^13.0",
+                "illuminate/support": "^13.0",
+                "illuminate/validation": "^13.0",
+                "liberusoftware/module-manager": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-databases"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\Databases\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Provider-neutral database lifecycle for the Liberu Control Panel.",
             "transport-options": {
                 "symlink": false,
                 "relative": true
