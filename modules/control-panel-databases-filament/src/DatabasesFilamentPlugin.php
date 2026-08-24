@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\DatabasesFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\DatabasesFilament\Resources\DatabaseResource;
 
 final class DatabasesFilamentPlugin implements Plugin
 {
@@ -19,7 +20,10 @@ final class DatabasesFilamentPlugin implements Plugin
         return 'control-panel-databases-filament';
     }
 
-    public function register(Panel $panel): void {}
+    public function register(Panel $panel): void
+    {
+        $panel->resources([DatabaseResource::class]);
+    }
 
     public function boot(Panel $panel): void {}
 }
