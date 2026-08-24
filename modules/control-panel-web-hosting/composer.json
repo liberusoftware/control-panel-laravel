@@ -1,0 +1,19 @@
+{
+  "$schema": "https://getcomposer.org/schema.json",
+  "name": "liberusoftware/module-control-panel-web-hosting",
+  "description": "Control Panel domains, virtual hosts, runtimes, redirects, SSL, logs, and applications.",
+  "type": "liberu-module",
+  "license": "MIT",
+  "require": {
+    "php": "^8.5",
+    "illuminate/database": "^13.0",
+    "illuminate/support": "^13.0",
+    "liberusoftware/module-manager": "^1.0"
+  },
+  "autoload": {"psr-4": {"Liberu\\ControlPanel\\WebHosting\\": "src/"}},
+  "autoload-dev": {"psr-4": {"Liberu\\ControlPanel\\WebHosting\\Tests\\": "tests/"}},
+  "extra": {"liberu": {"name": "control-panel-web-hosting"}},
+  "version": "1.0.0",
+  "require-dev": {"pestphp/pest": "^5.0"},
+  "config": {"allow-plugins": {"pestphp/pest-plugin": true}}
+}

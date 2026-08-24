@@ -1,0 +1,14 @@
+openapi: 3.1.0
+info:
+  title: Control Panel Web Hosting API
+  version: 1.0.0
+paths:
+  /api/v1/control-panel/web-hosting/domains:
+    get:
+      summary: List domains
+      security: [{sanctum: []}]
+      responses: {'200': {description: OK}}
+    post:
+      summary: Register a domain
+      security: [{sanctum: []}]
+      responses: {'201': {description: Created}}

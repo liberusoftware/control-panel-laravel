@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-web-hosting-livewire",
+  "display_name": "Control Panel Web Hosting Livewire",
+  "description": "Livewire domain inventory for the control panel.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\WebHostingLivewire\\WebHostingLivewireServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-web-hosting": "^1.0"}},
+  "capabilities": ["control-panel.web-hosting.livewire"],
+  "features": ["Domain inventory"],
+  "default_enabled": false
+}

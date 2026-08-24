@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-web-hosting-api",
+  "display_name": "Control Panel Web Hosting API",
+  "description": "Authenticated HTTP transport for domain and virtual-host lifecycle.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\WebHostingApi\\WebHostingApiServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-web-hosting": "^1.0"}},
+  "capabilities": ["control-panel.web-hosting.api"],
+  "features": ["Domain listing", "Domain registration"],
+  "default_enabled": false
+}
