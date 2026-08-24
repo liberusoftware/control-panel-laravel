@@ -12,3 +12,8 @@ paths:
       summary: Register a domain
       security: [{sanctum: []}]
       responses: {'201': {description: Created}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/virtual-hosts:
+    post:
+      summary: Create or update a virtual host desired state
+      security: [{sanctum: []}]
+      responses: {'201': {description: Virtual host registered.}}
