@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9fd0505f96efa74a2c7ce4db52862064",
+    "content-hash": "213476c0a743532378bffa71df7efbb0",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -6469,6 +6469,109 @@
                 "MIT"
             ],
             "description": "Provider-neutral backup policies, snapshots, restore, and verification for Liberu Control Panel.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-backups-api",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-backups-api",
+                "reference": "9dcfe5dbbb1e827fc941ea6b31143825f4e84244"
+            },
+            "require": {
+                "illuminate/http": "^13.0",
+                "illuminate/routing": "^13.0",
+                "liberusoftware/module-control-panel-backups": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-backups-api"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\BackupsApi\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Authenticated API adapter for Control Panel Backups.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-backups-filament",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-backups-filament",
+                "reference": "87a62bed642696f9eb14ccea37354d9b415578f7"
+            },
+            "require": {
+                "filament/filament": "^5.0",
+                "liberusoftware/module-control-panel-backups": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-backups-filament",
+                    "filament": {
+                        "plugin": "Liberu\\ControlPanel\\BackupsFilament\\BackupsFilamentPlugin"
+                    }
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\BackupsFilament\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament adapter for Control Panel Backups.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-backups-livewire",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-backups-livewire",
+                "reference": "9a17ff6fe7c19e9c5dfaac7b2b3afd9fc4948491"
+            },
+            "require": {
+                "liberusoftware/module-control-panel-backups": "^1.0",
+                "livewire/livewire": "^4.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-backups-livewire"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\BackupsLivewire\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Livewire adapter for Control Panel Backups.",
             "transport-options": {
                 "symlink": false,
                 "relative": true

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.liberu.dev/module/v1.json",
+  "name": "control-panel-backups-api",
+  "display_name": "Control Panel Backups API",
+  "description": "Authenticated HTTP transport for backup policies and snapshots.",
+  "version": "1.0.0",
+  "category": "presentation",
+  "provider": "Liberu\\ControlPanel\\BackupsApi\\BackupsApiServiceProvider",
+  "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-backups": "^1.0"}},
+  "capabilities": ["control-panel.backups.api"],
+  "features": ["Snapshot listing", "Snapshot creation"],
+  "default_enabled": false
+}

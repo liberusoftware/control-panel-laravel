@@ -1,0 +1,17 @@
+openapi: 3.1.0
+info:
+  title: Control Panel Backups API
+  version: 1.0.0
+paths:
+  /api/v1/control-panel/backups/snapshots:
+    get:
+      operationId: control.panel.backups.snapshots.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Authorized paginated snapshots}}
+    post:
+      operationId: control.panel.backups.snapshots.create
+      security: [{sanctum: []}]
+      responses: {'201': {description: Snapshot queued}}
+components:
+  securitySchemes:
+    sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}
