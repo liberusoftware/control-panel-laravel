@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\CertificatesFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\CertificatesFilament\Resources\CertificateResource;
 
 final class CertificatesFilamentPlugin implements Plugin
 {
@@ -19,7 +20,10 @@ final class CertificatesFilamentPlugin implements Plugin
         return 'control-panel-certificates-filament';
     }
 
-    public function register(Panel $panel): void {}
+    public function register(Panel $panel): void
+    {
+        $panel->resources([CertificateResource::class]);
+    }
 
     public function boot(Panel $panel): void {}
 }

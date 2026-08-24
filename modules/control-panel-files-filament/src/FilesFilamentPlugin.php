@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\FilesFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\FilesFilament\Resources\FileEntryResource;
 
 final class FilesFilamentPlugin implements Plugin
 {
@@ -19,7 +20,10 @@ final class FilesFilamentPlugin implements Plugin
         return 'control-panel-files-filament';
     }
 
-    public function register(Panel $panel): void {}
+    public function register(Panel $panel): void
+    {
+        $panel->resources([FileEntryResource::class]);
+    }
 
     public function boot(Panel $panel): void {}
 }
