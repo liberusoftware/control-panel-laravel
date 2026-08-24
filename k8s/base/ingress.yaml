@@ -2,7 +2,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: boilerplate-laravel
-  namespace: boilerplate-laravel
   labels:
     app: boilerplate-laravel
   annotations:
@@ -43,7 +42,6 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: boilerplate-reverb
-  namespace: boilerplate-laravel
   labels:
     app: boilerplate-laravel
     component: reverb

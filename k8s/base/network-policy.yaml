@@ -2,7 +2,6 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: boilerplate-network-policy
-  namespace: boilerplate-laravel
   labels:
     app: boilerplate-laravel
 spec:

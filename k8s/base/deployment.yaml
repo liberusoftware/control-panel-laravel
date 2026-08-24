@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: boilerplate-laravel
-  namespace: boilerplate-laravel
   labels:
     app: boilerplate-laravel
     component: application

@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: boilerplate-horizon
-  namespace: boilerplate-laravel
   labels:
     app: boilerplate-laravel
     component: horizon

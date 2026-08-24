@@ -34,22 +34,15 @@ check_prerequisites() {
 
 validate_yaml_syntax() {
     log_info "Validating YAML syntax..."
-    local errors=0
-    for file in "$K8S_DIR"/base/*.yaml; do
-        if [ -f "$file" ]; then
-            if kubectl apply --dry-run=client -f "$file" &> /dev/null; then
-                log_success "✓ $(basename "$file")"
-            else
-                log_error "✗ $(basename "$file") - Invalid YAML"
-                errors=$((errors + 1))
-            fi
-        fi
-    done
-    if [ $errors -eq 0 ]; then
-        log_success "All YAML files are valid"
+    # `kubectl apply --dry-run=client` still performs API discovery for
+    # resources it does not know locally, so it falsely reports valid files as
+    # invalid on an offline workstation. Kustomize parses every base resource
+    # without requiring a live cluster and gives us the useful offline gate.
+    if kubectl kustomize "$K8S_DIR/base" > /dev/null 2>&1; then
+        log_success "Base manifests parse successfully"
         return 0
     else
-        log_error "$errors YAML file(s) failed validation"
+        log_error "Base manifests failed YAML/Kustomize validation"
         return 1
     fi
 }
