@@ -10,4 +10,5 @@ Route::prefix('api/v1/control-panel/certificates')->middleware(['api', 'auth:san
     Route::post('/', [CertificateController::class, 'store'])->name('control-panel.certificates.store');
     Route::post('/acme-accounts', [CertificateController::class, 'acme'])->name('control-panel.certificates.acme');
     Route::post('/operations', [CertificateController::class, 'operation'])->name('control-panel.certificates.operations');
+    Route::post('/lifecycle', [CertificateController::class, 'lifecycle'])->name('control-panel.certificates.lifecycle');
 });

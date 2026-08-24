@@ -14,6 +14,7 @@ use Liberu\ControlPanel\Backups\Actions\CreateDestination;
 use Liberu\ControlPanel\Backups\Actions\CreateSchedule;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\VerifySnapshot;
+use Liberu\ControlPanel\Backups\Actions\RecordBackupFeature;
 
 final class SnapshotController
 {
@@ -69,6 +70,11 @@ final class SnapshotController
         $item = BackupSnapshot::query()->whereKey($snapshot)->where('team_id', $teamId)->firstOrFail();
         $data = $request->validate(['checksum' => ['required', 'string', 'max:255']]);
         return response()->json(['data' => self::resource($verify->execute($item, $data['checksum']))]);
+    }
+
+    public function feature(Request $request, RecordBackupFeature $record): JsonResponse
+    {
+        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['kind'=>['required','in:execution,encryption,offsite'],'payload'=>['required','array']]); $item=$record->execute(array_merge($data['payload'],['kind'=>$data['kind'],'team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-backup-'.$data['kind'],'attributes'=>$item->toArray()]],201);
     }
 
     private static function resource(BackupSnapshot $snapshot): array

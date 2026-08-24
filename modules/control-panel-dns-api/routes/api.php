@@ -10,4 +10,5 @@ Route::prefix('api/v1/control-panel/dns')->middleware(['api', 'auth:sanctum', 't
     Route::post('/zones', [ZoneController::class, 'store'])->name('control-panel.dns.zones.store');
     Route::post('/records', [ZoneController::class, 'record'])->name('control-panel.dns.records.store');
     Route::post('/checks', [ZoneController::class, 'check'])->name('control-panel.dns.checks.store');
+    Route::post('/features', [ZoneController::class, 'feature'])->name('control-panel.dns.features.store');
 });

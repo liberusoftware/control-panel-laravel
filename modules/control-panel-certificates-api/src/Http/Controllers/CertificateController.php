@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Liberu\ControlPanel\Certificates\Actions\IssueCertificate;
 use Liberu\ControlPanel\Certificates\Actions\RecordCertificateOperation;
 use Liberu\ControlPanel\Certificates\Actions\RegisterAcmeAccount;
+use Liberu\ControlPanel\Certificates\Actions\RegisterCertificateLifecycle;
 use Liberu\ControlPanel\Certificates\Models\Certificate;
 use Liberu\ControlPanel\Certificates\Queries\ListCertificates;
 
@@ -47,6 +48,11 @@ final class CertificateController
         $data = $request->validate(['certificate_id'=>['nullable','uuid'],'operation'=>['required','in:deploy,renew,revoke,expiry-check'],'status'=>['nullable','in:queued,running,completed,failed'],'details'=>['nullable','array']]);
         $item = $record->execute(array_merge($data, ['team_id'=>$teamId]));
         return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-certificate-operation','attributes'=>$item->only(['certificate_id','operation','status','details'])]], 201);
+    }
+
+    public function lifecycle(Request $request, RegisterCertificateLifecycle $register): JsonResponse
+    {
+        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['kind'=>['required','in:deployment,renewal,expiry'],'payload'=>['required','array']]); $item=$register->execute(array_merge($data['payload'],['kind'=>$data['kind'],'team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-certificate-'.$data['kind'],'attributes'=>$item->toArray()]],201);
     }
 
     private static function resource(Certificate $certificate): array

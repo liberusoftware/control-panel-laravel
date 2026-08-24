@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\Backups\Actions\CreateDestination;
 use Liberu\ControlPanel\Backups\Actions\CreateSchedule;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
+use Liberu\ControlPanel\Backups\Actions\RecordBackupFeature;
 
 final class BackupsServiceProvider extends ServiceProvider
 {
@@ -16,6 +17,7 @@ final class BackupsServiceProvider extends ServiceProvider
         $this->app->scoped(CreateDestination::class);
         $this->app->scoped(CreateSchedule::class);
         $this->app->scoped(RequestRestore::class);
+        $this->app->scoped(RecordBackupFeature::class);
     }
 
     public function boot(): void
