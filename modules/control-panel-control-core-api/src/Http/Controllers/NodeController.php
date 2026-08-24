@@ -13,8 +13,10 @@ final class NodeController
 {
     public function index(Request $request, ListNodes $nodes): JsonResponse
     {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $page = $nodes->execute(
-            $request->user()?->current_team_id,
+            $teamId,
             $request->integer('per_page', 25),
         );
 
@@ -30,6 +32,8 @@ final class NodeController
 
     public function store(Request $request, RegisterNode $register): JsonResponse
     {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'hostname' => ['required', 'string', 'max:255'],
@@ -38,7 +42,7 @@ final class NodeController
             'desired_state' => ['nullable', 'array'],
         ]);
 
-        $node = $register->execute(array_merge($data, ['team_id' => $request->user()?->current_team_id]));
+        $node = $register->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json([
             'data' => [

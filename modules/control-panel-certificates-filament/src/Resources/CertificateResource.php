@@ -18,7 +18,7 @@ final class CertificateResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-lock-closed';
 
-    protected static ?string $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
 
     public static function form(Schema $schema): Schema
     {

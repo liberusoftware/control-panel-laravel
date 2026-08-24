@@ -14,15 +14,19 @@ final class CertificateController
 {
     public function index(Request $request, ListCertificates $list): JsonResponse
     {
-        $certificates = $list->execute($request->user()?->current_team_id, $request->integer('per_page', 25));
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $certificates = $list->execute($teamId, $request->integer('per_page', 25));
 
         return response()->json(['data' => $certificates->through(static fn (Certificate $certificate): array => self::resource($certificate)), 'meta' => ['current_page' => $certificates->currentPage(), 'per_page' => $certificates->perPage(), 'total' => $certificates->total()]]);
     }
 
     public function store(Request $request, IssueCertificate $issue): JsonResponse
     {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $data = $request->validate(['domains' => ['required', 'array', 'min:1'], 'domains.*' => ['string', 'max:253'], 'issuer' => ['nullable', 'string', 'max:100'], 'expires_at' => ['nullable', 'date'], 'metadata' => ['nullable', 'array']]);
-        $certificate = $issue->execute(array_merge($data, ['team_id' => $request->user()?->current_team_id]));
+        $certificate = $issue->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($certificate)], 201);
     }

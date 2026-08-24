@@ -15,15 +15,19 @@ final class SnapshotController
 {
     public function index(Request $request, ListSnapshots $list): JsonResponse
     {
-        $snapshots = $list->execute($request->user()?->current_team_id, $request->integer('per_page', 25));
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $snapshots = $list->execute($teamId, $request->integer('per_page', 25));
 
         return response()->json(['data' => $snapshots->through(static fn (BackupSnapshot $snapshot): array => self::resource($snapshot)), 'meta' => ['current_page' => $snapshots->currentPage(), 'per_page' => $snapshots->perPage(), 'total' => $snapshots->total()]]);
     }
 
     public function store(Request $request, CreateSnapshot $create): JsonResponse
     {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $data = $request->validate(['policy_id' => ['required', 'string', 'max:255'], 'location' => ['nullable', 'string', 'max:255'], 'metadata' => ['nullable', 'array']]);
-        $policy = BackupPolicy::query()->where('team_id', $request->user()?->current_team_id)->findOrFail($data['policy_id']);
+        $policy = BackupPolicy::query()->where('team_id', $teamId)->findOrFail($data['policy_id']);
         $snapshot = $create->execute($policy, $data);
 
         return response()->json(['data' => self::resource($snapshot)], 201);

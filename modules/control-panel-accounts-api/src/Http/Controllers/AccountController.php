@@ -17,7 +17,9 @@ final class AccountController
 {
     public function index(Request $request, ListAccounts $list): JsonResponse
     {
-        $accounts = $list->execute($request->user()?->current_team_id, $request->integer('per_page', 25));
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $accounts = $list->execute($teamId, $request->integer('per_page', 25));
 
         return response()->json([
             'data' => $accounts->through(static fn (Account $account): array => [
@@ -56,6 +58,8 @@ final class AccountController
 
     public function store(Request $request, CreateAccount $create): JsonResponse
     {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $data = $request->validate([
             'owner_id' => ['required', 'string', 'max:255'],
             'type' => ['required', 'in:customer,reseller,administrator'],
@@ -64,7 +68,7 @@ final class AccountController
             'quota_overrides' => ['nullable', 'array'],
         ]);
 
-        $account = $create->execute(array_merge($data, ['team_id' => $request->user()?->current_team_id]));
+        $account = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($account)], 201);
     }

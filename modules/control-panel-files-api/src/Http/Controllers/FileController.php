@@ -14,15 +14,19 @@ final class FileController
 {
     public function index(Request $request, ListFiles $list): JsonResponse
     {
-        $files = $list->execute($request->user()?->current_team_id, $request->integer('per_page', 25));
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $files = $list->execute($teamId, $request->integer('per_page', 25));
 
         return response()->json(['data' => $files->through(static fn (FileEntry $file): array => self::resource($file)), 'meta' => ['current_page' => $files->currentPage(), 'per_page' => $files->perPage(), 'total' => $files->total()]]);
     }
 
     public function store(Request $request, RegisterFile $register): JsonResponse
     {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $data = $request->validate(['path' => ['required', 'string', 'max:1024'], 'disk' => ['required', 'string', 'max:100'], 'owner_id' => ['nullable', 'string', 'max:255'], 'mime_type' => ['nullable', 'string', 'max:255'], 'size_bytes' => ['nullable', 'integer', 'min:0'], 'metadata' => ['nullable', 'array']]);
-        $file = $register->execute(array_merge($data, ['team_id' => $request->user()?->current_team_id]));
+        $file = $register->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($file)], 201);
     }

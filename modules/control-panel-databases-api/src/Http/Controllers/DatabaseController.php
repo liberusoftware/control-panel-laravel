@@ -17,7 +17,9 @@ final class DatabaseController
 {
     public function index(Request $request, ListDatabases $list): JsonResponse
     {
-        $databases = $list->execute($request->user()?->current_team_id, $request->integer('per_page', 25));
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $databases = $list->execute($teamId, $request->integer('per_page', 25));
 
         return response()->json(['data' => $databases->through(static fn (Database $database): array => self::resource($database)), 'meta' => ['current_page' => $databases->currentPage(), 'per_page' => $databases->perPage(), 'total' => $databases->total()]]);
     }
@@ -42,8 +44,10 @@ final class DatabaseController
 
     public function store(Request $request, CreateDatabase $create): JsonResponse
     {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $data = $request->validate(['engine_id' => ['required', 'string', 'max:255'], 'name' => ['required', 'string', 'max:128'], 'account_id' => ['nullable', 'string', 'max:255'], 'metadata' => ['nullable', 'array']]);
-        $database = $create->execute(array_merge($data, ['team_id' => $request->user()?->current_team_id]));
+        $database = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($database)], 201);
     }

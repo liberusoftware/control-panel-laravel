@@ -18,7 +18,7 @@ final class AccountResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
 
     public static function form(Schema $schema): Schema
     {

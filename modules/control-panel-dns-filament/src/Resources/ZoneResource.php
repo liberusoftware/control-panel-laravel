@@ -18,7 +18,7 @@ final class ZoneResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-globe-alt';
 
-    protected static ?string $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
 
     public static function form(Schema $schema): Schema
     {

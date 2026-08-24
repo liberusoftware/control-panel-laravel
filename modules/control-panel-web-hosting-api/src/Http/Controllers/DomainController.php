@@ -15,7 +15,9 @@ final class DomainController
 {
     public function index(Request $request, ListDomains $list): JsonResponse
     {
-        $domains = $list->execute($request->user()?->current_team_id, $request->integer('per_page', 25));
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $domains = $list->execute($teamId, $request->integer('per_page', 25));
 
         return response()->json([
             'data' => $domains->through(static fn (Domain $domain): array => self::resource($domain)),
@@ -25,13 +27,15 @@ final class DomainController
 
     public function store(Request $request, CreateDomain $create): JsonResponse
     {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $data = $request->validate([
             'hostname' => ['required', 'string', 'max:253'],
             'account_id' => ['nullable', 'string', 'max:255'],
             'metadata' => ['nullable', 'array'],
         ]);
 
-        $domain = $create->execute(array_merge($data, ['team_id' => $request->user()?->current_team_id]));
+        $domain = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($domain)], 201);
     }

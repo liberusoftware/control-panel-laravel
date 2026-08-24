@@ -14,15 +14,19 @@ final class ZoneController
 {
     public function index(Request $request, ListZones $list): JsonResponse
     {
-        $zones = $list->execute($request->user()?->current_team_id, $request->integer('per_page', 25));
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $zones = $list->execute($teamId, $request->integer('per_page', 25));
 
         return response()->json(['data' => $zones->through(static fn (Zone $zone): array => self::resource($zone)), 'meta' => ['current_page' => $zones->currentPage(), 'per_page' => $zones->perPage(), 'total' => $zones->total()]]);
     }
 
     public function store(Request $request, CreateZone $create): JsonResponse
     {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $data = $request->validate(['domain' => ['required', 'string', 'max:253'], 'provider' => ['nullable', 'string', 'max:100'], 'dnssec_enabled' => ['sometimes', 'boolean'], 'metadata' => ['nullable', 'array']]);
-        $zone = $create->execute(array_merge($data, ['team_id' => $request->user()?->current_team_id]));
+        $zone = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($zone)], 201);
     }
