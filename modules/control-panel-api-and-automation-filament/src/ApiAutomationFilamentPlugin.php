@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\ApiAutomationFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\ApiAutomationFilament\Resources\AutomationDefinitionResource;
 
 final class ApiAutomationFilamentPlugin implements Plugin
 {
@@ -19,7 +20,10 @@ final class ApiAutomationFilamentPlugin implements Plugin
         return 'control-panel-api-and-automation-filament';
     }
 
-    public function register(Panel $panel): void {}
+    public function register(Panel $panel): void
+    {
+        $panel->resources([AutomationDefinitionResource::class]);
+    }
 
     public function boot(Panel $panel): void {}
 }
