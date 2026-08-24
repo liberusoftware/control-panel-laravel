@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "168620f705b8e3da73c4e18e230d1e1f",
+    "content-hash": "0f1dc7baf4244f4a443b871912ca01c6",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -6719,6 +6719,42 @@
                 "MIT"
             ],
             "description": "Livewire adapter for Control Panel Databases.",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
+            "name": "liberusoftware/module-control-panel-dns",
+            "version": "1.0.0",
+            "dist": {
+                "type": "path",
+                "url": "modules/control-panel-dns",
+                "reference": "743e199b5675ac305eb8affe98f78744e2bca9f7"
+            },
+            "require": {
+                "illuminate/database": "^13.0",
+                "illuminate/events": "^13.0",
+                "illuminate/support": "^13.0",
+                "illuminate/validation": "^13.0",
+                "liberusoftware/module-manager": "^1.0",
+                "php": "^8.5"
+            },
+            "type": "liberu-module",
+            "extra": {
+                "liberu": {
+                    "name": "control-panel-dns"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Liberu\\ControlPanel\\Dns\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Provider-neutral DNS zones and records for Liberu Control Panel.",
             "transport-options": {
                 "symlink": false,
                 "relative": true
