@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\KubernetesFilament;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Liberu\ControlPanel\KubernetesFilament\Resources\ClusterResource;
+use Liberu\ControlPanel\KubernetesFilament\Resources\KubernetesNodeResource;
 
 final class KubernetesFilamentPlugin implements Plugin
 {
@@ -22,7 +23,7 @@ final class KubernetesFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([ClusterResource::class]);
+        $panel->resources([ClusterResource::class, KubernetesNodeResource::class]);
     }
 
     public function boot(Panel $panel): void {}

@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\Containers\Actions\RegisterWorkload;
 use Liberu\ControlPanel\Containers\Queries\ListWorkloads;
 use Liberu\ControlPanel\Containers\Actions\RecordContainerResource;
+use Liberu\ControlPanel\Containers\Actions\RegisterContainerAsset;
 
 final class ContainersServiceProvider extends ServiceProvider
 {
@@ -16,6 +17,7 @@ final class ContainersServiceProvider extends ServiceProvider
         $this->app->scoped(RegisterWorkload::class);
         $this->app->scoped(ListWorkloads::class);
         $this->app->scoped(RecordContainerResource::class);
+        $this->app->scoped(RegisterContainerAsset::class);
     }
 
     public function boot(): void
