@@ -18,6 +18,12 @@ paths:
       responses:
         '201':
           description: Node registered.
+  /api/v1/control-panel/control-core/tasks:
+    get: {summary: List operation tasks, responses: {'200': {description: Authorized task collection.}}}
+    post: {summary: Queue an idempotent operation, responses: {'201': {description: Task queued.}}}
+  /api/v1/control-panel/control-core/inventory:
+    get: {summary: List observed inventory, responses: {'200': {description: Authorized inventory collection.}}}
+    post: {summary: Record observed inventory, responses: {'201': {description: Inventory recorded.}}}
 components:
   securitySchemes:
     sanctum:

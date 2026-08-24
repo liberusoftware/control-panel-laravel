@@ -6,12 +6,16 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\ControlCore\Actions\AcquireOperationLock;
 use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
+use Liberu\ControlPanel\ControlCore\Actions\CreateOperationTask;
+use Liberu\ControlPanel\ControlCore\Actions\RecordInventory;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
 use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
 use Liberu\ControlPanel\ControlCore\Events\NodeRegistered;
 use Liberu\ControlPanel\ControlCore\Models\Node;
+use Liberu\ControlPanel\ControlCore\Models\OperationTask;
 
 uses(RefreshDatabase::class);
 
@@ -63,4 +67,24 @@ it('never exposes credentials through a node query', function (): void {
     ]);
 
     expect($node->toJson())->not->toContain('do-not-expose');
+});
+
+it('deduplicates operation tasks by team and idempotency key', function (): void {
+    Event::fake();
+
+    $attributes = ['team_id' => 'team-1', 'operation' => 'node.provision', 'idempotency_key' => 'request-1', 'payload' => ['hostname' => 'node.test']];
+    $first = app(CreateOperationTask::class)->execute($attributes);
+    $second = app(CreateOperationTask::class)->execute($attributes);
+
+    expect($second->getKey())->toBe($first->getKey())->and(OperationTask::query()->count())->toBe(1);
+});
+
+it('records inventory and prevents concurrent operation locks', function (): void {
+    $node = app(RegisterNode::class)->execute(['team_id' => 'team-1', 'name' => 'Inventory node', 'hostname' => 'inventory.test']);
+    $record = app(RecordInventory::class)->execute(['team_id' => 'team-1', 'node_id' => $node->getKey(), 'kind' => 'package', 'record_key' => 'php', 'value' => ['version' => '8.5']]);
+    $lock = app(AcquireOperationLock::class)->execute('team-1', $node->getKey(), 'provision', 'test-suite');
+
+    expect($record->value)->toMatchArray(['version' => '8.5'])->and($lock->owner)->toBe('test-suite');
+    expect(fn () => app(AcquireOperationLock::class)->execute('team-1', $node->getKey(), 'provision', 'second-owner'))
+        ->toThrow(ValidationException::class);
 });
