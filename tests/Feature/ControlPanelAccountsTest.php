@@ -12,6 +12,8 @@ use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
+use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
+use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
 use Liberu\ControlPanel\Accounts\Enums\AccountType;
 use Liberu\ControlPanel\Accounts\Events\AccountSuspended;
@@ -87,4 +89,8 @@ it('supports packages, delegation, and validated branding', function (): void {
         ->and($updated->brand)->toMatchArray(['primary_color' => '#336699']);
     expect(fn () => app(UpdateBranding::class)->execute($account, ['logo_url' => 'not-a-url']))
         ->toThrow(ValidationException::class);
+
+    $package = app(UpdateHostingPackage::class)->execute($package, ['active' => false]);
+    $delegation = app(RevokeDelegation::class)->execute($delegation);
+    expect($package->active)->toBeFalse()->and($delegation->active)->toBeFalse();
 });

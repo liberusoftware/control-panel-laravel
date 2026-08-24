@@ -13,7 +13,11 @@ use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
 use Liberu\ControlPanel\Accounts\Actions\ActivateAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Models\Account;
+use Liberu\ControlPanel\Accounts\Models\HostingPackage;
+use Liberu\ControlPanel\Accounts\Models\AccountDelegation;
 use Liberu\ControlPanel\Accounts\Queries\ListAccounts;
+use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
+use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 
 final class AccountController
 {
@@ -57,12 +61,43 @@ final class AccountController
         return response()->json(['data' => ['id' => $package->getKey(), 'type' => 'control-panel-hosting-package', 'attributes' => $package->only(['name', 'limits', 'features', 'active'])]], 201);
     }
 
+    public function packages(Request $request): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $items = HostingPackage::query()->where('team_id', $teamId)->latest()->paginate($request->integer('per_page', 25));
+        return response()->json(['data' => $items->through(static fn (HostingPackage $item): array => ['id' => $item->getKey(), 'type' => 'control-panel-hosting-package', 'attributes' => $item->only(['name', 'limits', 'features', 'active'])]), 'meta' => ['current_page' => $items->currentPage(), 'per_page' => $items->perPage(), 'total' => $items->total()]]);
+    }
+
+    public function updatePackage(Request $request, string $package, UpdateHostingPackage $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        $item = HostingPackage::query()->whereKey($package)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['name' => ['sometimes', 'string', 'max:160'], 'limits' => ['sometimes', 'array'], 'features' => ['sometimes', 'array'], 'active' => ['sometimes', 'boolean']]);
+        $item = $update->execute($item, $data);
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-hosting-package', 'attributes' => $item->only(['name', 'limits', 'features', 'active'])]]);
+    }
+
     public function delegate(Request $request, Account $account, DelegateAccount $delegate): JsonResponse
     {
         abort_unless((string) $account->team_id === (string) $request->user()?->current_team_id, 404);
         $data = $request->validate(['delegate_id' => ['required', 'string', 'max:255'], 'permissions' => ['nullable', 'array'], 'expires_at' => ['nullable', 'date']]);
 
         return response()->json(['data' => $delegate->execute($account, $data)], 201);
+    }
+
+    public function delegations(Request $request, Account $account): JsonResponse
+    {
+        $this->assertTeam($request, $account);
+        $items = AccountDelegation::query()->where('account_id', $account->getKey())->latest()->get();
+        return response()->json(['data' => $items->map(static fn (AccountDelegation $item): array => ['id' => $item->getKey(), 'type' => 'control-panel-account-delegation', 'attributes' => $item->only(['delegate_id', 'permissions', 'expires_at', 'active'])])]);
+    }
+
+    public function revokeDelegation(Request $request, string $delegation, RevokeDelegation $revoke): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        $item = AccountDelegation::query()->whereKey($delegation)->where('team_id', $teamId)->firstOrFail();
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-account-delegation', 'attributes' => $revoke->execute($item)->only(['delegate_id', 'permissions', 'expires_at', 'active'])]]);
     }
 
     public function branding(Request $request, Account $account, UpdateBranding $update): JsonResponse

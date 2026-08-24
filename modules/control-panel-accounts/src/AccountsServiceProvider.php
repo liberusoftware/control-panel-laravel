@@ -13,6 +13,8 @@ use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
 use Liberu\ControlPanel\Accounts\Actions\ActivateAccount;
 use Liberu\ControlPanel\Accounts\Queries\ListAccounts;
 use Liberu\ControlPanel\Accounts\Services\QuotaGuard;
+use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
+use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 
 final class AccountsServiceProvider extends ServiceProvider
 {
@@ -26,6 +28,8 @@ final class AccountsServiceProvider extends ServiceProvider
         $this->app->scoped(ActivateAccount::class);
         $this->app->scoped(ListAccounts::class);
         $this->app->scoped(QuotaGuard::class);
+        $this->app->scoped(UpdateHostingPackage::class);
+        $this->app->scoped(RevokeDelegation::class);
     }
 
     public function boot(): void
