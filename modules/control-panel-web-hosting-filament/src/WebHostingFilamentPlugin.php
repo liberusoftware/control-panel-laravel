@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\WebHostingFilament;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Liberu\ControlPanel\WebHostingFilament\Resources\DomainResource;
+use Liberu\ControlPanel\WebHostingFilament\Resources\RuntimeVersionResource;
 
 final class WebHostingFilamentPlugin implements Plugin
 {
@@ -22,7 +23,7 @@ final class WebHostingFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([DomainResource::class]);
+        $panel->resources([DomainResource::class, RuntimeVersionResource::class]);
     }
 
     public function boot(Panel $panel): void {}

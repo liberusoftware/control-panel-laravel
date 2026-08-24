@@ -10,6 +10,7 @@ use Liberu\ControlPanel\WebHosting\Actions\CreateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\CreateVirtualHost;
 use Liberu\ControlPanel\WebHosting\Actions\CreateRedirect;
 use Liberu\ControlPanel\WebHosting\Actions\RequestCertificate;
+use Liberu\ControlPanel\WebHosting\Actions\RegisterHostingResource;
 use Liberu\ControlPanel\WebHosting\Queries\ListDomains;
 
 final class WebHostingServiceProvider extends ServiceProvider
@@ -22,6 +23,7 @@ final class WebHostingServiceProvider extends ServiceProvider
         $this->app->scoped(ListDomains::class);
         $this->app->scoped(CreateRedirect::class);
         $this->app->scoped(RequestCertificate::class);
+        $this->app->scoped(RegisterHostingResource::class);
     }
 
     public function boot(): void

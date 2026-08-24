@@ -12,6 +12,7 @@ use Liberu\ControlPanel\WebHosting\Models\Domain;
 use Liberu\ControlPanel\WebHosting\Queries\ListDomains;
 use Liberu\ControlPanel\WebHosting\Actions\CreateRedirect;
 use Liberu\ControlPanel\WebHosting\Actions\RequestCertificate;
+use Liberu\ControlPanel\WebHosting\Actions\RegisterHostingResource;
 
 final class DomainController
 {
@@ -67,6 +68,11 @@ final class DomainController
         $certificate = $requestCertificate->execute($domain, $data);
 
         return response()->json(['data' => ['id' => $certificate->getKey(), 'type' => 'control-panel-ssl-certificate', 'attributes' => $certificate->only(['domain_id', 'issuer', 'status', 'auto_renew', 'expires_at'])]], 202);
+    }
+
+    public function resourceRecord(Request $request, RegisterHostingResource $register): JsonResponse
+    {
+        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['kind'=>['required','in:runtime,server,log,application'],'payload'=>['required','array']]); $item=$register->execute(array_merge($data['payload'],['kind'=>$data['kind'],'team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-web-hosting-'.$data['kind'],'attributes'=>$item->toArray()]],201);
     }
 
     private static function resource(Domain $domain): array
