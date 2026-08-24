@@ -1,0 +1,1 @@
+<section aria-labelledby="backup-policy-inventory-heading"><h2 id="backup-policy-inventory-heading">{{ __('Backup policies') }}</h2><ul>@forelse($policies as $policy)<li wire:key="backup-policy-{{ $policy->getKey() }}">{{ $policy->name }} — {{ $policy->storage_driver }}</li>@empty<li>{{ __('No backup policies found.') }}</li>@endforelse</ul>{{ $policies->links() }}</section>

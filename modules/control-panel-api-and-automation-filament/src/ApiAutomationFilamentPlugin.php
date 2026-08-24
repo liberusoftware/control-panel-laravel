@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\ApiAutomationFilament;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Liberu\ControlPanel\ApiAutomationFilament\Resources\AutomationDefinitionResource;
+use Liberu\ControlPanel\ApiAutomationFilament\Resources\WebhookEndpointResource;
 
 final class ApiAutomationFilamentPlugin implements Plugin
 {
@@ -22,7 +23,7 @@ final class ApiAutomationFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([AutomationDefinitionResource::class]);
+        $panel->resources([AutomationDefinitionResource::class, WebhookEndpointResource::class]);
     }
 
     public function boot(Panel $panel): void {}

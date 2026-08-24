@@ -7,6 +7,8 @@ namespace Liberu\ControlPanel\DatabasesFilament;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Liberu\ControlPanel\DatabasesFilament\Resources\DatabaseResource;
+use Liberu\ControlPanel\DatabasesFilament\Resources\DatabaseEngineResource;
+use Liberu\ControlPanel\DatabasesFilament\Resources\DatabaseBackupResource;
 
 final class DatabasesFilamentPlugin implements Plugin
 {
@@ -22,7 +24,7 @@ final class DatabasesFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([DatabaseResource::class]);
+        $panel->resources([DatabaseResource::class, DatabaseEngineResource::class, DatabaseBackupResource::class]);
     }
 
     public function boot(Panel $panel): void {}

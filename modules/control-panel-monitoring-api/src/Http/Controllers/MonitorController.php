@@ -7,6 +7,8 @@ namespace Liberu\ControlPanel\MonitoringApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Liberu\ControlPanel\Monitoring\Actions\RegisterMonitor;
+use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringEvent;
+use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringResource;
 use Liberu\ControlPanel\Monitoring\Models\Monitor;
 use Liberu\ControlPanel\Monitoring\Queries\ListMonitors;
 
@@ -29,6 +31,16 @@ final class MonitorController
         $item = $register->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($item)], 201);
+    }
+
+    public function event(Request $request, RecordMonitoringEvent $record): JsonResponse
+    {
+        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['monitor_id'=>['nullable','uuid'],'kind'=>['required','in:metric,log,uptime,capacity,alert,incident,maintenance,status'],'status'=>['nullable','string','max:50'],'payload'=>['nullable','array'],'starts_at'=>['nullable','date'],'ends_at'=>['nullable','date']]); $item=$record->execute(array_merge($data,['team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-monitoring-event','attributes'=>$item->only(['monitor_id','kind','status','payload','starts_at','ends_at'])]],201);
+    }
+
+    public function record(Request $request, RecordMonitoringResource $record): JsonResponse
+    {
+        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['kind'=>['required','in:metric,log,uptime,capacity,alert,incident,maintenance,status'],'payload'=>['required','array']]); $item=$record->execute(array_merge($data['payload'],['kind'=>$data['kind'],'team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-monitoring-resource','attributes'=>$item->toArray()]],201);
     }
 
     private static function resource(Monitor $item): array

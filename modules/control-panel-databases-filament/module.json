@@ -9,5 +9,6 @@
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-databases": "^1.0"}},
   "capabilities": ["control-panel.databases.filament"],
   "features": ["Database resource"],
-  "default_enabled": false
+  "default_enabled": false,
+  "presentation": {"filament": {"admin": ["Liberu\\ControlPanel\\DatabasesFilament\\DatabasesFilamentPlugin"], "app": []}}
 }

@@ -7,6 +7,8 @@ namespace Liberu\ControlPanel\Security;
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\Security\Actions\RecordFinding;
 use Liberu\ControlPanel\Security\Queries\ListFindings;
+use Liberu\ControlPanel\Security\Actions\RecordSecurityResource;
+use Liberu\ControlPanel\Security\Actions\StoreSecret;
 
 final class SecurityServiceProvider extends ServiceProvider
 {
@@ -14,6 +16,8 @@ final class SecurityServiceProvider extends ServiceProvider
     {
         $this->app->scoped(RecordFinding::class);
         $this->app->scoped(ListFindings::class);
+        $this->app->scoped(RecordSecurityResource::class);
+        $this->app->scoped(StoreSecret::class);
     }
 
     public function boot(): void

@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\Certificates\\CertificatesServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-manager": "^1.0"}},
   "capabilities": ["control-panel.certificates"],
-  "features": ["Certificate issuance", "Certificate renewal", "Expiry monitoring"],
+  "features": ["ACME accounts", "Certificate issuance", "Certificate deployment", "Certificate renewal", "Certificate revocation", "Expiry monitoring"],
   "default_enabled": false
 }

@@ -1,0 +1,1 @@
+<section aria-labelledby="hardening-inventory-heading"><h2 id="hardening-inventory-heading">{{ __('Hardening controls') }}</h2><ul>@forelse($controls as $control)<li wire:key="hardening-control-{{ $control->getKey() }}">{{ $control->control }} — {{ $control->status }}</li>@empty<li>{{ __('No hardening controls found.') }}</li>@endforelse</ul>{{ $controls->links() }}</section>

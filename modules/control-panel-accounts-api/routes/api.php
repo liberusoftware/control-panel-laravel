@@ -11,6 +11,8 @@ Route::prefix('api/v1/control-panel/accounts')
         Route::get('/', [AccountController::class, 'index'])->name('control-panel.accounts.index');
         Route::post('/', [AccountController::class, 'store'])->name('control-panel.accounts.store');
         Route::post('{account}/suspend', [AccountController::class, 'suspend'])->name('control-panel.accounts.suspend');
+        Route::post('{account}/activate', [AccountController::class, 'activate'])->name('control-panel.accounts.activate');
         Route::post('{account}/delegations', [AccountController::class, 'delegate'])->name('control-panel.accounts.delegate');
         Route::patch('{account}/branding', [AccountController::class, 'branding'])->name('control-panel.accounts.branding');
+        Route::post('packages', [AccountController::class, 'package'])->name('control-panel.accounts.packages.store');
     });

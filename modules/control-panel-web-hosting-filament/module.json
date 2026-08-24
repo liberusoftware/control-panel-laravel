@@ -8,6 +8,7 @@
   "provider": "Liberu\\ControlPanel\\WebHostingFilament\\WebHostingFilamentServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-web-hosting": "^1.0"}},
   "capabilities": ["control-panel.web-hosting.filament"],
-  "features": ["Domain administration"],
-  "default_enabled": false
+  "features": ["Domains", "Virtual hosts", "Runtime versions", "Web servers", "SSL certificates", "Logs", "Redirects", "Applications"],
+  "default_enabled": false,
+  "presentation": {"filament": {"admin": ["Liberu\\ControlPanel\\WebHostingFilament\\WebHostingFilamentPlugin"], "app": []}}
 }

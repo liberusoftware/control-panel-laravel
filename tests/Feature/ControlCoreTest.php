@@ -11,8 +11,13 @@ use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
 use Liberu\ControlPanel\ControlCore\Actions\CreateOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\RecordInventory;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
+use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
+use Liberu\ControlPanel\ControlCore\Actions\TransitionOperationTask;
+use Liberu\ControlPanel\ControlCore\Actions\UpdateDesiredState;
+use Liberu\ControlPanel\ControlCore\Actions\WriteAuditEntry;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
 use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
+use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
 use Liberu\ControlPanel\ControlCore\Events\NodeRegistered;
 use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCore\Models\OperationTask;
@@ -87,4 +92,21 @@ it('records inventory and prevents concurrent operation locks', function (): voi
     expect($record->value)->toMatchArray(['version' => '8.5'])->and($lock->owner)->toBe('test-suite');
     expect(fn () => app(AcquireOperationLock::class)->execute('team-1', $node->getKey(), 'provision', 'second-owner'))
         ->toThrow(ValidationException::class);
+});
+
+it('updates desired state, synchronizes capabilities, transitions tasks, and records audit evidence', function (): void {
+    Event::fake();
+    $node = app(RegisterNode::class)->execute(['team_id' => 'team-1', 'name' => 'Managed node', 'hostname' => 'managed.test']);
+
+    app(UpdateDesiredState::class)->execute($node, ['php' => '8.5']);
+    app(SyncNodeCapabilities::class)->execute($node, [['name' => 'web-server', 'version' => '1.0']]);
+    $task = app(CreateOperationTask::class)->execute(['team_id' => 'team-1', 'node_id' => $node->getKey(), 'operation' => 'reconcile', 'idempotency_key' => 'reconcile-1']);
+    app(TransitionOperationTask::class)->execute($task, TaskStatus::Running);
+    $task = app(TransitionOperationTask::class)->execute($task->refresh(), TaskStatus::Succeeded, ['changed' => true]);
+    $audit = app(WriteAuditEntry::class)->execute('node.reconciled', 'team-1', 'user-1', 'node', $node->getKey(), ['task_id' => $task->getKey()]);
+
+    expect($node->refresh()->desired_state)->toMatchArray(['php' => '8.5'])
+        ->and($node->capabilities)->toHaveCount(1)
+        ->and($task->status)->toBe(TaskStatus::Succeeded)
+        ->and($audit->context)->toMatchArray(['task_id' => $task->getKey()]);
 });

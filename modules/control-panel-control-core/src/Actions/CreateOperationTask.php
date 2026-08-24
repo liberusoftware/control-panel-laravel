@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
 use Liberu\ControlPanel\ControlCore\Events\OperationTaskCreated;
 use Liberu\ControlPanel\ControlCore\Models\OperationTask;
+use Liberu\ControlPanel\ControlCore\Models\Node;
 
 final readonly class CreateOperationTask
 {
@@ -22,6 +23,10 @@ final readonly class CreateOperationTask
         $key = trim((string) ($attributes['idempotency_key'] ?? ''));
         if ($operation === '' || $key === '') {
             throw ValidationException::withMessages(['operation' => 'An operation and idempotency key are required.']);
+        }
+        if (($attributes['node_id'] ?? null) !== null && ! Node::query()
+            ->whereKey($attributes['node_id'])->where('team_id', $attributes['team_id'] ?? null)->exists()) {
+            throw ValidationException::withMessages(['node_id' => 'The node is not available in the current team.']);
         }
 
         $task = OperationTask::query()->firstOrCreate(

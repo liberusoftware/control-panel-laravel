@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\DatabasesApi\\DatabasesApiServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-databases": "^1.0"}},
   "capabilities": ["control-panel.databases.api"],
-  "features": ["Database listing", "Database registration"],
+  "features": ["Database listing", "Database registration", "Users and privileges", "Backups", "Upgrades", "Health checks", "Remote access"],
   "default_enabled": false
 }

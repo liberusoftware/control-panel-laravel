@@ -11,6 +11,10 @@ use Illuminate\Validation\Rule;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabase;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabaseUser;
 use Liberu\ControlPanel\Databases\Actions\GrantDatabasePrivilege;
+use Liberu\ControlPanel\Databases\Actions\CreateDatabaseBackup;
+use Liberu\ControlPanel\Databases\Actions\RecordDatabaseHealth;
+use Liberu\ControlPanel\Databases\Actions\RequestDatabaseUpgrade;
+use Liberu\ControlPanel\Databases\Actions\ConfigureRemoteAccess;
 use Liberu\ControlPanel\Databases\Models\Database;
 use Liberu\ControlPanel\Databases\Models\DatabaseUser;
 use Liberu\ControlPanel\Databases\Queries\ListDatabases;
@@ -44,6 +48,42 @@ final class DatabaseController
         return response()->json(['data' => ['id' => $privilege->getKey(), 'type' => 'control-panel-database-privilege', 'attributes' => $privilege->only(['database_id', 'database_user_id', 'privilege', 'object_name'])]], 201);
     }
 
+    public function backup(Request $request, Database $database, CreateDatabaseBackup $create): JsonResponse
+    {
+        $this->assertTeam($request, $database);
+        $data = $request->validate(['destination' => ['required', 'string', 'max:255'], 'type' => ['required', 'in:database,logical,snapshot'], 'automated' => ['sometimes', 'boolean']]);
+        $backup = $create->execute($database, $data);
+
+        return response()->json(['data' => ['id' => $backup->getKey(), 'type' => 'control-panel-database-backup', 'attributes' => $backup->only(['database_id', 'destination', 'type', 'status', 'automated'])]], 201);
+    }
+
+    public function health(Request $request, Database $database, RecordDatabaseHealth $record): JsonResponse
+    {
+        $this->assertTeam($request, $database);
+        $data = $request->validate(['healthy' => ['required', 'boolean'], 'latency_ms' => ['nullable', 'integer', 'min:0'], 'message' => ['nullable', 'string', 'max:255'], 'details' => ['nullable', 'array']]);
+        $health = $record->execute($database, $data['healthy'], $data['latency_ms'] ?? null, $data['message'] ?? null, $data['details'] ?? []);
+
+        return response()->json(['data' => ['id' => $health->getKey(), 'type' => 'control-panel-database-health-check', 'attributes' => $health->only(['database_id', 'healthy', 'latency_ms', 'message', 'details', 'checked_at'])]], 201);
+    }
+
+    public function upgrade(Request $request, Database $database, RequestDatabaseUpgrade $requestUpgrade): JsonResponse
+    {
+        $this->assertTeam($request, $database);
+        $data = $request->validate(['to_version' => ['required', 'string', 'max:80']]);
+        $upgrade = $requestUpgrade->execute($database, $data['to_version']);
+
+        return response()->json(['data' => ['id' => $upgrade->getKey(), 'type' => 'control-panel-database-upgrade', 'attributes' => $upgrade->only(['database_id', 'from_version', 'to_version', 'status'])]], 202);
+    }
+
+    public function remoteAccess(Request $request, Database $database, ConfigureRemoteAccess $configure): JsonResponse
+    {
+        $this->assertTeam($request, $database);
+        $data = $request->validate(['source_cidr' => ['required', 'string', 'max:64'], 'port' => ['required', 'integer', 'between:1,65535'], 'tls_required' => ['sometimes', 'boolean'], 'expires_at' => ['nullable', 'date']]);
+        $access = $configure->execute($database, $data);
+
+        return response()->json(['data' => ['id' => $access->getKey(), 'type' => 'control-panel-database-remote-access', 'attributes' => $access->only(['database_id', 'source_cidr', 'port', 'tls_required', 'active', 'expires_at'])]], 201);
+    }
+
     public function store(Request $request, CreateDatabase $create): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
@@ -59,5 +99,10 @@ final class DatabaseController
     private static function resource(Database $database): array
     {
         return ['id' => $database->getKey(), 'type' => 'control-panel-database', 'attributes' => $database->only(['name', 'status', 'engine_id', 'account_id', 'charset', 'collation', 'metadata'])];
+    }
+
+    private function assertTeam(Request $request, Database $database): void
+    {
+        abort_unless((string) $database->team_id === (string) $request->user()?->current_team_id, 404);
     }
 }

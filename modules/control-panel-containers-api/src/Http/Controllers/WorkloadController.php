@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\ContainersApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Liberu\ControlPanel\Containers\Actions\RegisterWorkload;
+use Liberu\ControlPanel\Containers\Actions\RecordContainerResource;
 use Liberu\ControlPanel\Containers\Models\Workload;
 use Liberu\ControlPanel\Containers\Queries\ListWorkloads;
 
@@ -29,6 +30,11 @@ final class WorkloadController
         $item = $register->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($item)], 201);
+    }
+
+    public function resourceRecord(Request $request, RecordContainerResource $record): JsonResponse
+    {
+        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['workload_id'=>['nullable','uuid'],'kind'=>['required','in:image,registry,network,volume,secret,limit,lifecycle'],'name'=>['required','string','max:255'],'status'=>['nullable','string','max:50'],'spec'=>['nullable','array']]); $item=$record->execute(array_merge($data,['team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-container-resource','attributes'=>$item->only(['workload_id','kind','name','status','spec'])]],201);
     }
 
     private static function resource(Workload $item): array
