@@ -13,6 +13,7 @@ use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
 use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
+use Liberu\ControlPanel\Accounts\Enums\AccountType;
 use Liberu\ControlPanel\Accounts\Events\AccountSuspended;
 use Liberu\ControlPanel\Accounts\Services\QuotaGuard;
 
@@ -59,6 +60,20 @@ it('rejects quota usage above the account limit', function (): void {
 
     expect(fn () => app(QuotaGuard::class)->assertWithinQuota($account, ['websites' => 3]))
         ->toThrow(ValidationException::class);
+});
+
+it('enforces account hierarchy when a parent is provided', function (): void {
+    $administrator = app(CreateAccount::class)->execute([
+        'team_id' => 'team-1', 'owner_id' => 'owner-admin', 'type' => AccountType::Administrator, 'name' => 'Administrator',
+    ]);
+    $customer = app(CreateAccount::class)->execute([
+        'team_id' => 'team-1', 'owner_id' => 'owner-customer', 'type' => AccountType::Customer, 'name' => 'Customer', 'parent_id' => $administrator->getKey(),
+    ]);
+
+    expect($customer->parent_id)->toBe($administrator->getKey());
+    expect(fn () => app(CreateAccount::class)->execute([
+        'team_id' => 'team-1', 'owner_id' => 'owner-admin', 'type' => AccountType::Administrator, 'name' => 'Nested administrator', 'parent_id' => $customer->getKey(),
+    ]))->toThrow(ValidationException::class);
 });
 
 it('supports packages, delegation, and validated branding', function (): void {

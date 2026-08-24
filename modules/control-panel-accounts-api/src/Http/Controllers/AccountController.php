@@ -79,6 +79,7 @@ final class AccountController
         abort_if($teamId === null, 403, 'A current team is required.');
         $data = $request->validate([
             'owner_id' => ['required', 'string', 'max:255'],
+            'parent_id' => ['nullable', 'uuid'],
             'type' => ['required', 'in:customer,reseller,administrator'],
             'name' => ['required', 'string', 'max:160'],
             'brand' => ['nullable', 'array'],
