@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\CertificatesApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Liberu\ControlPanel\Certificates\Actions\CheckCertificateExpiry;
+use Liberu\ControlPanel\Certificates\Actions\ExpireCertificate;
 use Liberu\ControlPanel\Certificates\Actions\IssueCertificate;
 use Liberu\ControlPanel\Certificates\Actions\RecordCertificateOperation;
 use Liberu\ControlPanel\Certificates\Actions\RegisterAcmeAccount;
@@ -104,6 +105,13 @@ final class CertificateController
         $data = $request->validate(['threshold_days' => ['nullable', 'integer', 'between:1,365']]);
 
         return response()->json(['data' => $check->execute($item, (int) ($data['threshold_days'] ?? 30))->toArray()]);
+    }
+
+    public function expire(Request $request, string $certificate, ExpireCertificate $expire): JsonResponse
+    {
+        $item = $this->findForTeam($request, $certificate);
+
+        return response()->json(['data' => self::resource($expire->execute($item))]);
     }
 
     public function revoke(Request $request, string $certificate, RevokeCertificate $revoke): JsonResponse

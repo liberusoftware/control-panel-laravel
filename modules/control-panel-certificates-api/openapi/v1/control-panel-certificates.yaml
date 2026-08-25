@@ -20,6 +20,7 @@ paths:
     post: {operationId: control.panel.certificates.lifecycle.record, security: [{sanctum: []}], responses: {'201': {description: Certificate lifecycle event recorded}}}
   /api/v1/control-panel/certificates/{certificate}:
     get: {operationId: control.panel.certificates.show, security: [{sanctum: []}], responses: {'200': {description: Authorized certificate}}}
+  /api/v1/control-panel/certificates/{certificate}/revoke:
     post:
       operationId: control.panel.certificates.revoke
       security: [{sanctum: []}]
@@ -39,6 +40,11 @@ paths:
       operationId: control.panel.certificates.expiry.check
       security: [{sanctum: []}]
       responses: {'200': {description: Certificate expiry status recorded}}
+  /api/v1/control-panel/certificates/{certificate}/expire:
+    post:
+      operationId: control.panel.certificates.expire
+      security: [{sanctum: []}]
+      responses: {'200': {description: Certificate expired}, '422': {description: Certificate expiration is invalid}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

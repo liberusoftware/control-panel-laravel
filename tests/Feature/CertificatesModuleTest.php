@@ -5,6 +5,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Certificates\Actions\CheckCertificateExpiry;
+use Liberu\ControlPanel\Certificates\Actions\ExpireCertificate;
 use Liberu\ControlPanel\Certificates\Actions\IssueCertificate;
 use Liberu\ControlPanel\Certificates\Actions\RegisterAcmeAccount;
 use Liberu\ControlPanel\Certificates\Actions\RegisterCertificateLifecycle;
@@ -12,6 +13,7 @@ use Liberu\ControlPanel\Certificates\Actions\RequestCertificateDeployment;
 use Liberu\ControlPanel\Certificates\Actions\RequestCertificateRenewal;
 use Liberu\ControlPanel\Certificates\Actions\RevokeCertificate;
 use Liberu\ControlPanel\Certificates\CertificatesServiceProvider;
+use Liberu\ControlPanel\Certificates\Enums\CertificateStatus;
 use Liberu\ControlPanel\CertificatesApi\CertificatesApiServiceProvider;
 use Liberu\Foundation\Organizations\Models\Team;
 
@@ -65,6 +67,18 @@ it('rejects duplicate renewal requests and revokes a certificate through the dom
     expect($revoked->status->value)->toBe('revoked');
 });
 
+it('expires a past-dated active certificate and rejects invalid repeats', function (): void {
+    $certificate = app(IssueCertificate::class)->execute([
+        'team_id' => 'team-1', 'domains' => ['expired.example.test'], 'expires_at' => now()->subMinute(),
+    ]);
+
+    $expired = app(ExpireCertificate::class)->execute($certificate);
+
+    expect($expired->status)->toBe(CertificateStatus::Expired)
+        ->and(fn () => app(ExpireCertificate::class)->execute($expired))
+        ->toThrow(ValidationException::class);
+});
+
 it('exposes certificate lifecycle actions through a tenant-scoped API', function (): void {
     app()->register(CertificatesApiServiceProvider::class);
     $team = Team::factory()->create();
@@ -81,6 +95,14 @@ it('exposes certificate lifecycle actions through a tenant-scoped API', function
     $this->actingAs($user, 'sanctum')
         ->postJson('/api/v1/control-panel/certificates/'.$otherCertificate->getKey().'/revoke')
         ->assertNotFound();
+
+    $expiredCertificate = app(IssueCertificate::class)->execute([
+        'team_id' => $team->getKey(), 'domains' => ['expired.example.test'], 'expires_at' => now()->subMinute(),
+    ]);
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/certificates/'.$expiredCertificate->getKey().'/expire')
+        ->assertOk()
+        ->assertJsonPath('data.attributes.status', 'expired');
 
     $this->actingAs($user, 'sanctum')
         ->postJson('/api/v1/control-panel/certificates/'.$certificate->getKey().'/revoke')
