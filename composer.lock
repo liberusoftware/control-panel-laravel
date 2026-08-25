@@ -5330,16 +5330,10 @@
         {
             "name": "liberusoftware/api-access",
             "version": "1.4.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/liberusoftware/module-api-access.git",
-                "reference": "5c79a794e1e64e84efde7305bde23a1dca459168"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/liberusoftware/module-api-access/zipball/5c79a794e1e64e84efde7305bde23a1dca459168",
-                "reference": "5c79a794e1e64e84efde7305bde23a1dca459168",
-                "shasum": ""
+                "type": "path",
+                "url": "modules/api-access",
+                "reference": "bee7f860a07ab6db54bd8fe62ff204aa7b728cf0"
             },
             "require": {
                 "illuminate/database": "^13.0",
@@ -5377,11 +5371,10 @@
                 "MIT"
             ],
             "description": "API token, scope, version, rate-limit, idempotency, and revocation policy.",
-            "support": {
-                "source": "https://github.com/liberusoftware/module-api-access/tree/1.4.1",
-                "issues": "https://github.com/liberusoftware/module-api-access/issues"
-            },
-            "time": "2026-08-07T14:25:08+00:00"
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
         },
         {
             "name": "liberusoftware/application",
