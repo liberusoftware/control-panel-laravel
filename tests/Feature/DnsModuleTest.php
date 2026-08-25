@@ -3,7 +3,10 @@
 declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
+use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\RegisterDnsFeature;
+use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 
 uses(RefreshDatabase::class);
@@ -22,4 +25,13 @@ it('supports DNS templates, DNSSEC, providers, validation, and propagation check
 });
 it('rejects unsupported DNS features', function (): void {
     expect(fn () => app(RegisterDnsFeature::class)->execute(['team_id' => 'team-1', 'kind' => 'unknown']))->toThrow(ValidationException::class);
+});
+
+it('suspends and archives a DNS zone with terminal-state validation', function (): void {
+    $zone = app(CreateZone::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test', 'provider' => 'cloud']);
+
+    expect(app(SuspendZone::class)->execute($zone)->status->value)->toBe('suspended');
+    expect(app(ArchiveZone::class)->execute($zone->refresh())->status->value)->toBe('archived')
+        ->and(fn () => app(ArchiveZone::class)->execute($zone->refresh()))
+        ->toThrow(ValidationException::class);
 });

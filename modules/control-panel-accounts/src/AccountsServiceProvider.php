@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\Accounts;
 
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\Accounts\Actions\ActivateAccount;
+use Liberu\ControlPanel\Accounts\Actions\ArchiveAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
@@ -26,6 +27,7 @@ final class AccountsServiceProvider extends ServiceProvider
         $this->app->scoped(SuspendAccount::class);
         $this->app->scoped(UpdateBranding::class);
         $this->app->scoped(ActivateAccount::class);
+        $this->app->scoped(ArchiveAccount::class);
         $this->app->scoped(ListAccounts::class);
         $this->app->scoped(QuotaGuard::class);
         $this->app->scoped(UpdateHostingPackage::class);

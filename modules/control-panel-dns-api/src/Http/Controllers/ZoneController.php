@@ -6,10 +6,12 @@ namespace Liberu\ControlPanel\DnsApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\RecordDnsCheck;
 use Liberu\ControlPanel\Dns\Actions\RegisterDnsFeature;
+use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Liberu\ControlPanel\Dns\Queries\ListZones;
 
@@ -71,6 +73,20 @@ final class ZoneController
         $item = $register->execute(array_merge($data['payload'], ['kind' => $data['kind'], 'team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-dns-'.$data['kind'], 'attributes' => $item->toArray()]], 201);
+    }
+
+    public function suspend(Request $request, string $zone, SuspendZone $suspend): JsonResponse
+    {
+        $item = Zone::query()->whereKey($zone)->where('team_id', $request->user()?->current_team_id)->firstOrFail();
+
+        return response()->json(['data' => self::resource($suspend->execute($item))]);
+    }
+
+    public function archive(Request $request, string $zone, ArchiveZone $archive): JsonResponse
+    {
+        $item = Zone::query()->whereKey($zone)->where('team_id', $request->user()?->current_team_id)->firstOrFail();
+
+        return response()->json(['data' => self::resource($archive->execute($item))]);
     }
 
     private static function resource(Zone $zone): array

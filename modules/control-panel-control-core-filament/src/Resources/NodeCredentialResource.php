@@ -13,6 +13,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
 
@@ -51,6 +52,10 @@ final class NodeCredentialResource extends Resource
                 ->requiresConfirmation()
                 ->visible(fn (NodeCredential $record): bool => $record->status->value !== 'revoked')
                 ->action(fn (NodeCredential $record): NodeCredential => app(RevokeNodeCredential::class)->execute($record)),
+            Action::make('expire')
+                ->requiresConfirmation()
+                ->visible(fn (NodeCredential $record): bool => $record->status->value === 'active' && $record->expires_at?->isPast())
+                ->action(fn (NodeCredential $record): NodeCredential => app(ExpireNodeCredential::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

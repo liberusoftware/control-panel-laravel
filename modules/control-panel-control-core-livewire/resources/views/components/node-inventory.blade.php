@@ -13,6 +13,9 @@
                     <span>{{ $node->name }}</span>
                     <span>{{ $node->hostname }}</span>
                     <span>{{ $node->status->value }}</span>
+                    @if ($node->status->value !== 'decommissioned')
+                        <button type="button" wire:click="decommission('{{ $node->getKey() }}')">Decommission</button>
+                    @endif
                 </li>
             @endforeach
         </ul>

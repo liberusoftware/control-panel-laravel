@@ -13,6 +13,9 @@
                     @if ($credential->status->value !== 'revoked')
                         <button type="button" wire:click="revoke('{{ $credential->getKey() }}')">{{ __('Revoke') }}</button>
                     @endif
+                    @if ($credential->status->value === 'active' && $credential->expires_at?->isPast())
+                        <button type="button" wire:click="expire('{{ $credential->getKey() }}')">{{ __('Expire') }}</button>
+                    @endif
                 </li>
             @endforeach
         </ul>

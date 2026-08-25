@@ -15,6 +15,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\Certificates\Actions\ExpireCertificate;
 use Liberu\ControlPanel\Certificates\Actions\RevokeCertificate;
 use Liberu\ControlPanel\Certificates\Models\Certificate;
 use Liberu\ControlPanel\CertificatesFilament\Resources\CertificateResource\Pages\CreateCertificate;
@@ -50,6 +51,10 @@ final class CertificateResource extends Resource
                     ->requiresConfirmation()
                     ->visible(fn (Certificate $record): bool => $record->status->value !== 'revoked')
                     ->action(fn (Certificate $record): Certificate => app(RevokeCertificate::class)->execute($record)),
+                Action::make('expire')
+                    ->requiresConfirmation()
+                    ->visible(fn (Certificate $record): bool => $record->status->value === 'active' && $record->expires_at?->isPast())
+                    ->action(fn (Certificate $record): Certificate => app(ExpireCertificate::class)->execute($record)),
             ])
             ->defaultSort('expires_at', 'asc');
     }

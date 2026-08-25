@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\ApiAutomationFilament\Resources;
 
+use Filament\Actions\Action;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -12,6 +13,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\ApiAutomation\Actions\PauseWebhook;
+use Liberu\ControlPanel\ApiAutomation\Actions\ResumeWebhook;
 use Liberu\ControlPanel\ApiAutomation\Models\WebhookEndpoint;
 use Liberu\ControlPanel\ApiAutomationFilament\Resources\WebhookEndpointResource\Pages\CreateWebhookEndpoint;
 use Liberu\ControlPanel\ApiAutomationFilament\Resources\WebhookEndpointResource\Pages\EditWebhookEndpoint;
@@ -39,7 +42,15 @@ final class WebhookEndpointResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('name')->searchable(), TextColumn::make('url')->limit(40), TextColumn::make('status')->badge(), TextColumn::make('failure_count'), TextColumn::make('created_at')->dateTime()]);
+        return $table->columns([TextColumn::make('name')->searchable(), TextColumn::make('url')->limit(40), TextColumn::make('status')->badge(), TextColumn::make('failure_count'), TextColumn::make('created_at')->dateTime()])->recordActions([
+            Action::make('pause')
+                ->requiresConfirmation()
+                ->visible(fn (WebhookEndpoint $record): bool => $record->status === 'active')
+                ->action(fn (WebhookEndpoint $record): WebhookEndpoint => app(PauseWebhook::class)->execute($record)),
+            Action::make('resume')
+                ->visible(fn (WebhookEndpoint $record): bool => in_array($record->status, ['paused', 'failed'], true))
+                ->action(fn (WebhookEndpoint $record): WebhookEndpoint => app(ResumeWebhook::class)->execute($record)),
+        ]);
     }
 
     public static function getEloquentQuery(): Builder

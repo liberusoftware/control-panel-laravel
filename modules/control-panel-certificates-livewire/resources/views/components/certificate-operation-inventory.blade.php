@@ -9,6 +9,9 @@
                 @if ($certificate->status->value !== 'revoked')
                     <button type="button" wire:click="revoke('{{ $certificate->getKey() }}')">{{ __('Revoke') }}</button>
                 @endif
+                @if ($certificate->status->value === 'active' && $certificate->expires_at?->isPast())
+                    <button type="button" wire:click="expire('{{ $certificate->getKey() }}')">{{ __('Expire') }}</button>
+                @endif
             </li>
         @empty
             <li>{{ __('No certificates found.') }}</li>

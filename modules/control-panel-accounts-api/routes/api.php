@@ -12,6 +12,7 @@ Route::prefix('api/v1/control-panel/accounts')
         Route::post('/', [AccountController::class, 'store'])->name('control-panel.accounts.store');
         Route::post('{account}/suspend', [AccountController::class, 'suspend'])->name('control-panel.accounts.suspend');
         Route::post('{account}/activate', [AccountController::class, 'activate'])->name('control-panel.accounts.activate');
+        Route::post('{account}/archive', [AccountController::class, 'archive'])->name('control-panel.accounts.archive');
         Route::post('{account}/delegations', [AccountController::class, 'delegate'])->name('control-panel.accounts.delegate');
         Route::patch('{account}/branding', [AccountController::class, 'branding'])->name('control-panel.accounts.branding');
         Route::post('{account}/quota-check', [AccountController::class, 'quotaCheck'])->name('control-panel.accounts.quota-check');

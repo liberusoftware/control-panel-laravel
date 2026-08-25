@@ -87,6 +87,17 @@ it('stores and replays idempotent API requests', function () {
     expect(DB::table('api_idempotency_keys')->value('response_status'))->toBe(201);
 });
 
+it('reclaims expired idempotency keys without colliding with the unique index', function () {
+    $store = new IdempotencyStore();
+    config()->set('api-access.idempotency_hours', 1);
+
+    expect($store->begin('actor', 'expired-key', 'first'))->toBeNull();
+    DB::table('api_idempotency_keys')->where('identity_ref', 'actor')->where('key', 'expired-key')->update(['expires_at' => now()->subMinute()]);
+
+    expect($store->begin('actor', 'expired-key', 'second'))->toBeNull()
+        ->and(DB::table('api_idempotency_keys')->where('identity_ref', 'actor')->where('key', 'expired-key')->value('request_hash'))->toBe(hash('sha256', 'second'));
+});
+
 it('resolves currency preferences from ordered scopes', function () {
     DB::table('currency_preferences')->insert(['scope_type' => 'team', 'scope_id' => '4', 'currency' => 'gbp', 'created_at' => now(), 'updated_at' => now()]);
     $resolver = new CurrencyPreferenceResolver();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\ControlCoreLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
 use Livewire\Component;
@@ -22,6 +23,16 @@ final class CredentialInventory extends Component
             ->firstOrFail();
 
         $revoke->execute($credential);
+    }
+
+    public function expire(string $credentialId, ExpireNodeCredential $expire): void
+    {
+        $credential = NodeCredential::query()
+            ->whereKey($credentialId)
+            ->where('team_id', auth()->user()?->current_team_id)
+            ->firstOrFail();
+
+        $expire->execute($credential);
     }
 
     public function render(): View

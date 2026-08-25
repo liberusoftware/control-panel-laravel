@@ -14,6 +14,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
+use Liberu\ControlPanel\Databases\Actions\ArchiveDatabase;
+use Liberu\ControlPanel\Databases\Actions\SuspendDatabase;
 use Liberu\ControlPanel\Databases\Enums\DatabaseStatus;
 use Liberu\ControlPanel\Databases\Models\Database;
 use Liberu\ControlPanel\DatabasesFilament\Resources\DatabaseResource\Pages\CreateDatabase;
@@ -55,6 +57,14 @@ final class DatabaseResource extends Resource
             Action::make('activate')
                 ->visible(fn (Database $record): bool => $record->status !== DatabaseStatus::Active && $record->status !== DatabaseStatus::Archived)
                 ->action(fn (Database $record): Database => app(ActivateDatabase::class)->execute($record)),
+            Action::make('suspend')
+                ->requiresConfirmation()
+                ->visible(fn (Database $record): bool => $record->status === DatabaseStatus::Active)
+                ->action(fn (Database $record): Database => app(SuspendDatabase::class)->execute($record)),
+            Action::make('archive')
+                ->requiresConfirmation()
+                ->visible(fn (Database $record): bool => $record->status !== DatabaseStatus::Archived)
+                ->action(fn (Database $record): Database => app(ArchiveDatabase::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

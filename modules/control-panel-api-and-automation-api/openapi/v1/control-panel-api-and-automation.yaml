@@ -10,6 +10,10 @@ paths:
     post: {operationId: control.panel.api.and.automation.credentials.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CredentialCreate'}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/api-and-automation/webhooks:
     post: {operationId: control.panel.api.and.automation.webhooks.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/WebhookCreate'}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/api-and-automation/webhooks/{webhook}/pause:
+    post: {operationId: control.panel.api.and.automation.webhooks.pause, security: [{sanctum: []}], responses: {'200': {description: Webhook paused.}, '422': {description: Webhook cannot be paused.}}}
+  /api/v1/control-panel/api-and-automation/webhooks/{webhook}/resume:
+    post: {operationId: control.panel.api.and.automation.webhooks.resume, security: [{sanctum: []}], responses: {'200': {description: Webhook resumed.}, '422': {description: Webhook cannot be resumed.}}}
   /api/v1/control-panel/api-and-automation/templates/{template}/runs:
     post:
       operationId: control.panel.api.and.automation.runs.create

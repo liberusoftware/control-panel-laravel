@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Accounts\AccountsServiceProvider;
+use Liberu\ControlPanel\Accounts\Actions\ArchiveAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
@@ -54,6 +55,16 @@ it('suspends an account with a reason and emits an after-commit event', function
         ->and($suspended->suspended_reason)->toBe('Payment review')
         ->and($suspended->suspended_at)->not->toBeNull();
     Event::assertDispatched(AccountSuspended::class);
+});
+
+it('archives an account and rejects repeating the transition', function (): void {
+    $account = app(CreateAccount::class)->execute(['owner_id' => 'user-1', 'name' => 'Customer']);
+
+    $archived = app(ArchiveAccount::class)->execute($account);
+
+    expect($archived->status)->toBe(AccountStatus::Archived)
+        ->and(fn () => app(ArchiveAccount::class)->execute($archived))
+        ->toThrow(ValidationException::class);
 });
 
 it('rejects quota usage above the account limit', function (): void {
@@ -134,4 +145,18 @@ it('exposes individual accounts only to their current team', function (): void {
 
     $this->actingAs($user, 'sanctum')->getJson('/api/v1/control-panel/accounts/'.$otherAccount->getKey())
         ->assertNotFound();
+});
+
+it('archives an account through the tenant-scoped API', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute([
+        'team_id' => $team->getKey(), 'owner_id' => $user->getKey(), 'name' => 'Archive customer',
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/accounts/'.$account->getKey().'/archive')
+        ->assertOk()
+        ->assertJsonPath('data.attributes.status', 'archived');
 });

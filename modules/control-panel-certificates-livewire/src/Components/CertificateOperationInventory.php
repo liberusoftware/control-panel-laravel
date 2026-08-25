@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\CertificatesLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Certificates\Actions\CheckCertificateExpiry;
+use Liberu\ControlPanel\Certificates\Actions\ExpireCertificate;
 use Liberu\ControlPanel\Certificates\Actions\RequestCertificateRenewal;
 use Liberu\ControlPanel\Certificates\Actions\RevokeCertificate;
 use Liberu\ControlPanel\Certificates\Models\Certificate;
@@ -48,6 +49,16 @@ final class CertificateOperationInventory extends Component
             ->firstOrFail();
 
         $revoke->execute($certificate);
+    }
+
+    public function expire(string $certificateId, ExpireCertificate $expire): void
+    {
+        $certificate = Certificate::query()
+            ->whereKey($certificateId)
+            ->where('team_id', auth()->user()?->current_team_id)
+            ->firstOrFail();
+
+        $expire->execute($certificate);
     }
 
     public function render(): View

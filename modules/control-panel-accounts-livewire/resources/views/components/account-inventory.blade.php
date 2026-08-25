@@ -21,6 +21,9 @@
                     @elseif ($account->status->value === 'suspended')
                         <button type="button" wire:click="activate('{{ $account->getKey() }}')">Activate</button>
                     @endif
+                    @if ($account->status->value !== 'archived')
+                        <button type="button" wire:click="archive('{{ $account->getKey() }}')">Archive</button>
+                    @endif
                 </li>
             @endforeach
         </ul>

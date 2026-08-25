@@ -7,9 +7,11 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
+use Liberu\ControlPanel\Databases\Actions\ArchiveDatabase;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabase;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabaseUser;
 use Liberu\ControlPanel\Databases\Actions\GrantDatabasePrivilege;
+use Liberu\ControlPanel\Databases\Actions\SuspendDatabase;
 use Liberu\ControlPanel\Databases\DatabasesServiceProvider;
 use Liberu\ControlPanel\Databases\Enums\DatabaseStatus;
 use Liberu\ControlPanel\Databases\Events\DatabaseCreated;
@@ -46,6 +48,17 @@ it('rejects archived database activation and missing identity', function (): voi
 
     expect(fn () => app(ActivateDatabase::class)->execute($database))->toThrow(ValidationException::class)
         ->and(fn () => app(CreateDatabase::class)->execute(['name' => 'missing-engine']))->toThrow(ValidationException::class);
+});
+
+it('suspends and archives a database with terminal-state validation', function (): void {
+    $engine = DatabaseEngine::query()->firstOrFail();
+    $database = app(CreateDatabase::class)->execute(['engine_id' => $engine->getKey(), 'name' => 'customer_app']);
+    app(ActivateDatabase::class)->execute($database);
+
+    expect(app(SuspendDatabase::class)->execute($database)->status)->toBe(DatabaseStatus::Suspended);
+    expect(app(ArchiveDatabase::class)->execute($database->refresh())->status)->toBe(DatabaseStatus::Archived)
+        ->and(fn () => app(ArchiveDatabase::class)->execute($database->refresh()))
+        ->toThrow(ValidationException::class);
 });
 
 it('stores encrypted database credentials and allow-listed privileges', function (): void {
