@@ -11,6 +11,7 @@ use Liberu\ControlPanel\Files\Actions\CreateSftpAccount;
 use Liberu\ControlPanel\Files\Actions\GrantFilePermission;
 use Liberu\ControlPanel\Files\Actions\RecordFileOperation;
 use Liberu\ControlPanel\Files\Actions\RegisterFile;
+use Liberu\ControlPanel\Files\Actions\SetFileQuota;
 use Liberu\ControlPanel\Files\Actions\SetFileRetention;
 use Liberu\ControlPanel\Files\Models\FileEntry;
 use Liberu\ControlPanel\Files\Queries\ListFiles;
@@ -93,6 +94,16 @@ final class FileController
         $item = $set->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-file-retention', 'attributes' => $item->only(['file_id', 'retention_until', 'policy', 'active'])]], 201);
+    }
+
+    public function quota(Request $request, SetFileQuota $set): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $data = $request->validate(['owner_id' => ['nullable', 'string', 'max:255'], 'limit_bytes' => ['required', 'integer', 'min:0'], 'used_bytes' => ['sometimes', 'integer', 'min:0'], 'files_count' => ['sometimes', 'integer', 'min:0']]);
+        $item = $set->execute(array_merge($data, ['team_id' => (string) $teamId]));
+
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-file-quota', 'attributes' => $item->only(['owner_id', 'limit_bytes', 'used_bytes', 'files_count'])]], 201);
     }
 
     private static function resource(FileEntry $file): array

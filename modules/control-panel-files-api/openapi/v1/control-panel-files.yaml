@@ -22,6 +22,8 @@ paths:
     post: {operationId: control.panel.files.sftp.accounts.create, security: [{sanctum: []}], responses: {'201': {description: SFTP account created}}}
   /api/v1/control-panel/files/retention:
     post: {operationId: control.panel.files.retention.create, security: [{sanctum: []}], responses: {'201': {description: File retention policy recorded}}}
+  /api/v1/control-panel/files/quotas:
+    post: {operationId: control.panel.files.quotas.create, security: [{sanctum: []}], responses: {'201': {description: File quota configured}}}
   /api/v1/control-panel/files/{file}:
     get: {operationId: control.panel.files.show, security: [{sanctum: []}], responses: {'200': {description: Authorized file record}}}
 components:
