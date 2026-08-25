@@ -9,14 +9,17 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationSchedule;
 use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationTemplate;
+use Liberu\ControlPanel\ApiAutomation\Actions\PauseWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\RecordBillingProvisioningEvent;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomation;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomationCommand;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
+use Liberu\ControlPanel\ApiAutomation\Actions\ResumeWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationDefinition;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
+use Liberu\ControlPanel\ApiAutomation\Models\WebhookEndpoint;
 use Liberu\ControlPanel\ApiAutomation\Queries\ListAutomations;
 
 final class AutomationController
@@ -67,6 +70,22 @@ final class AutomationController
         $webhook = $register->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $webhook->getKey(), 'type' => 'control-panel-automation-webhook', 'attributes' => $webhook->only(['name', 'url', 'events', 'status', 'retry_limit'])]], 201);
+    }
+
+    public function pauseWebhook(Request $request, string $webhook, PauseWebhook $pause): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        $item = WebhookEndpoint::query()->whereKey($webhook)->where('team_id', $teamId)->firstOrFail();
+
+        return response()->json(['data' => self::webhookResource($pause->execute($item))]);
+    }
+
+    public function resumeWebhook(Request $request, string $webhook, ResumeWebhook $resume): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        $item = WebhookEndpoint::query()->whereKey($webhook)->where('team_id', $teamId)->firstOrFail();
+
+        return response()->json(['data' => self::webhookResource($resume->execute($item))]);
     }
 
     public function run(Request $request, string $template, StartOrchestration $start): JsonResponse
@@ -132,5 +151,10 @@ final class AutomationController
     private static function templateResource(AutomationTemplate $item): array
     {
         return ['id' => $item->getKey(), 'type' => 'control-panel-automation-template', 'attributes' => $item->only(['name', 'version', 'description', 'inputs', 'steps', 'active'])];
+    }
+
+    private static function webhookResource(WebhookEndpoint $item): array
+    {
+        return ['id' => $item->getKey(), 'type' => 'control-panel-automation-webhook', 'attributes' => $item->only(['name', 'url', 'events', 'status', 'retry_limit', 'failure_count', 'last_delivered_at'])];
     }
 }
