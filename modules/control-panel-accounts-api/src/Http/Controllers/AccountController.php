@@ -18,6 +18,7 @@ use Liberu\ControlPanel\Accounts\Models\AccountDelegation;
 use Liberu\ControlPanel\Accounts\Queries\ListAccounts;
 use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
+use Liberu\ControlPanel\Accounts\Services\QuotaGuard;
 
 final class AccountController
 {
@@ -106,6 +107,15 @@ final class AccountController
         $data = $request->validate(['logo_url' => ['nullable', 'url', 'max:2048'], 'name' => ['nullable', 'string', 'max:160'], 'primary_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/']]);
 
         return response()->json(['data' => self::resource($update->execute($account, $data))]);
+    }
+
+    public function quotaCheck(Request $request, Account $account, QuotaGuard $quotas): JsonResponse
+    {
+        $this->assertTeam($request, $account);
+        $data = $request->validate(['usage' => ['required', 'array'], 'usage.*' => ['integer', 'min:0']]);
+        $quotas->assertWithinQuota($account, $data['usage']);
+
+        return response()->json(['data' => ['id' => $account->getKey(), 'type' => 'control-panel-account-quota', 'attributes' => ['within_quota' => true, 'usage' => $data['usage'], 'limits' => $account->quota_overrides ?? []]]]);
     }
 
     public function store(Request $request, CreateAccount $create): JsonResponse

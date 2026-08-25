@@ -8,6 +8,8 @@ use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\WebHostingLivewire\Components\DomainInventory;
 use Liberu\ControlPanel\WebHostingLivewire\Components\HostingResourceInventory;
 use Livewire\Livewire;
+use Liberu\ControlPanel\WebHostingLivewire\Components\GitDeploymentInventory;
+use Liberu\ControlPanel\WebHostingLivewire\Components\PhpConfigurationInventory;
 
 final class WebHostingLivewireServiceProvider extends ServiceProvider
 {
@@ -16,5 +18,7 @@ final class WebHostingLivewireServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'control-panel-web-hosting-livewire');
         Livewire::component('module-control-panel-web-hosting::domain-inventory', DomainInventory::class);
         Livewire::component('module-control-panel-web-hosting::hosting-resource-inventory', HostingResourceInventory::class);
+        Livewire::component('module-control-panel-web-hosting::git-deployment-inventory', GitDeploymentInventory::class);
+        Livewire::component('module-control-panel-web-hosting::php-configuration-inventory', PhpConfigurationInventory::class);
     }
 }

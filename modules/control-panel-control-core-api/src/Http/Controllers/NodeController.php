@@ -14,6 +14,8 @@ use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
+use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
+use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
 
 final class NodeController
 {
@@ -68,6 +70,15 @@ final class NodeController
         $data = $request->validate(['desired_state' => ['required', 'array']]);
 
         return response()->json(['data' => $this->resource($update->execute($item, $data['desired_state']))]);
+    }
+
+    public function updateStatus(Request $request, string $node, ChangeNodeStatus $change): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['status' => ['required', 'string', 'in:pending,active,draining,decommissioned']]);
+
+        return response()->json(['data' => $this->resource($change->execute($item, NodeStatus::from($data['status'])))]);
     }
 
     public function capabilities(Request $request, string $node, SyncNodeCapabilities $sync): JsonResponse

@@ -10,6 +10,7 @@
                     <span>{{ $account->name }}</span>
                     <span>{{ $account->type->value }}</span>
                     <span>{{ $account->status->value }}</span>
+                    <span>{{ count($account->quota_overrides ?? []) }} quota limits</span>
                 </li>
             @endforeach
         </ul>

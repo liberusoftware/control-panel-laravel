@@ -16,7 +16,8 @@
     "Domain lifecycle and validation",
     "Virtual host desired state",
     "Runtime and redirect metadata",
-    "Certificate and application references"
+    "Certificate and application references",
+    "Git repository deployment configuration and webhook security"
   ],
   "default_enabled": false
 }

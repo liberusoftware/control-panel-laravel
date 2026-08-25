@@ -126,9 +126,12 @@ The test suite exercises application behaviour and every installed module provid
 
 ### Publishing the component repositories
 
-The publishing helper derives repository names from directory names, using
-`module-` for entries in `modules/` and `theme-` for entries in `themes/`. It
-also handles this complete application repository as `control-panel-laravel`.
+Liberu Control Panel is the host application; its reusable capabilities are
+published as independent Composer packages. GitHub repositories for modules
+use the `module-` prefix (for example,
+`liberusoftware/module-control-panel-accounts`). Packagist uses each module's
+declared Composer package name and does not derive a second name from the
+GitHub prefix. Themes use the corresponding `theme-` repository prefix.
 
 The package repositories are maintained as independent Git histories. Use the
 fleet tool to inspect, clone, validate, and update those existing repositories:

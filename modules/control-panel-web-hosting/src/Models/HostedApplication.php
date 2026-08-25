@@ -12,5 +12,30 @@ final class HostedApplication extends Model
     use HasUuids;
     protected $table = 'control_panel_hosted_applications';
     protected $fillable = ['team_id', 'domain_id', 'name', 'type', 'version', 'document_root', 'status', 'config'];
-    protected function casts(): array { return ['config' => 'array']; }
+    protected function casts(): array { return ['config' => 'encrypted:array']; }
+
+    public function isInstalled(): bool
+    {
+        return $this->status === 'installed';
+    }
+
+    public function isInstalling(): bool
+    {
+        return $this->status === 'installing';
+    }
+
+    public function hasFailed(): bool
+    {
+        return $this->status === 'failed';
+    }
+
+    public function isUpdating(): bool
+    {
+        return $this->status === 'updating';
+    }
+
+    public function getFullPathAttribute(): string
+    {
+        return rtrim($this->document_root, '/');
+    }
 }

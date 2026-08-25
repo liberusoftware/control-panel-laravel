@@ -32,6 +32,8 @@ final class AccountResource extends Resource
             TextColumn::make('type')->badge(),
             TextColumn::make('status')->badge(),
             TextColumn::make('owner_id')->label('Owner')->searchable(),
+            TextColumn::make('quota_overrides')->label('Quota limits')->formatStateUsing(static fn (?array $state): string => (string) count($state ?? [])),
+            TextColumn::make('brand')->label('Branding')->formatStateUsing(static fn (?array $state): string => (string) count($state ?? [])),
             TextColumn::make('created_at')->dateTime()->sortable(),
         ])->defaultSort('created_at', 'desc');
     }

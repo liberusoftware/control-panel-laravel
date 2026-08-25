@@ -9,12 +9,21 @@ use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
 use Liberu\ControlPanel\ControlCore\Enums\CredentialStatus;
+use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     app()->register(ControlCoreServiceProvider::class);
     $this->artisan('migrate');
+});
+
+it('rejects credentials for a node outside the current team', function (): void {
+    $node = app(RegisterNode::class)->execute(['team_id' => 'team-1', 'name' => 'Private node', 'hostname' => 'private.test']);
+
+    expect(fn () => app(RegisterNodeCredential::class)->execute([
+        'team_id' => 'team-2', 'node_id' => $node->getKey(), 'name' => 'Invalid key', 'secret' => 'a-secret-value',
+    ]))->toThrow(ValidationException::class);
 });
 
 it('registers encrypted managed credentials and supports revocation', function (): void {

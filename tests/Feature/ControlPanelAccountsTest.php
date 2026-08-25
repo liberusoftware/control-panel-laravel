@@ -18,6 +18,9 @@ use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
 use Liberu\ControlPanel\Accounts\Enums\AccountType;
 use Liberu\ControlPanel\Accounts\Events\AccountSuspended;
 use Liberu\ControlPanel\Accounts\Services\QuotaGuard;
+use Liberu\ControlPanel\AccountsApi\AccountsApiServiceProvider;
+use App\Models\User;
+use Liberu\Foundation\Organizations\Models\Team;
 
 uses(RefreshDatabase::class);
 
@@ -93,4 +96,23 @@ it('supports packages, delegation, and validated branding', function (): void {
     $package = app(UpdateHostingPackage::class)->execute($package, ['active' => false]);
     $delegation = app(RevokeDelegation::class)->execute($delegation);
     expect($package->active)->toBeFalse()->and($delegation->active)->toBeFalse();
+});
+
+it('exposes the quota guard through the authenticated tenant-scoped API', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute([
+        'team_id' => $team->getKey(), 'owner_id' => $user->getKey(), 'name' => 'API customer',
+        'quota_overrides' => ['websites' => 3],
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/accounts/'.$account->getKey().'/quota-check', ['usage' => ['websites' => 2]])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.within_quota', true);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/accounts/'.$account->getKey().'/quota-check', ['usage' => ['websites' => 4]])
+        ->assertUnprocessable();
 });

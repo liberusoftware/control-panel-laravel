@@ -15,6 +15,7 @@ use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
 use Liberu\ControlPanel\ControlCore\Actions\TransitionOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\UpdateDesiredState;
 use Liberu\ControlPanel\ControlCore\Actions\WriteAuditEntry;
+use Liberu\ControlPanel\ControlCore\Actions\ReleaseOperationLock;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
 use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
 use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
@@ -91,6 +92,19 @@ it('records inventory and prevents concurrent operation locks', function (): voi
 
     expect($record->value)->toMatchArray(['version' => '8.5'])->and($lock->owner)->toBe('test-suite');
     expect(fn () => app(AcquireOperationLock::class)->execute('team-1', $node->getKey(), 'provision', 'second-owner'))
+        ->toThrow(ValidationException::class);
+});
+
+it('requires lock ownership to release a lock and scopes locks to the node team', function (): void {
+    $node = app(RegisterNode::class)->execute(['team_id' => 'team-1', 'name' => 'Locked node', 'hostname' => 'locked.test']);
+    $lock = app(AcquireOperationLock::class)->execute('team-1', $node->getKey(), 'deploy', 'owner-1');
+
+    expect(fn () => app(ReleaseOperationLock::class)->execute($lock, 'owner-2'))
+        ->toThrow(ValidationException::class);
+
+    app(ReleaseOperationLock::class)->execute($lock->refresh(), 'owner-1');
+    expect(DB::table('control_panel_operation_locks')->where('id', $lock->getKey())->exists())->toBeFalse();
+    expect(fn () => app(AcquireOperationLock::class)->execute('team-2', $node->getKey(), 'deploy', 'owner-2'))
         ->toThrow(ValidationException::class);
 });
 

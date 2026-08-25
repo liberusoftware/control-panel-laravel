@@ -8,6 +8,10 @@ use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeResource;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\OperationTaskResource;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\InventoryRecordResource;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\AuditEntryResource;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\OperationLockResource;
 
 final class ControlCoreFilamentPlugin implements Plugin
 {
@@ -23,7 +27,7 @@ final class ControlCoreFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([NodeResource::class, NodeCredentialResource::class]);
+        $panel->resources([NodeResource::class, NodeCredentialResource::class, OperationTaskResource::class, InventoryRecordResource::class, AuditEntryResource::class, OperationLockResource::class]);
     }
 
     public function boot(Panel $panel): void {}

@@ -17,3 +17,26 @@ paths:
       summary: Create or update a virtual host desired state
       security: [{sanctum: []}]
       responses: {'201': {description: Virtual host registered.}}
+  /api/v1/control-panel/web-hosting/deployments:
+    get:
+      operationId: control.panel.web.hosting.deployments.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Authorized Git deployment collection.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/deployments:
+    post:
+      operationId: control.panel.web.hosting.deployments.create
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'201': {description: Git deployment registered.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/php-configuration:
+    put:
+      operationId: control.panel.web.hosting.php.configuration.update
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: PHP configuration saved.}}
+  /api/v1/control-panel/web-hosting/resources/{kind}:
+    get:
+      operationId: control.panel.web.hosting.resources.list
+      security: [{sanctum: []}]
+      parameters: [{name: kind, in: path, required: true, schema: {type: string}}]
+      responses: {'200': {description: Authorized hosting resource collection.}}
