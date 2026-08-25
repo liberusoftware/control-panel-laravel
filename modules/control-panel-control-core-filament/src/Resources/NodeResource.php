@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\ControlCoreFilament\Resources;
 
+use Filament\Actions\Action;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -11,6 +12,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
 use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeResource\Pages\CreateNode;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeResource\Pages\EditNode;
@@ -43,6 +45,11 @@ final class NodeResource extends Resource
             TextColumn::make('platform'),
             TextColumn::make('status')->badge(),
             TextColumn::make('last_seen_at')->dateTime()->sortable(),
+        ])->recordActions([
+            Action::make('decommission')
+                ->requiresConfirmation()
+                ->visible(fn (Node $record): bool => $record->status->value !== 'decommissioned')
+                ->action(fn (Node $record): Node => app(DecommissionNode::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

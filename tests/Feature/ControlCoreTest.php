@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -9,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ControlCore\Actions\AcquireOperationLock;
 use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
 use Liberu\ControlPanel\ControlCore\Actions\CreateOperationTask;
+use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
 use Liberu\ControlPanel\ControlCore\Actions\RecordInventory;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\ReleaseOperationLock;
@@ -22,6 +24,8 @@ use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
 use Liberu\ControlPanel\ControlCore\Events\NodeRegistered;
 use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCore\Models\OperationTask;
+use Liberu\ControlPanel\ControlCoreApi\ControlCoreApiServiceProvider;
+use Liberu\Foundation\Organizations\Models\Team;
 
 uses(RefreshDatabase::class);
 
@@ -61,6 +65,30 @@ it('does not allow a decommissioned node to be reactivated', function (): void {
 
     expect(fn () => app(ChangeNodeStatus::class)->execute($node, NodeStatus::Active))
         ->toThrow(ValidationException::class);
+});
+
+it('decommissions a node as a terminal transition', function (): void {
+    $node = app(RegisterNode::class)->execute(['name' => 'Retiring node', 'hostname' => 'retiring.example.test']);
+
+    $decommissioned = app(DecommissionNode::class)->execute($node);
+
+    expect($decommissioned->status)->toBe(NodeStatus::Decommissioned)
+        ->and(fn () => app(DecommissionNode::class)->execute($decommissioned))
+        ->toThrow(ValidationException::class);
+});
+
+it('decommissions a node through the tenant-scoped API', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute([
+        'team_id' => $team->getKey(), 'name' => 'API retiring node', 'hostname' => 'api-retiring.test',
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey().'/decommission')
+        ->assertOk()
+        ->assertJsonPath('data.attributes.status', 'decommissioned');
 });
 
 it('never exposes credentials through a node query', function (): void {

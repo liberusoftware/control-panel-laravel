@@ -30,6 +30,12 @@ paths:
       security: [{sanctum: []}]
       parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {'200': {description: Node status changed.}}
+  /api/v1/control-panel/control-core/nodes/{node}/decommission:
+    post:
+      operationId: control.panel.control.core.nodes.decommission
+      security: [{sanctum: []}]
+      parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Node decommissioned.}, '422': {description: Node is already decommissioned.}}
   /api/v1/control-panel/control-core/nodes/{node}/desired-state:
     patch:
       operationId: control.panel.control.core.nodes.desired.state

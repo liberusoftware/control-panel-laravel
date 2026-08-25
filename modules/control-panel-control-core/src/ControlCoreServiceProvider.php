@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\ControlCore;
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\ControlCore\Actions\AcquireOperationLock;
 use Liberu\ControlPanel\ControlCore\Actions\CreateOperationTask;
+use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
 use Liberu\ControlPanel\ControlCore\Actions\RecordInventory;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
@@ -27,6 +28,7 @@ final class ControlCoreServiceProvider extends ServiceProvider
     {
         $this->app->scoped(RegisterNode::class);
         $this->app->scoped(CreateOperationTask::class);
+        $this->app->scoped(DecommissionNode::class);
         $this->app->scoped(RecordInventory::class);
         $this->app->scoped(AcquireOperationLock::class);
         $this->app->scoped(ListNodes::class);

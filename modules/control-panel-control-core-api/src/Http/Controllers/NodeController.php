@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\ControlCoreApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
+use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
@@ -79,6 +80,14 @@ final class NodeController
         $data = $request->validate(['status' => ['required', 'string', 'in:pending,active,draining,decommissioned']]);
 
         return response()->json(['data' => $this->resource($change->execute($item, NodeStatus::from($data['status'])))]);
+    }
+
+    public function decommission(Request $request, string $node, DecommissionNode $decommission): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
+
+        return response()->json(['data' => $this->resource($decommission->execute($item))]);
     }
 
     public function capabilities(Request $request, string $node, SyncNodeCapabilities $sync): JsonResponse

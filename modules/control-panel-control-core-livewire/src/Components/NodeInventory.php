@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\ControlCoreLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
+use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCore\Queries\ListNodes;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -20,6 +22,15 @@ final class NodeInventory extends Component
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function decommission(string $nodeId, DecommissionNode $decommission): void
+    {
+        $node = Node::query()
+            ->whereKey($nodeId)
+            ->where('team_id', auth()->user()?->current_team_id)
+            ->firstOrFail();
+        $decommission->execute($node);
     }
 
     public function render(ListNodes $nodes): View

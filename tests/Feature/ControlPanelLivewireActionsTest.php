@@ -19,16 +19,20 @@ use Liberu\ControlPanel\AccountsLivewire\Components\AccountFeatureInventory;
 use Liberu\ControlPanel\AccountsLivewire\Components\AccountInventory;
 use Liberu\ControlPanel\ControlCore\Actions\AcquireOperationLock;
 use Liberu\ControlPanel\ControlCore\Actions\CreateOperationTask;
+use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\ReleaseOperationLock;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\TransitionOperationTask;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
+use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
 use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
+use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCore\Models\OperationLock;
 use Liberu\ControlPanel\ControlCore\Models\OperationTask;
 use Liberu\ControlPanel\ControlCoreLivewire\Components\CredentialInventory;
+use Liberu\ControlPanel\ControlCoreLivewire\Components\NodeInventory;
 use Liberu\ControlPanel\ControlCoreLivewire\Components\OperationsInventory;
 use Liberu\ControlPanel\ControlCoreLivewire\ControlCoreLivewireServiceProvider;
 use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
@@ -115,6 +119,19 @@ it('transitions only a current-team operation task from the Livewire inventory',
     $component->transitionTask($task->getKey(), 'succeeded', app(TransitionOperationTask::class));
 
     expect(OperationTask::query()->find($task->getKey())->status)->toBe(TaskStatus::Succeeded);
+});
+
+it('decommissions only a current-team node from Livewire', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute([
+        'team_id' => $team->getKey(), 'name' => 'Retiring node', 'hostname' => 'retiring.test',
+    ]);
+
+    $this->actingAs($user);
+    app(NodeInventory::class)->decommission($node->getKey(), app(DecommissionNode::class));
+
+    expect(Node::query()->find($node->getKey())->status)->toBe(NodeStatus::Decommissioned);
 });
 
 it('activates only a current-team database from the Livewire inventory', function (): void {
