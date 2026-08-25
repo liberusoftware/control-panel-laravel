@@ -6,10 +6,12 @@ namespace Liberu\ControlPanel\MonitoringApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Liberu\ControlPanel\Monitoring\Actions\CancelMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringEvent;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringResource;
 use Liberu\ControlPanel\Monitoring\Actions\RegisterMonitor;
 use Liberu\ControlPanel\Monitoring\Actions\ResolveMonitoringEvent;
+use Liberu\ControlPanel\Monitoring\Models\MaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Models\Monitor;
 use Liberu\ControlPanel\Monitoring\Models\MonitoringEvent;
 use Liberu\ControlPanel\Monitoring\Queries\ListMonitors;
@@ -73,6 +75,13 @@ final class MonitorController
         $event = $resolve->execute($event);
 
         return response()->json(['data' => ['id' => $event->getKey(), 'type' => 'control-panel-monitoring-event', 'attributes' => $event->only(['monitor_id', 'kind', 'status', 'payload', 'starts_at', 'ends_at'])]]);
+    }
+
+    public function cancelMaintenance(Request $request, MaintenanceWindow $window, CancelMaintenanceWindow $cancel): JsonResponse
+    {
+        abort_unless((string) $window->team_id === (string) $request->user()?->current_team_id, 404);
+
+        return response()->json(['data' => ['id' => $window->getKey(), 'type' => 'control-panel-monitoring-maintenance', 'attributes' => $cancel->execute($window)->only(['name', 'starts_at', 'ends_at', 'scope', 'status', 'details'])]]);
     }
 
     private static function resource(Monitor $item): array

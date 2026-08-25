@@ -11,5 +11,6 @@ Route::prefix('api/v1/control-panel/monitoring')->middleware(['api', 'auth:sanct
     Route::post('/events', [MonitorController::class, 'event'])->name('control-panel.monitoring.events.store');
     Route::post('/events/{event}/resolve', [MonitorController::class, 'resolveEvent'])->name('control-panel.monitoring.events.resolve');
     Route::post('/resources', [MonitorController::class, 'record'])->name('control-panel.monitoring.resources.store');
+    Route::post('/maintenance/{window}/cancel', [MonitorController::class, 'cancelMaintenance'])->name('control-panel.monitoring.maintenance.cancel');
     Route::get('{monitor}', [MonitorController::class, 'show'])->name('control-panel.monitoring.show');
 });
