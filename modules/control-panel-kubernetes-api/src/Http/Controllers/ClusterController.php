@@ -7,6 +7,8 @@ namespace Liberu\ControlPanel\KubernetesApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Liberu\ControlPanel\Kubernetes\Actions\RegisterCluster;
+use Liberu\ControlPanel\Kubernetes\Actions\RecordKubernetesResource;
+use Liberu\ControlPanel\Kubernetes\Actions\RegisterKubernetesAsset;
 use Liberu\ControlPanel\Kubernetes\Models\Cluster;
 use Liberu\ControlPanel\Kubernetes\Queries\ListClusters;
 
@@ -29,6 +31,16 @@ final class ClusterController
         $item = $register->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($item)], 201);
+    }
+
+    public function resourceRecord(Request $request, RecordKubernetesResource $record): JsonResponse
+    {
+        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['cluster_id'=>['nullable','uuid'],'kind'=>['required','in:node,namespace,rbac,workload,ingress,helm,storage,autoscaling,upgrade,cluster-view'],'name'=>['required','string','max:255'],'namespace'=>['nullable','string','max:255'],'status'=>['nullable','string','max:50'],'spec'=>['nullable','array']]); $item=$record->execute(array_merge($data,['team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-kubernetes-resource','attributes'=>$item->only(['cluster_id','kind','name','namespace','status','spec'])]],201);
+    }
+
+    public function asset(Request $request, RegisterKubernetesAsset $register): JsonResponse
+    {
+        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['kind'=>['required','in:node,namespace,rbac,workload,ingress,helm,storage,autoscaling,upgrade,cluster-view'],'payload'=>['required','array']]); $item=$register->execute(array_merge($data['payload'],['kind'=>$data['kind'],'team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-kubernetes-'.$data['kind'],'attributes'=>$item->toArray()]],201);
     }
 
     private static function resource(Cluster $item): array

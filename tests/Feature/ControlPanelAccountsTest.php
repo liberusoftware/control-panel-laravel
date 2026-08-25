@@ -8,10 +8,19 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Accounts\AccountsServiceProvider;
 use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
+use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
+use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
+use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
+use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
+use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
+use Liberu\ControlPanel\Accounts\Enums\AccountType;
 use Liberu\ControlPanel\Accounts\Events\AccountSuspended;
 use Liberu\ControlPanel\Accounts\Services\QuotaGuard;
+use Liberu\ControlPanel\AccountsApi\AccountsApiServiceProvider;
+use App\Models\User;
+use Liberu\Foundation\Organizations\Models\Team;
 
 uses(RefreshDatabase::class);
 
@@ -56,4 +65,54 @@ it('rejects quota usage above the account limit', function (): void {
 
     expect(fn () => app(QuotaGuard::class)->assertWithinQuota($account, ['websites' => 3]))
         ->toThrow(ValidationException::class);
+});
+
+it('enforces account hierarchy when a parent is provided', function (): void {
+    $administrator = app(CreateAccount::class)->execute([
+        'team_id' => 'team-1', 'owner_id' => 'owner-admin', 'type' => AccountType::Administrator, 'name' => 'Administrator',
+    ]);
+    $customer = app(CreateAccount::class)->execute([
+        'team_id' => 'team-1', 'owner_id' => 'owner-customer', 'type' => AccountType::Customer, 'name' => 'Customer', 'parent_id' => $administrator->getKey(),
+    ]);
+
+    expect($customer->parent_id)->toBe($administrator->getKey());
+    expect(fn () => app(CreateAccount::class)->execute([
+        'team_id' => 'team-1', 'owner_id' => 'owner-admin', 'type' => AccountType::Administrator, 'name' => 'Nested administrator', 'parent_id' => $customer->getKey(),
+    ]))->toThrow(ValidationException::class);
+});
+
+it('supports packages, delegation, and validated branding', function (): void {
+    $account = app(CreateAccount::class)->execute(['team_id' => 'team-1', 'owner_id' => 'user-1', 'name' => 'Customer']);
+    $package = app(CreateHostingPackage::class)->execute(['team_id' => 'team-1', 'name' => 'Starter', 'limits' => ['sites' => 1]]);
+    $delegation = app(DelegateAccount::class)->execute($account, ['delegate_id' => 'user-2', 'permissions' => ['view' => true]]);
+    $updated = app(UpdateBranding::class)->execute($account, ['name' => 'Customer Brand', 'primary_color' => '#336699']);
+
+    expect($package->limits)->toMatchArray(['sites' => 1])
+        ->and($delegation->delegate_id)->toBe('user-2')
+        ->and($updated->brand)->toMatchArray(['primary_color' => '#336699']);
+    expect(fn () => app(UpdateBranding::class)->execute($account, ['logo_url' => 'not-a-url']))
+        ->toThrow(ValidationException::class);
+
+    $package = app(UpdateHostingPackage::class)->execute($package, ['active' => false]);
+    $delegation = app(RevokeDelegation::class)->execute($delegation);
+    expect($package->active)->toBeFalse()->and($delegation->active)->toBeFalse();
+});
+
+it('exposes the quota guard through the authenticated tenant-scoped API', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute([
+        'team_id' => $team->getKey(), 'owner_id' => $user->getKey(), 'name' => 'API customer',
+        'quota_overrides' => ['websites' => 3],
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/accounts/'.$account->getKey().'/quota-check', ['usage' => ['websites' => 2]])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.within_quota', true);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/accounts/'.$account->getKey().'/quota-check', ['usage' => ['websites' => 4]])
+        ->assertUnprocessable();
 });

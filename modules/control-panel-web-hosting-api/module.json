@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\WebHostingApi\\WebHostingApiServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-web-hosting": "^1.0"}},
   "capabilities": ["control-panel.web-hosting.api"],
-  "features": ["Domain listing", "Domain registration"],
+  "features": ["Domains", "Virtual hosts", "Runtime versions", "Web servers", "SSL certificates", "Logs", "Redirects", "Applications", "Git deployments"],
   "default_enabled": false
 }

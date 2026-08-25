@@ -6,6 +6,8 @@ namespace Liberu\ControlPanel\OsAdaptersFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\OsAdaptersFilament\Resources\OsAdapterResource;
+use Liberu\ControlPanel\OsAdaptersFilament\Resources\OsPackageResource;
 
 final class OsAdaptersFilamentPlugin implements Plugin
 {
@@ -19,7 +21,10 @@ final class OsAdaptersFilamentPlugin implements Plugin
         return 'control-panel-os-adapters-filament';
     }
 
-    public function register(Panel $panel): void {}
+    public function register(Panel $panel): void
+    {
+        $panel->resources([OsAdapterResource::class, OsPackageResource::class]);
+    }
 
     public function boot(Panel $panel): void {}
 }

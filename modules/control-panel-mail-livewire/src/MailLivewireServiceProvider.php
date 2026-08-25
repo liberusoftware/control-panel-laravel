@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\MailLivewire;
 
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\MailLivewire\Components\MailInventory;
+use Liberu\ControlPanel\MailLivewire\Components\MailFeatureInventory;
 use Livewire\Livewire;
 
 final class MailLivewireServiceProvider extends ServiceProvider
@@ -14,5 +15,6 @@ final class MailLivewireServiceProvider extends ServiceProvider
     {
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'control-panel-mail-livewire');
         Livewire::component('module-control-panel-mail::mail-inventory', MailInventory::class);
+        Livewire::component('module-control-panel-mail::mail-feature-inventory', MailFeatureInventory::class);
     }
 }

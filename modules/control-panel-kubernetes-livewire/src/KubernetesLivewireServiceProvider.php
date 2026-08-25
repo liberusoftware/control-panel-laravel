@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\KubernetesLivewire;
 
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\KubernetesLivewire\Components\ClusterInventory;
+use Liberu\ControlPanel\KubernetesLivewire\Components\KubernetesAssetInventory;
 use Livewire\Livewire;
 
 final class KubernetesLivewireServiceProvider extends ServiceProvider
@@ -14,5 +15,6 @@ final class KubernetesLivewireServiceProvider extends ServiceProvider
     {
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'control-panel-kubernetes-livewire');
         Livewire::component('module-control-panel-kubernetes::cluster-inventory', ClusterInventory::class);
+        Livewire::component('module-control-panel-kubernetes::kubernetes-asset-inventory', KubernetesAssetInventory::class);
     }
 }

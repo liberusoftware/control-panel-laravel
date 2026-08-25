@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\BackupsLivewire\\BackupsLivewireServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-backups": "^1.0"}},
   "capabilities": ["control-panel.backups.livewire"],
-  "features": ["Snapshot inventory"],
+  "features": ["Policy inventory", "Snapshot inventory", "Restore state", "Verification state"],
   "default_enabled": false
 }

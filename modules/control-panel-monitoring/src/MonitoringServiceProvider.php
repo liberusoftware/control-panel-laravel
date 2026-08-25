@@ -7,6 +7,8 @@ namespace Liberu\ControlPanel\Monitoring;
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\Monitoring\Actions\RegisterMonitor;
 use Liberu\ControlPanel\Monitoring\Queries\ListMonitors;
+use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringEvent;
+use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringResource;
 
 final class MonitoringServiceProvider extends ServiceProvider
 {
@@ -14,6 +16,8 @@ final class MonitoringServiceProvider extends ServiceProvider
     {
         $this->app->scoped(RegisterMonitor::class);
         $this->app->scoped(ListMonitors::class);
+        $this->app->scoped(RecordMonitoringEvent::class);
+        $this->app->scoped(RecordMonitoringResource::class);
     }
 
     public function boot(): void

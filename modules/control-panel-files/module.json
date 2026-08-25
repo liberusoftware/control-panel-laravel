@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\Files\\FilesServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-manager": "^1.0"}},
   "capabilities": ["control-panel.files"],
-  "features": ["File records", "Quota accounting", "Scan state", "Retention state"],
+  "features": ["Home directories", "Permissions", "SFTP", "File operations", "Quotas", "Scanning", "Retention"],
   "default_enabled": false
 }

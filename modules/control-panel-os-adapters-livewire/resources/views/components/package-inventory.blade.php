@@ -1,0 +1,1 @@
+<section aria-labelledby="os-package-inventory-heading"><h2 id="os-package-inventory-heading">{{ __('Packages') }}</h2><ul>@forelse($packages as $package)<li wire:key="os-package-{{ $package->getKey() }}">{{ $package->name }} {{ $package->version }} — {{ $package->status }}</li>@empty<li>{{ __('No packages found.') }}</li>@endforelse</ul>{{ $packages->links() }}</section>

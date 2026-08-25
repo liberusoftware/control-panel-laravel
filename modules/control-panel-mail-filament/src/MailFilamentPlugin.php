@@ -6,6 +6,8 @@ namespace Liberu\ControlPanel\MailFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\MailFilament\Resources\MailAccountResource;
+use Liberu\ControlPanel\MailFilament\Resources\MailAliasResource;
 
 final class MailFilamentPlugin implements Plugin
 {
@@ -19,7 +21,10 @@ final class MailFilamentPlugin implements Plugin
         return 'control-panel-mail-filament';
     }
 
-    public function register(Panel $panel): void {}
+    public function register(Panel $panel): void
+    {
+        $panel->resources([MailAccountResource::class, MailAliasResource::class]);
+    }
 
     public function boot(Panel $panel): void {}
 }

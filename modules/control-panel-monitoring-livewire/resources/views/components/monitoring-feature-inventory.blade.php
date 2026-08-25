@@ -1,0 +1,1 @@
+<section><h2>{{ __('Monitoring events') }}</h2><ul>@forelse($events as $event)<li wire:key="monitoring-event-{{ $event->getKey() }}">{{ $event->kind }} — {{ $event->status }}</li>@empty<li>{{ __('No monitoring events found.') }}</li>@endforelse</ul>{{ $events->links() }}</section>

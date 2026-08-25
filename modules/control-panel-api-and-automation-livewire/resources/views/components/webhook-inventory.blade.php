@@ -1,0 +1,1 @@
+<section aria-labelledby="automation-webhook-inventory"><h2 id="automation-webhook-inventory">{{ __('Webhooks') }}</h2><ul>@forelse($webhooks as $webhook)<li wire:key="automation-webhook-{{ $webhook->getKey() }}">{{ $webhook->name }} — {{ $webhook->status }}</li>@empty<li>{{ __('No webhooks found.') }}</li>@endforelse</ul>{{ $webhooks->links() }}</section>

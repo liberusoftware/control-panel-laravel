@@ -11,6 +11,7 @@ use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Databases\Enums\DatabaseStatus;
 use Liberu\ControlPanel\Databases\Events\DatabaseCreated;
 use Liberu\ControlPanel\Databases\Models\Database;
+use Liberu\ControlPanel\Databases\Models\DatabaseEngine;
 
 final readonly class CreateDatabase
 {
@@ -23,6 +24,14 @@ final readonly class CreateDatabase
         $engineId = trim((string) ($attributes['engine_id'] ?? ''));
         if ($name === '' || $engineId === '') {
             throw ValidationException::withMessages(['database' => 'A database name and engine are required.']);
+        }
+        $teamId = $attributes['team_id'] ?? null;
+        $engine = DatabaseEngine::query()->whereKey($engineId)->where('active', true)->first();
+        if ($engine === null || ($engine->team_id !== null && (string) $engine->team_id !== (string) $teamId)) {
+            throw ValidationException::withMessages(['engine_id' => 'The database engine is not available in the current team.']);
+        }
+        if (! preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/', $name)) {
+            throw ValidationException::withMessages(['name' => 'The database name contains unsupported characters.']);
         }
 
         return DB::transaction(function () use ($attributes, $name, $engineId): Database {

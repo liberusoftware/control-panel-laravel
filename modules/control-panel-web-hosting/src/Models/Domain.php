@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\WebHosting\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 use Liberu\ControlPanel\WebHosting\Enums\DomainStatus;
 
 final class Domain extends Model
@@ -25,5 +26,15 @@ final class Domain extends Model
     public function virtualHosts(): HasMany
     {
         return $this->hasMany(VirtualHost::class);
+    }
+
+    public function gitDeployments(): HasMany
+    {
+        return $this->hasMany(GitDeployment::class);
+    }
+
+    public function phpConfiguration(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(PhpConfiguration::class);
     }
 }

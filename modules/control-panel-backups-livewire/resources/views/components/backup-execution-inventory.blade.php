@@ -1,0 +1,1 @@
+<section><h2>{{ __('Backup executions') }}</h2><ul>@forelse($executions as $execution)<li wire:key="backup-execution-{{ $execution->getKey() }}">{{ $execution->type }} — {{ $execution->consistency }} — {{ $execution->status }}</li>@empty<li>{{ __('No backup executions found.') }}</li>@endforelse</ul>{{ $executions->links() }}</section>

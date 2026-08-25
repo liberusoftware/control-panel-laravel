@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\FilesLivewire;
 
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\FilesLivewire\Components\FileInventory;
+use Liberu\ControlPanel\FilesLivewire\Components\SftpInventory;
 use Livewire\Livewire;
 
 final class FilesLivewireServiceProvider extends ServiceProvider
@@ -14,5 +15,6 @@ final class FilesLivewireServiceProvider extends ServiceProvider
     {
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'control-panel-files-livewire');
         Livewire::component('module-control-panel-files::file-inventory', FileInventory::class);
+        Livewire::component('module-control-panel-files::sftp-inventory', SftpInventory::class);
     }
 }

@@ -18,6 +18,62 @@ paths:
       responses:
         '201':
           description: Node registered.
+  /api/v1/control-panel/control-core/nodes/{node}:
+    get:
+      operationId: control.panel.control.core.nodes.show
+      security: [{sanctum: []}]
+      parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Authorized node.}}
+  /api/v1/control-panel/control-core/nodes/{node}/status:
+    patch:
+      operationId: control.panel.control.core.nodes.status
+      security: [{sanctum: []}]
+      parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Node status changed.}}
+  /api/v1/control-panel/control-core/nodes/{node}/desired-state:
+    patch:
+      operationId: control.panel.control.core.nodes.desired.state
+      security: [{sanctum: []}]
+      parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Desired state updated.}}
+  /api/v1/control-panel/control-core/nodes/{node}/capabilities:
+    put:
+      operationId: control.panel.control.core.nodes.capabilities.sync
+      security: [{sanctum: []}]
+      parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Capabilities synchronized.}}
+  /api/v1/control-panel/control-core/nodes/{node}/credentials:
+    post:
+      operationId: control.panel.control.core.credentials.create
+      security: [{sanctum: []}]
+      parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'201': {description: Credential registered.}}
+  /api/v1/control-panel/control-core/credentials/{credential}/revoke:
+    post:
+      operationId: control.panel.control.core.credentials.revoke
+      security: [{sanctum: []}]
+      parameters: [{name: credential, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Credential revoked.}}
+  /api/v1/control-panel/control-core/tasks:
+    get: {summary: List operation tasks, responses: {'200': {description: Authorized task collection.}}}
+    post: {summary: Queue an idempotent operation, responses: {'201': {description: Task queued.}}}
+  /api/v1/control-panel/control-core/inventory:
+    get: {summary: List observed inventory, responses: {'200': {description: Authorized inventory collection.}}}
+    post: {summary: Record observed inventory, responses: {'201': {description: Inventory recorded.}}}
+  /api/v1/control-panel/control-core/audit:
+    get:
+      operationId: control.panel.control.core.audit.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Authorized audit collection.}}
+  /api/v1/control-panel/control-core/locks:
+    get: {summary: List operation locks, security: [{sanctum: []}], responses: {'200': {description: Authorized lock collection.}}}
+    post: {summary: Acquire an operation lock, security: [{sanctum: []}], responses: {'201': {description: Lock acquired.}}}
+  /api/v1/control-panel/control-core/locks/{lock}:
+    delete:
+      operationId: control.panel.control.core.locks.release
+      security: [{sanctum: []}]
+      parameters: [{name: lock, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'204': {description: Lock released.}}
 components:
   securitySchemes:
     sanctum:

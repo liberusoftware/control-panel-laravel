@@ -1,0 +1,1 @@
+<section><h2>{{ __('Certificate operations') }}</h2><ul>@forelse($operations as $operation)<li wire:key="certificate-operation-{{ $operation->getKey() }}">{{ $operation->operation }} — {{ $operation->status }}</li>@empty<li>{{ __('No certificate operations found.') }}</li>@endforelse</ul>{{ $operations->links() }}</section>

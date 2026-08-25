@@ -12,6 +12,16 @@ paths:
       operationId: control.panel.databases.create
       security: [{sanctum: []}]
       responses: {'201': {description: Database created}}
+  /api/v1/control-panel/databases/{database}/users:
+    post:
+      operationId: control.panel.databases.users.create
+      security: [{sanctum: []}]
+      responses: {'201': {description: Database user created}}
+  /api/v1/control-panel/databases/users/{user}/privileges:
+    post:
+      operationId: control.panel.databases.privileges.grant
+      security: [{sanctum: []}]
+      responses: {'201': {description: Database privilege granted}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

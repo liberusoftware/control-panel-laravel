@@ -6,6 +6,8 @@ namespace Liberu\ControlPanel\ContainersFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\ContainersFilament\Resources\WorkloadResource;
+use Liberu\ControlPanel\ContainersFilament\Resources\ContainerImageResource;
 
 final class ContainersFilamentPlugin implements Plugin
 {
@@ -19,7 +21,10 @@ final class ContainersFilamentPlugin implements Plugin
         return 'control-panel-containers-filament';
     }
 
-    public function register(Panel $panel): void {}
+    public function register(Panel $panel): void
+    {
+        $panel->resources([WorkloadResource::class, ContainerImageResource::class]);
+    }
 
     public function boot(Panel $panel): void {}
 }

@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\BackupsFilament\\BackupsFilamentServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-backups": "^1.0"}},
   "capabilities": ["control-panel.backups.filament"],
-  "features": ["Snapshot administration"],
+  "features": ["Policies", "Snapshots", "Destinations", "Schedules", "Restore", "Verification", "Retention"],
   "default_enabled": false
 }

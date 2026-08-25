@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+namespace Liberu\ControlPanel\WebHosting\Actions;
+use Illuminate\Database\Eloquent\Model; use Illuminate\Support\Str; use Illuminate\Validation\ValidationException;
+final class RegisterHostingResource { public function execute(array $a):Model { $kind=(string)($a['kind']??''); $map=['runtime'=>\Liberu\ControlPanel\WebHosting\Models\RuntimeVersion::class,'server'=>\Liberu\ControlPanel\WebHosting\Models\WebServer::class,'log'=>\Liberu\ControlPanel\WebHosting\Models\HostingLog::class,'application'=>\Liberu\ControlPanel\WebHosting\Models\HostedApplication::class]; if(!isset($map[$kind]))throw ValidationException::withMessages(['kind'=>'Unsupported hosting resource.']); $a['id']=$a['id']??(string)Str::uuid();$a['team_id']=$a['team_id']??null; if($kind==='log'){$a['occurred_at']=$a['occurred_at']??now();$a['kind']=$a['log_kind']??'access';} if($kind==='server')$a['status']=$a['status']??'active'; if($kind==='application')$a['status']=$a['status']??'pending'; if($kind!=='log')unset($a['kind']); unset($a['log_kind']);return $map[$kind]::query()->create($a); } }

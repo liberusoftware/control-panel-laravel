@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\Databases\\DatabasesServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-manager": "^1.0"}},
   "capabilities": ["control-panel.databases"],
-  "features": ["Database engines", "Database lifecycle", "Database health"],
+  "features": ["Database engines", "Database lifecycle", "Users and privileges", "Backups", "Upgrades", "Health checks", "Remote access"],
   "default_enabled": false
 }
