@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Liberu\ControlPanel\Containers\Actions\RecordContainerResource;
 use Liberu\ControlPanel\Containers\Actions\RegisterContainerAsset;
 use Liberu\ControlPanel\Containers\Actions\RegisterWorkload;
+use Liberu\ControlPanel\Containers\Actions\StartWorkload;
+use Liberu\ControlPanel\Containers\Actions\StopWorkload;
 use Liberu\ControlPanel\Containers\Models\Workload;
 use Liberu\ControlPanel\Containers\Queries\ListWorkloads;
 
@@ -42,6 +44,20 @@ final class WorkloadController
         return response()->json(['data' => self::resource($item)], 201);
     }
 
+    public function start(Request $request, Workload $workload, StartWorkload $start): JsonResponse
+    {
+        $this->assertTeam($request, $workload);
+
+        return response()->json(['data' => self::resource($start->execute($workload))]);
+    }
+
+    public function stop(Request $request, Workload $workload, StopWorkload $stop): JsonResponse
+    {
+        $this->assertTeam($request, $workload);
+
+        return response()->json(['data' => self::resource($stop->execute($workload))]);
+    }
+
     public function resourceRecord(Request $request, RecordContainerResource $record): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
@@ -65,5 +81,10 @@ final class WorkloadController
     private static function resource(Workload $item): array
     {
         return ['id' => $item->getKey(), 'type' => 'control-panel-workload', 'attributes' => $item->only(['node_id', 'name', 'image', 'status', 'specification'])];
+    }
+
+    private function assertTeam(Request $request, Workload $workload): void
+    {
+        abort_unless((string) $workload->team_id === (string) $request->user()?->current_team_id, 404);
     }
 }
