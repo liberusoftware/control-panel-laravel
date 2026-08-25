@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\KubernetesFilament\Resources;
 
+use Filament\Actions\Action;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -11,6 +12,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\Kubernetes\Actions\ArchiveCluster;
+use Liberu\ControlPanel\Kubernetes\Actions\SuspendCluster;
 use Liberu\ControlPanel\Kubernetes\Models\Cluster;
 use Liberu\ControlPanel\KubernetesFilament\Resources\ClusterResource\Pages\CreateCluster;
 use Liberu\ControlPanel\KubernetesFilament\Resources\ClusterResource\Pages\EditCluster;
@@ -36,7 +39,10 @@ final class ClusterResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('name')->searchable()->sortable(), TextColumn::make('endpoint')->searchable(), TextColumn::make('status')->badge(), TextColumn::make('created_at')->dateTime()])->defaultSort('created_at', 'desc');
+        return $table->columns([TextColumn::make('name')->searchable()->sortable(), TextColumn::make('endpoint')->searchable(), TextColumn::make('status')->badge(), TextColumn::make('created_at')->dateTime()])->recordActions([
+            Action::make('suspend')->requiresConfirmation()->visible(fn (Cluster $record): bool => $record->status !== 'suspended' && $record->status !== 'archived')->action(fn (Cluster $record): Cluster => app(SuspendCluster::class)->execute($record)),
+            Action::make('archive')->requiresConfirmation()->visible(fn (Cluster $record): bool => $record->status !== 'archived')->action(fn (Cluster $record): Cluster => app(ArchiveCluster::class)->execute($record)),
+        ])->defaultSort('created_at', 'desc');
     }
 
     public static function getEloquentQuery(): Builder

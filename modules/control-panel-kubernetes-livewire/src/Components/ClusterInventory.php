@@ -5,12 +5,27 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\KubernetesLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Kubernetes\Actions\ArchiveCluster;
+use Liberu\ControlPanel\Kubernetes\Actions\SuspendCluster;
+use Liberu\ControlPanel\Kubernetes\Models\Cluster;
 use Liberu\ControlPanel\Kubernetes\Queries\ListClusters;
 use Livewire\Component;
 
 final class ClusterInventory extends Component
 {
     public int $perPage = 25;
+
+    public function suspend(string $clusterId, SuspendCluster $suspend): void
+    {
+        $cluster = Cluster::query()->whereKey($clusterId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $suspend->execute($cluster);
+    }
+
+    public function archive(string $clusterId, ArchiveCluster $archive): void
+    {
+        $cluster = Cluster::query()->whereKey($clusterId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $archive->execute($cluster);
+    }
 
     public function render(ListClusters $list): View
     {
