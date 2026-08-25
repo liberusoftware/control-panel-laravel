@@ -9,6 +9,7 @@ use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
 use Liberu\ControlPanel\Mail\Models\DeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Models\DkimKey;
 use Liberu\ControlPanel\Mail\Models\MailAlias;
+use Liberu\ControlPanel\Mail\Models\MailDomain;
 use Livewire\Component;
 
 final class MailFeatureInventory extends Component
@@ -26,6 +27,7 @@ final class MailFeatureInventory extends Component
 
         return view('control-panel-mail-livewire::components.mail-feature-inventory', [
             'aliases' => MailAlias::query()->where('team_id', $teamId)->latest()->paginate(min(max($this->perPage, 1), 100), ['*'], 'aliases_page'),
+            'domains' => MailDomain::query()->where('team_id', $teamId)->latest()->get(),
             'diagnostics' => DeliveryDiagnostic::query()->where('team_id', $teamId)->latest()->limit(10)->get(),
             'dkimKeys' => DkimKey::query()->where('team_id', $teamId)->where('active', true)->latest()->get(),
         ]);

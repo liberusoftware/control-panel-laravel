@@ -11,8 +11,10 @@ use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
+use Liberu\ControlPanel\Mail\Actions\RegisterMailDomain;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
+use Liberu\ControlPanel\Mail\Models\MailDomain;
 use Liberu\ControlPanel\Mail\Queries\ListMailAccounts;
 
 final class MailAccountController
@@ -100,8 +102,23 @@ final class MailAccountController
         ]], 201);
     }
 
+    public function domain(Request $request, RegisterMailDomain $register): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $data = $request->validate(['domain' => ['required', 'string', 'max:253'], 'dkim' => ['nullable', 'array'], 'spf' => ['nullable', 'array'], 'dmarc' => ['nullable', 'array']]);
+        $item = $register->execute(array_merge($data, ['team_id' => (string) $teamId]));
+
+        return response()->json(['data' => self::domainResource($item)], 201);
+    }
+
     private static function resource(MailAccount $item): array
     {
         return ['id' => $item->getKey(), 'type' => 'control-panel-mail-account', 'attributes' => $item->only(['domain', 'address', 'status', 'quota_bytes'])];
+    }
+
+    private static function domainResource(MailDomain $item): array
+    {
+        return ['id' => $item->getKey(), 'type' => 'control-panel-mail-domain', 'attributes' => $item->only(['domain', 'status', 'dkim', 'spf', 'dmarc'])];
     }
 }

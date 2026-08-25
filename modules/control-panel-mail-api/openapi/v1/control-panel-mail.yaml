@@ -14,6 +14,8 @@ paths:
     post: {operationId: control.panel.mail.delivery.diagnostics.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/mail/dkim/rotate:
     post: {operationId: control.panel.mail.dkim.rotate, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/mail/domains:
+    post: {operationId: control.panel.mail.domains.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/mail/{mailAccount}:
     get: {operationId: control.panel.mail.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
 components:
