@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\ApiAutomation;
 
 use Illuminate\Support\ServiceProvider;
-use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomation;
-use Liberu\ControlPanel\ApiAutomation\Queries\ListAutomations;
+use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationSchedule;
+use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationTemplate;
+use Liberu\ControlPanel\ApiAutomation\Actions\RecordBillingProvisioningEvent;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterApiCredential;
+use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomation;
+use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomationCommand;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
+use Liberu\ControlPanel\ApiAutomation\Queries\ListAutomations;
 use Liberu\ControlPanel\ApiAutomation\Queries\ListWebhooks;
-use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationTemplate;
-use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationSchedule;
-use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomationCommand;
-use Liberu\ControlPanel\ApiAutomation\Actions\RecordBillingProvisioningEvent;
 
 final class ApiAutomationServiceProvider extends ServiceProvider
 {

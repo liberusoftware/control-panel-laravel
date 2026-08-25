@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\MonitoringFilament\Resources;
 
+use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\Monitoring\Models\Monitor;
+use Liberu\ControlPanel\MonitoringFilament\Resources\MonitorResource\Pages\CreateMonitor;
+use Liberu\ControlPanel\MonitoringFilament\Resources\MonitorResource\Pages\EditMonitor;
 use Liberu\ControlPanel\MonitoringFilament\Resources\MonitorResource\Pages\ListMonitors;
 
 final class MonitorResource extends Resource
@@ -22,7 +26,13 @@ final class MonitorResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([]);
+        return $schema->components([
+            TextInput::make('name')->required()->maxLength(160),
+            TextInput::make('subject_type')->required()->maxLength(255),
+            TextInput::make('subject_id')->required()->maxLength(255),
+            TextInput::make('status')->required()->maxLength(40),
+            KeyValue::make('metrics'),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -37,6 +47,6 @@ final class MonitorResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => ListMonitors::route('/')];
+        return ['index' => ListMonitors::route('/'), 'create' => CreateMonitor::route('/create'), 'edit' => EditMonitor::route('/{record}/edit')];
     }
 }

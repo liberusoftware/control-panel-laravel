@@ -20,6 +20,7 @@ final class CreateRedirect
         if ($source === '' || $destination === '' || ! in_array($code, [301, 302, 307, 308], true)) {
             throw ValidationException::withMessages(['redirect' => 'A source, destination, and supported redirect status are required.']);
         }
+
         return Redirect::query()->create(['id' => (string) Str::uuid(), 'team_id' => $domain->team_id, 'domain_id' => $domain->getKey(), 'source' => $source, 'destination' => $destination, 'status_code' => $code, 'active' => true]);
     }
 }

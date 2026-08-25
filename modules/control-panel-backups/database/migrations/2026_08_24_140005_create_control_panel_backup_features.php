@@ -1,4 +1,55 @@
 <?php
-declare(strict_types=1); use Illuminate\Database\Migrations\Migration; use Illuminate\Database\Schema\Blueprint; use Illuminate\Support\Facades\Schema;
-return new class() extends Migration { public function up():void { Schema::create('control_panel_backup_executions',function(Blueprint $t):void{$t->uuid('id')->primary();$t->string('team_id')->nullable()->index();$t->uuid('policy_id')->nullable();$t->string('type');$t->string('consistency')->default('crash-consistent');$t->string('status')->default('queued');$t->timestamp('started_at')->nullable();$t->timestamp('completed_at')->nullable();$t->text('error')->nullable();$t->json('metadata')->nullable();$t->timestamps();}); Schema::create('control_panel_backup_encryptions',function(Blueprint $t):void{$t->uuid('id')->primary();$t->string('team_id')->nullable()->index();$t->uuid('policy_id')->nullable();$t->string('algorithm')->default('aes-256-gcm');$t->text('key_reference');$t->boolean('active')->default(true);$t->timestamp('rotated_at')->nullable();$t->timestamps();}); Schema::create('control_panel_backup_offsite_transfers',function(Blueprint $t):void{$t->uuid('id')->primary();$t->string('team_id')->nullable()->index();$t->uuid('snapshot_id')->nullable();$t->uuid('destination_id')->nullable();$t->string('status')->default('queued');$t->unsignedTinyInteger('attempts')->default(0);$t->timestamp('transferred_at')->nullable();$t->text('error')->nullable();$t->json('metadata')->nullable();$t->timestamps();}); }
- public function down():void{Schema::dropIfExists('control_panel_backup_offsite_transfers');Schema::dropIfExists('control_panel_backup_encryptions');Schema::dropIfExists('control_panel_backup_executions');} };
+
+declare(strict_types=1);
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class() extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('control_panel_backup_executions', function (Blueprint $t): void {
+            $t->uuid('id')->primary();
+            $t->string('team_id')->nullable()->index();
+            $t->uuid('policy_id')->nullable();
+            $t->string('type');
+            $t->string('consistency')->default('crash-consistent');
+            $t->string('status')->default('queued');
+            $t->timestamp('started_at')->nullable();
+            $t->timestamp('completed_at')->nullable();
+            $t->text('error')->nullable();
+            $t->json('metadata')->nullable();
+            $t->timestamps();
+        });
+        Schema::create('control_panel_backup_encryptions', function (Blueprint $t): void {
+            $t->uuid('id')->primary();
+            $t->string('team_id')->nullable()->index();
+            $t->uuid('policy_id')->nullable();
+            $t->string('algorithm')->default('aes-256-gcm');
+            $t->text('key_reference');
+            $t->boolean('active')->default(true);
+            $t->timestamp('rotated_at')->nullable();
+            $t->timestamps();
+        });
+        Schema::create('control_panel_backup_offsite_transfers', function (Blueprint $t): void {
+            $t->uuid('id')->primary();
+            $t->string('team_id')->nullable()->index();
+            $t->uuid('snapshot_id')->nullable();
+            $t->uuid('destination_id')->nullable();
+            $t->string('status')->default('queued');
+            $t->unsignedTinyInteger('attempts')->default(0);
+            $t->timestamp('transferred_at')->nullable();
+            $t->text('error')->nullable();
+            $t->json('metadata')->nullable();
+            $t->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('control_panel_backup_offsite_transfers');
+        Schema::dropIfExists('control_panel_backup_encryptions');
+        Schema::dropIfExists('control_panel_backup_executions');
+    }
+};

@@ -17,6 +17,7 @@ final class CreateSchedule
         if ($cron === '' || count(preg_split('/\s+/', $cron)) !== 5) {
             throw ValidationException::withMessages(['cron' => 'A five-field cron schedule is required.']);
         }
+
         return BackupSchedule::query()->create(['id' => (string) Str::uuid(), 'team_id' => $policy->team_id, 'policy_id' => $policy->getKey(), 'cron' => $cron, 'timezone' => $timezone, 'active' => true]);
     }
 }

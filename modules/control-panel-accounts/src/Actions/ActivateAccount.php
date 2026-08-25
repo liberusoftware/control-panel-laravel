@@ -19,6 +19,7 @@ final class ActivateAccount
 
         return DB::transaction(function () use ($account): Account {
             $account->forceFill(['status' => AccountStatus::Active, 'suspended_reason' => null, 'suspended_at' => null])->save();
+
             return $account->refresh();
         });
     }

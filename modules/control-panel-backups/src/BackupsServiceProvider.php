@@ -7,8 +7,8 @@ namespace Liberu\ControlPanel\Backups;
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\Backups\Actions\CreateDestination;
 use Liberu\ControlPanel\Backups\Actions\CreateSchedule;
-use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\RecordBackupFeature;
+use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 
 final class BackupsServiceProvider extends ServiceProvider
 {

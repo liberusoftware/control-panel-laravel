@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\OsAdapters\Actions;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Database\Eloquent\Model;
+use Liberu\ControlPanel\OsAdapters\Models\FilesystemMount;
+use Liberu\ControlPanel\OsAdapters\Models\OsPackage;
+use Liberu\ControlPanel\OsAdapters\Models\OsService;
+use Liberu\ControlPanel\OsAdapters\Models\OsUser;
+use Liberu\ControlPanel\OsAdapters\Models\PackageRepository;
 
 final class RecordOsResource
 {
@@ -19,11 +24,11 @@ final class RecordOsResource
             }
         }
         $key = match ($modelClass) {
-            \Liberu\ControlPanel\OsAdapters\Models\OsPackage::class,
-            \Liberu\ControlPanel\OsAdapters\Models\OsService::class,
-            \Liberu\ControlPanel\OsAdapters\Models\PackageRepository::class => ['name' => $attributes['name'] ?? null],
-            \Liberu\ControlPanel\OsAdapters\Models\OsUser::class => ['username' => $attributes['username'] ?? null],
-            \Liberu\ControlPanel\OsAdapters\Models\FilesystemMount::class => ['mount_path' => $attributes['mount_path'] ?? null],
+            OsPackage::class,
+            OsService::class,
+            PackageRepository::class => ['name' => $attributes['name'] ?? null],
+            OsUser::class => ['username' => $attributes['username'] ?? null],
+            FilesystemMount::class => ['mount_path' => $attributes['mount_path'] ?? null],
             default => ['id' => $attributes['id'] ?? (string) Str::uuid()],
         };
 

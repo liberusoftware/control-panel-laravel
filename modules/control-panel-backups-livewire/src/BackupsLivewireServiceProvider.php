@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\BackupsLivewire;
 
 use Illuminate\Support\ServiceProvider;
-use Liberu\ControlPanel\BackupsLivewire\Components\SnapshotInventory;
 use Liberu\ControlPanel\BackupsLivewire\Components\BackupExecutionInventory;
 use Liberu\ControlPanel\BackupsLivewire\Components\PolicyInventory;
+use Liberu\ControlPanel\BackupsLivewire\Components\SnapshotInventory;
 use Livewire\Livewire;
 
 final class BackupsLivewireServiceProvider extends ServiceProvider

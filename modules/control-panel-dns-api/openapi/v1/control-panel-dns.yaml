@@ -12,6 +12,14 @@ paths:
       operationId: control.panel.dns.zones.create
       security: [{sanctum: []}]
       responses: {'201': {description: Zone created}}
+  /api/v1/control-panel/dns/records:
+    post: {operationId: control.panel.dns.records.create, security: [{sanctum: []}], responses: {'201': {description: DNS record created}}}
+  /api/v1/control-panel/dns/checks:
+    post: {operationId: control.panel.dns.checks.create, security: [{sanctum: []}], responses: {'201': {description: DNS validation check recorded}}}
+  /api/v1/control-panel/dns/features:
+    post: {operationId: control.panel.dns.features.record, security: [{sanctum: []}], responses: {'201': {description: DNS feature recorded}}}
+  /api/v1/control-panel/dns/zones/{zone}:
+    get: {operationId: control.panel.dns.zones.show, security: [{sanctum: []}], responses: {'200': {description: Authorized DNS zone}}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

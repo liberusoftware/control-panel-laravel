@@ -8,25 +8,31 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Liberu\ControlPanel\WebHosting\Actions\ActivateDomain;
+use Liberu\ControlPanel\WebHosting\Actions\ArchiveDomain;
+use Liberu\ControlPanel\WebHosting\Actions\CheckApplicationHealth;
+use Liberu\ControlPanel\WebHosting\Actions\CheckWordPressUpdates;
 use Liberu\ControlPanel\WebHosting\Actions\CreateDomain;
-use Liberu\ControlPanel\WebHosting\Actions\CreateVirtualHost;
-use Liberu\ControlPanel\WebHosting\Models\Domain;
-use Liberu\ControlPanel\WebHosting\Queries\ListDomains;
 use Liberu\ControlPanel\WebHosting\Actions\CreateRedirect;
-use Liberu\ControlPanel\WebHosting\Actions\RequestCertificate;
-use Liberu\ControlPanel\WebHosting\Actions\RegisterHostingResource;
+use Liberu\ControlPanel\WebHosting\Actions\CreateVirtualHost;
 use Liberu\ControlPanel\WebHosting\Actions\RegisterGitDeployment;
-use Liberu\ControlPanel\WebHosting\Queries\ListGitDeployments;
-use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
+use Liberu\ControlPanel\WebHosting\Actions\RegisterHostingResource;
+use Liberu\ControlPanel\WebHosting\Actions\RequestCertificate;
+use Liberu\ControlPanel\WebHosting\Actions\RequestGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
-use Liberu\ControlPanel\WebHosting\Models\PhpConfiguration;
-use Liberu\ControlPanel\WebHosting\Models\VirtualHost;
-use Liberu\ControlPanel\WebHosting\Models\RuntimeVersion;
-use Liberu\ControlPanel\WebHosting\Models\WebServer;
-use Liberu\ControlPanel\WebHosting\Models\HostingLog;
-use Liberu\ControlPanel\WebHosting\Models\Redirect;
-use Liberu\ControlPanel\WebHosting\Models\SslCertificate;
+use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
+use Liberu\ControlPanel\WebHosting\Models\Domain;
+use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
+use Liberu\ControlPanel\WebHosting\Models\HostingLog;
+use Liberu\ControlPanel\WebHosting\Models\PhpConfiguration;
+use Liberu\ControlPanel\WebHosting\Models\Redirect;
+use Liberu\ControlPanel\WebHosting\Models\RuntimeVersion;
+use Liberu\ControlPanel\WebHosting\Models\SslCertificate;
+use Liberu\ControlPanel\WebHosting\Models\VirtualHost;
+use Liberu\ControlPanel\WebHosting\Models\WebServer;
+use Liberu\ControlPanel\WebHosting\Queries\ListDomains;
+use Liberu\ControlPanel\WebHosting\Queries\ListGitDeployments;
 
 final class DomainController
 {
@@ -55,6 +61,28 @@ final class DomainController
         $domain = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($domain)], 201);
+    }
+
+    public function activate(Request $request, Domain $domain, ActivateDomain $activate): JsonResponse
+    {
+        $this->assertTeam($request, $domain);
+
+        return response()->json(['data' => self::resource($activate->execute($domain))]);
+    }
+
+    public function suspend(Request $request, Domain $domain, SuspendDomain $suspend): JsonResponse
+    {
+        $this->assertTeam($request, $domain);
+        $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
+
+        return response()->json(['data' => self::resource($suspend->execute($domain, $data['reason']))]);
+    }
+
+    public function archive(Request $request, Domain $domain, ArchiveDomain $archive): JsonResponse
+    {
+        $this->assertTeam($request, $domain);
+
+        return response()->json(['data' => self::resource($archive->execute($domain))]);
     }
 
     public function virtualHost(Request $request, Domain $domain, CreateVirtualHost $create): JsonResponse
@@ -86,7 +114,12 @@ final class DomainController
 
     public function resourceRecord(Request $request, RegisterHostingResource $register): JsonResponse
     {
-        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['kind'=>['required','in:runtime,server,log,application'],'payload'=>['required','array']]); $item=$register->execute(array_merge($data['payload'],['kind'=>$data['kind'],'team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-web-hosting-'.$data['kind'],'attributes'=>$item->toArray()]],201);
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $data = $request->validate(['kind' => ['required', 'in:runtime,server,log,application'], 'payload' => ['required', 'array']]);
+        $item = $register->execute(array_merge($data['payload'], ['kind' => $data['kind'], 'team_id' => $teamId]));
+
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-web-hosting-'.$data['kind'], 'attributes' => $item->toArray()]], 201);
     }
 
     public function resources(Request $request, string $kind): JsonResponse
@@ -108,6 +141,52 @@ final class DomainController
         $page = $query->latest()->paginate(min(max($request->integer('per_page', 25), 1), 100));
 
         return response()->json(['data' => $page->through(fn (Model $model): array => ['id' => $model->getKey(), 'type' => 'control-panel-web-hosting-'.$kind, 'attributes' => $model->toArray()]), 'meta' => ['current_page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()]]);
+    }
+
+    public function applications(Request $request): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $page = HostedApplication::query()->where('team_id', $teamId)->with('domain')->latest()->paginate($this->perPage($request));
+
+        return response()->json(['data' => $page->through(fn (HostedApplication $application): array => self::applicationResource($application)), 'meta' => ['current_page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()]]);
+    }
+
+    public function application(Request $request, RegisterHostingResource $register): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $data = $request->validate([
+            'domain_id' => ['required', 'uuid'], 'name' => ['required', 'string', 'max:160'],
+            'type' => ['required', 'in:wordpress,laravel,static,nodejs,custom'], 'version' => ['nullable', 'string', 'max:80'],
+            'document_root' => ['required', 'string', 'starts_with:/', 'max:2048'], 'config' => ['nullable', 'array'],
+        ]);
+        $domain = Domain::query()->where('team_id', $teamId)->findOrFail($data['domain_id']);
+        $application = $register->execute([...$data, 'kind' => 'application', 'team_id' => $teamId, 'domain_id' => $domain->getKey()]);
+
+        return response()->json(['data' => self::applicationResource($application)], 201);
+    }
+
+    public function applicationPerformance(Request $request, HostedApplication $application): JsonResponse
+    {
+        $this->assertApplicationTeam($request, $application);
+        $hours = min(max($request->integer('hours', 24), 1), 720);
+        $metrics = $application->performanceMetrics()->where('checked_at', '>=', now()->subHours($hours))->oldest('checked_at')->get();
+        $total = $metrics->count();
+
+        return response()->json(['data' => $metrics, 'meta' => ['hours' => $hours, 'total_checks' => $total, 'uptime_percentage' => $total === 0 ? null : round(($metrics->where('healthy', true)->count() / $total) * 100, 2), 'average_response_time' => $total === 0 ? null : round((float) $metrics->avg('response_time_ms'), 2)]]);
+    }
+
+    public function applicationHealth(Request $request, HostedApplication $application, CheckApplicationHealth $check): JsonResponse
+    {
+        $this->assertApplicationTeam($request, $application);
+
+        return response()->json(['data' => $check->execute($application)], 201);
+    }
+
+    public function wordpressUpdate(Request $request, HostedApplication $application, CheckWordPressUpdates $check): JsonResponse
+    {
+        $this->assertApplicationTeam($request, $application);
+
+        return response()->json(['data' => $check->execute($application)]);
     }
 
     public function deployments(Request $request, ListGitDeployments $list): JsonResponse
@@ -135,6 +214,14 @@ final class DomainController
         return response()->json(['data' => self::deploymentResource($deployment)], 201);
     }
 
+    public function deploy(Request $request, string $deployment, RequestGitDeployment $requestDeployment): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $item = GitDeployment::query()->whereKey($deployment)->where('team_id', $teamId)->firstOrFail();
+
+        return response()->json(['data' => self::deploymentResource($requestDeployment->execute($item))], 202);
+    }
+
     public function phpConfiguration(Request $request, Domain $domain, SavePhpConfiguration $save): JsonResponse
     {
         $this->assertTeam($request, $domain);
@@ -160,6 +247,30 @@ final class DomainController
     private function assertTeam(Request $request, Domain $domain): void
     {
         abort_unless((string) $domain->team_id === (string) $request->user()?->current_team_id, 404);
+    }
+
+    private function assertApplicationTeam(Request $request, HostedApplication $application): void
+    {
+        abort_unless((string) $application->team_id === (string) $request->user()?->current_team_id, 404);
+    }
+
+    private function teamId(Request $request): string
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
+    }
+
+    private function perPage(Request $request): int
+    {
+        return min(max($request->integer('per_page', 25), 1), 100);
+    }
+
+    /** @return array<string, mixed> */
+    private static function applicationResource(HostedApplication $application): array
+    {
+        return ['id' => $application->getKey(), 'type' => 'control-panel-hosted-application', 'attributes' => $application->only(['domain_id', 'name', 'type', 'version', 'document_root', 'status', 'config']) + ['health_status' => $application->healthStatus()]];
     }
 
     /** @return array<string, mixed> */

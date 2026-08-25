@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -10,16 +11,15 @@ use Liberu\ControlPanel\Accounts\AccountsServiceProvider;
 use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
+use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
 use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
-use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
 use Liberu\ControlPanel\Accounts\Enums\AccountType;
 use Liberu\ControlPanel\Accounts\Events\AccountSuspended;
 use Liberu\ControlPanel\Accounts\Services\QuotaGuard;
 use Liberu\ControlPanel\AccountsApi\AccountsApiServiceProvider;
-use App\Models\User;
 use Liberu\Foundation\Organizations\Models\Team;
 
 uses(RefreshDatabase::class);
@@ -115,4 +115,23 @@ it('exposes the quota guard through the authenticated tenant-scoped API', functi
     $this->actingAs($user, 'sanctum')
         ->postJson('/api/v1/control-panel/accounts/'.$account->getKey().'/quota-check', ['usage' => ['websites' => 4]])
         ->assertUnprocessable();
+});
+
+it('exposes individual accounts only to their current team', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute([
+        'team_id' => $team->getKey(), 'owner_id' => $user->getKey(), 'name' => 'Visible account',
+    ]);
+    $otherAccount = app(CreateAccount::class)->execute([
+        'team_id' => $otherTeam->getKey(), 'owner_id' => $user->getKey(), 'name' => 'Hidden account',
+    ]);
+
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/control-panel/accounts/'.$account->getKey())
+        ->assertOk()->assertJsonPath('data.attributes.name', 'Visible account');
+
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/control-panel/accounts/'.$otherAccount->getKey())
+        ->assertNotFound();
 });

@@ -7,8 +7,8 @@ namespace Liberu\ControlPanel\ControlCore\Actions;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Liberu\ControlPanel\ControlCore\Models\OperationLock;
 use Liberu\ControlPanel\ControlCore\Models\Node;
+use Liberu\ControlPanel\ControlCore\Models\OperationLock;
 
 final class AcquireOperationLock
 {

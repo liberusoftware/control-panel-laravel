@@ -5,17 +5,25 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\WebHosting\Actions\ActivateDomain;
+use Liberu\ControlPanel\WebHosting\Actions\ArchiveDomain;
+use Liberu\ControlPanel\WebHosting\Actions\CheckApplicationHealth;
+use Liberu\ControlPanel\WebHosting\Actions\CheckWordPressUpdates;
 use Liberu\ControlPanel\WebHosting\Actions\CreateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\CreateVirtualHost;
+use Liberu\ControlPanel\WebHosting\Actions\RecordApplicationMetric;
 use Liberu\ControlPanel\WebHosting\Actions\RegisterGitDeployment;
+use Liberu\ControlPanel\WebHosting\Actions\RequestGitDeployment;
+use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
+use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
 use Liberu\ControlPanel\WebHosting\Enums\DomainStatus;
 use Liberu\ControlPanel\WebHosting\Events\DomainCreated;
-use Liberu\ControlPanel\WebHosting\WebHostingServiceProvider;
 use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
-use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
+use Liberu\ControlPanel\WebHosting\Models\PhpConfiguration;
+use Liberu\ControlPanel\WebHosting\WebHostingServiceProvider;
 
 uses(RefreshDatabase::class);
 
@@ -41,6 +49,15 @@ it('activates a pending domain', function (): void {
     $domain = app(CreateDomain::class)->execute(['hostname' => 'example.test']);
 
     expect(app(ActivateDomain::class)->execute($domain)->status)->toBe(DomainStatus::Active);
+});
+
+it('suspends and archives domains with lifecycle invariants', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'lifecycle.test']);
+
+    expect(app(SuspendDomain::class)->execute($domain, 'non-payment')->status)->toBe(DomainStatus::Suspended)
+        ->and(app(ActivateDomain::class)->execute($domain)->status)->toBe(DomainStatus::Active)
+        ->and(app(ArchiveDomain::class)->execute($domain)->status)->toBe(DomainStatus::Archived)
+        ->and(fn () => app(ActivateDomain::class)->execute($domain->refresh()))->toThrow(ValidationException::class);
 });
 
 it('rejects invalid hostnames', function (): void {
@@ -101,5 +118,59 @@ it('restores per-domain PHP configuration and renders safe INI directives', func
 
     expect($configuration->toIniDirectives())->toMatchArray(['memory_limit' => '512M', 'display_errors' => 'Off', 'opcache.enable' => '1'])
         ->and($configuration->toIniString())->toContain('memory_limit = 512M')
-        ->and(\Liberu\ControlPanel\WebHosting\Models\PhpConfiguration::getSupportedVersions())->toContain('8.5');
+        ->and(PhpConfiguration::getSupportedVersions())->toContain('8.5');
+});
+
+it('records application performance and calculates health status', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'health.test']);
+    $application = HostedApplication::query()->create([
+        'team_id' => 'team-1', 'domain_id' => $domain->getKey(), 'name' => 'Health app', 'type' => 'laravel',
+        'document_root' => '/srv/health', 'status' => 'installed',
+    ]);
+
+    app(RecordApplicationMetric::class)->execute($application, ['healthy' => true, 'status_code' => 200, 'response_time_ms' => 42]);
+    app(RecordApplicationMetric::class)->execute($application, ['healthy' => false, 'status_code' => 503, 'response_time_ms' => 80]);
+
+    expect($application->healthStatus())->toBe('poor')
+        ->and($application->performanceMetrics()->count())->toBe(2);
+});
+
+it('performs a verified bounded application health check and records failures', function (): void {
+    Http::fake(['https://health.test' => Http::response('ok', 200)]);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'health.test']);
+    $application = HostedApplication::query()->create([
+        'team_id' => 'team-1', 'domain_id' => $domain->getKey(), 'name' => 'Health app', 'type' => 'laravel',
+        'document_root' => '/srv/health', 'status' => 'installed', 'config' => ['ssl_enabled' => true],
+    ]);
+
+    $result = app(CheckApplicationHealth::class)->execute($application);
+
+    expect($result['healthy'])->toBeTrue()->and($result['status_code'])->toBe(200)->and($application->performanceMetrics()->count())->toBe(1);
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://health.test');
+});
+
+it('checks WordPress updates without changing the application lifecycle state', function (): void {
+    Http::fake(['https://api.wordpress.org/core/version-check/1.7/' => Http::response(['offers' => [['version' => '6.7.2']]])]);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'wordpress.test']);
+    $application = HostedApplication::query()->create([
+        'team_id' => 'team-1', 'domain_id' => $domain->getKey(), 'name' => 'WordPress', 'type' => 'wordpress',
+        'version' => '6.6.1', 'document_root' => '/srv/wordpress', 'status' => 'installed',
+    ]);
+
+    $result = app(CheckWordPressUpdates::class)->execute($application);
+
+    expect($result)->toMatchArray(['current_version' => '6.6.1', 'latest_version' => '6.7.2', 'update_available' => true])
+        ->and($application->fresh()->status)->toBe('installed')
+        ->and($application->fresh()->config['latest_version'])->toBe('6.7.2');
+});
+
+it('queues a Git deployment without executing untrusted remote commands', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'deploy.test']);
+    $deployment = app(RegisterGitDeployment::class)->execute($domain, [
+        'repository_url' => 'https://github.com/example/project.git', 'deploy_path' => '/srv/deploy',
+    ]);
+
+    $queued = app(RequestGitDeployment::class)->execute($deployment);
+
+    expect($queued->status)->toBe('queued')->and($queued->isDeploying())->toBeTrue();
 });

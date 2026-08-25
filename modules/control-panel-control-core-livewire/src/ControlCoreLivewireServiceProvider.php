@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\ControlCoreLivewire;
 
 use Illuminate\Support\ServiceProvider;
-use Liberu\ControlPanel\ControlCoreLivewire\Components\NodeInventory;
 use Liberu\ControlPanel\ControlCoreLivewire\Components\CredentialInventory;
+use Liberu\ControlPanel\ControlCoreLivewire\Components\NodeInventory;
 use Liberu\ControlPanel\ControlCoreLivewire\Components\OperationsInventory;
 use Livewire\Livewire;
 

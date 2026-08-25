@@ -7,10 +7,10 @@ namespace Liberu\ControlPanel\ControlCoreApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Liberu\ControlPanel\ControlCore\Actions\CreateOperationTask;
-use Liberu\ControlPanel\ControlCore\Queries\ListOperationTasks;
 use Liberu\ControlPanel\ControlCore\Actions\TransitionOperationTask;
 use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
 use Liberu\ControlPanel\ControlCore\Models\OperationTask;
+use Liberu\ControlPanel\ControlCore\Queries\ListOperationTasks;
 
 final class OperationTaskController
 {

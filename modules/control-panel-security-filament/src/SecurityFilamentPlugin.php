@@ -6,8 +6,8 @@ namespace Liberu\ControlPanel\SecurityFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
-use Liberu\ControlPanel\SecurityFilament\Resources\SecurityFindingResource;
 use Liberu\ControlPanel\SecurityFilament\Resources\HardeningControlResource;
+use Liberu\ControlPanel\SecurityFilament\Resources\SecurityFindingResource;
 
 final class SecurityFilamentPlugin implements Plugin
 {

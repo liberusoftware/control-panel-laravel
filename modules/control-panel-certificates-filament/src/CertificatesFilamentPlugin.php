@@ -6,8 +6,8 @@ namespace Liberu\ControlPanel\CertificatesFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
-use Liberu\ControlPanel\CertificatesFilament\Resources\CertificateResource;
 use Liberu\ControlPanel\CertificatesFilament\Resources\CertificateOperationResource;
+use Liberu\ControlPanel\CertificatesFilament\Resources\CertificateResource;
 
 final class CertificatesFilamentPlugin implements Plugin
 {

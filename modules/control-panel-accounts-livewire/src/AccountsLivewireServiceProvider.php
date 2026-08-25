@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\AccountsLivewire;
 
 use Illuminate\Support\ServiceProvider;
-use Liberu\ControlPanel\AccountsLivewire\Components\AccountInventory;
 use Liberu\ControlPanel\AccountsLivewire\Components\AccountFeatureInventory;
+use Liberu\ControlPanel\AccountsLivewire\Components\AccountInventory;
 use Livewire\Livewire;
 
 final class AccountsLivewireServiceProvider extends ServiceProvider

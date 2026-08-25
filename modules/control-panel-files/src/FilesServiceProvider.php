@@ -21,6 +21,7 @@ final class FilesServiceProvider extends ServiceProvider
         $this->app->scoped(RecordFileOperation::class);
         $this->app->scoped(SetFileRetention::class);
     }
+
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');

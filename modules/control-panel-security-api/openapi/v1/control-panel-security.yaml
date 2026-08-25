@@ -4,6 +4,24 @@ paths:
   /api/v1/control-panel/security:
     get: {operationId: control.panel.security.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.security.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [subject_type, subject_id, code, severity, summary]}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/security/{finding}/resolve:
+    post: {operationId: control.panel.security.resolve, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/security/hardening:
+    post: {operationId: control.panel.security.hardening.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/security/patches:
+    post: {operationId: control.panel.security.patches.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/security/mfa-rbac:
+    post: {operationId: control.panel.security.mfa.rbac.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/security/secrets:
+    post: {operationId: control.panel.security.secrets.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/security/malware-scans:
+    post: {operationId: control.panel.security.malware.scans.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/security/intrusion-controls:
+    post: {operationId: control.panel.security.intrusion.controls.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/security/compliance:
+    post: {operationId: control.panel.security.compliance.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/security/{finding}:
+    get: {operationId: control.panel.security.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
 components:
   securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
   responses:

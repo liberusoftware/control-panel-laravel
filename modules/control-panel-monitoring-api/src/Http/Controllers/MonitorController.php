@@ -6,10 +6,12 @@ namespace Liberu\ControlPanel\MonitoringApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Liberu\ControlPanel\Monitoring\Actions\RegisterMonitor;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringEvent;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringResource;
+use Liberu\ControlPanel\Monitoring\Actions\RegisterMonitor;
+use Liberu\ControlPanel\Monitoring\Actions\ResolveMonitoringEvent;
 use Liberu\ControlPanel\Monitoring\Models\Monitor;
+use Liberu\ControlPanel\Monitoring\Models\MonitoringEvent;
 use Liberu\ControlPanel\Monitoring\Queries\ListMonitors;
 
 final class MonitorController
@@ -21,6 +23,15 @@ final class MonitorController
         $items = $list->execute($teamId, $request->integer('per_page', 25));
 
         return response()->json(['data' => $items->through(static fn (Monitor $item): array => self::resource($item)), 'meta' => ['current_page' => $items->currentPage(), 'per_page' => $items->perPage(), 'total' => $items->total()]]);
+    }
+
+    public function show(Request $request, string $id): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = Monitor::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-monitor', 'attributes' => $item->toArray()]]);
     }
 
     public function store(Request $request, RegisterMonitor $register): JsonResponse
@@ -35,12 +46,33 @@ final class MonitorController
 
     public function event(Request $request, RecordMonitoringEvent $record): JsonResponse
     {
-        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['monitor_id'=>['nullable','uuid'],'kind'=>['required','in:metric,log,uptime,capacity,alert,incident,maintenance,status'],'status'=>['nullable','string','max:50'],'payload'=>['nullable','array'],'starts_at'=>['nullable','date'],'ends_at'=>['nullable','date']]); $item=$record->execute(array_merge($data,['team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-monitoring-event','attributes'=>$item->only(['monitor_id','kind','status','payload','starts_at','ends_at'])]],201);
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $data = $request->validate(['monitor_id' => ['nullable', 'uuid'], 'kind' => ['required', 'in:metric,log,uptime,capacity,alert,incident,maintenance,status'], 'status' => ['nullable', 'string', 'max:50'], 'payload' => ['nullable', 'array'], 'starts_at' => ['nullable', 'date'], 'ends_at' => ['nullable', 'date']]);
+        $item = $record->execute(array_merge($data, ['team_id' => $teamId]));
+
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-monitoring-event', 'attributes' => $item->only(['monitor_id', 'kind', 'status', 'payload', 'starts_at', 'ends_at'])]], 201);
     }
 
     public function record(Request $request, RecordMonitoringResource $record): JsonResponse
     {
-        $teamId=$request->user()?->current_team_id; abort_if($teamId===null,403,'A current team is required.'); $data=$request->validate(['kind'=>['required','in:metric,log,uptime,capacity,alert,incident,maintenance,status'],'payload'=>['required','array']]); $item=$record->execute(array_merge($data['payload'],['kind'=>$data['kind'],'team_id'=>$teamId])); return response()->json(['data'=>['id'=>$item->getKey(),'type'=>'control-panel-monitoring-resource','attributes'=>$item->toArray()]],201);
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $data = $request->validate(['kind' => ['required', 'in:metric,log,uptime,capacity,alert,incident,maintenance,status'], 'payload' => ['required', 'array']]);
+        $item = $record->execute(array_merge($data['payload'], ['kind' => $data['kind'], 'team_id' => $teamId]));
+
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-monitoring-resource', 'attributes' => $item->toArray()]], 201);
+    }
+
+    public function resolveEvent(Request $request, string $id, ResolveMonitoringEvent $resolve): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $event = MonitoringEvent::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+
+        $event = $resolve->execute($event);
+
+        return response()->json(['data' => ['id' => $event->getKey(), 'type' => 'control-panel-monitoring-event', 'attributes' => $event->only(['monitor_id', 'kind', 'status', 'payload', 'starts_at', 'ends_at'])]]);
     }
 
     private static function resource(Monitor $item): array

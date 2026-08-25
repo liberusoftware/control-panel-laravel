@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Liberu\ControlPanel\ControlCoreApi\Http\Controllers\AuditController;
 use Liberu\ControlPanel\ControlCoreApi\Http\Controllers\InventoryController;
 use Liberu\ControlPanel\ControlCoreApi\Http\Controllers\NodeController;
-use Liberu\ControlPanel\ControlCoreApi\Http\Controllers\OperationTaskController;
-use Liberu\ControlPanel\ControlCoreApi\Http\Controllers\AuditController;
 use Liberu\ControlPanel\ControlCoreApi\Http\Controllers\OperationLockController;
+use Liberu\ControlPanel\ControlCoreApi\Http\Controllers\OperationTaskController;
 
 Route::prefix('api/v1/control-panel/control-core')
     ->middleware(['api', 'auth:sanctum', 'throttle:60,1'])

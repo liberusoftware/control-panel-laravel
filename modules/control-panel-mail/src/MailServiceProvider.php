@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\Mail;
 
 use Illuminate\Support\ServiceProvider;
+use Liberu\ControlPanel\Mail\Actions\ConfigureMailControls;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
-use Liberu\ControlPanel\Mail\Actions\ConfigureMailControls;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
-use Liberu\ControlPanel\Mail\Queries\ListMailAccounts;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
+use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
+use Liberu\ControlPanel\Mail\Queries\ListMailAccounts;
 
 final class MailServiceProvider extends ServiceProvider
 {
@@ -22,6 +23,7 @@ final class MailServiceProvider extends ServiceProvider
         $this->app->scoped(RecordDeliveryDiagnostic::class);
         $this->app->scoped(ListMailAccounts::class);
         $this->app->scoped(RecordMailOperation::class);
+        $this->app->scoped(RotateDkimKey::class);
     }
 
     public function boot(): void

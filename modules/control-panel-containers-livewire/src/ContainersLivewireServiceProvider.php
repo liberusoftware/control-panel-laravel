@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\ContainersLivewire;
 
 use Illuminate\Support\ServiceProvider;
-use Liberu\ControlPanel\ContainersLivewire\Components\WorkloadInventory;
 use Liberu\ControlPanel\ContainersLivewire\Components\ContainerAssetInventory;
+use Liberu\ControlPanel\ContainersLivewire\Components\WorkloadInventory;
 use Livewire\Livewire;
 
 final class ContainersLivewireServiceProvider extends ServiceProvider

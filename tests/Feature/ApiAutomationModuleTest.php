@@ -7,8 +7,8 @@ use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
-use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
 use Liberu\ControlPanel\ApiAutomation\ApiAutomationServiceProvider;
+use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
 
 uses(RefreshDatabase::class);
 

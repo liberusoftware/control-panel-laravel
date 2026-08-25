@@ -6,8 +6,8 @@ namespace Liberu\ControlPanel\Databases\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Liberu\ControlPanel\Databases\Enums\BackupStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Liberu\ControlPanel\Databases\Enums\BackupStatus;
 
 final class DatabaseBackup extends Model
 {

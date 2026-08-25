@@ -9,8 +9,9 @@ use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 
 final class ListGitDeployments
 {
-    public function execute(string|int $teamId, int $perPage = 25): LengthAwarePaginator
+    public function execute(string|int $teamId, int $perPage = 25, string $search = ''): LengthAwarePaginator
     {
-        return GitDeployment::query()->where('team_id', $teamId)->latest()->paginate(min(max($perPage, 1), 100));
+        return GitDeployment::query()->where('team_id', $teamId)->when(trim($search) !== '', fn ($query) => $query->where('repository_url', 'like', '%'.trim($search).'%'))
+            ->latest()->paginate(min(max($perPage, 1), 100));
     }
 }

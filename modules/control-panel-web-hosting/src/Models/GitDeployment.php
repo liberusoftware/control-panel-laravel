@@ -43,7 +43,7 @@ final class GitDeployment extends Model
 
     public function isDeploying(): bool
     {
-        return in_array($this->status, ['cloning', 'updating'], true);
+        return in_array($this->status, ['queued', 'cloning', 'updating'], true);
     }
 
     public function hasFailed(): bool

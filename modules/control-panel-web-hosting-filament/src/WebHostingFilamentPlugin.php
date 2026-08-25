@@ -7,15 +7,15 @@ namespace Liberu\ControlPanel\WebHostingFilament;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Liberu\ControlPanel\WebHostingFilament\Resources\DomainResource;
-use Liberu\ControlPanel\WebHostingFilament\Resources\RuntimeVersionResource;
 use Liberu\ControlPanel\WebHostingFilament\Resources\GitDeploymentResource;
+use Liberu\ControlPanel\WebHostingFilament\Resources\HostedApplicationResource;
+use Liberu\ControlPanel\WebHostingFilament\Resources\HostingLogResource;
 use Liberu\ControlPanel\WebHostingFilament\Resources\PhpConfigurationResource;
+use Liberu\ControlPanel\WebHostingFilament\Resources\RedirectResource;
+use Liberu\ControlPanel\WebHostingFilament\Resources\RuntimeVersionResource;
+use Liberu\ControlPanel\WebHostingFilament\Resources\SslCertificateResource;
 use Liberu\ControlPanel\WebHostingFilament\Resources\VirtualHostResource;
 use Liberu\ControlPanel\WebHostingFilament\Resources\WebServerResource;
-use Liberu\ControlPanel\WebHostingFilament\Resources\SslCertificateResource;
-use Liberu\ControlPanel\WebHostingFilament\Resources\HostingLogResource;
-use Liberu\ControlPanel\WebHostingFilament\Resources\RedirectResource;
-use Liberu\ControlPanel\WebHostingFilament\Resources\HostedApplicationResource;
 
 final class WebHostingFilamentPlugin implements Plugin
 {

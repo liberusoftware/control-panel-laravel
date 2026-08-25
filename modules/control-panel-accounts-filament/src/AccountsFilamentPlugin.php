@@ -6,9 +6,9 @@ namespace Liberu\ControlPanel\AccountsFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\AccountsFilament\Resources\AccountDelegationResource;
 use Liberu\ControlPanel\AccountsFilament\Resources\AccountResource;
 use Liberu\ControlPanel\AccountsFilament\Resources\HostingPackageResource;
-use Liberu\ControlPanel\AccountsFilament\Resources\AccountDelegationResource;
 
 final class AccountsFilamentPlugin implements Plugin
 {

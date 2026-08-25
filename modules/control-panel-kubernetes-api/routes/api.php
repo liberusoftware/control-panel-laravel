@@ -10,4 +10,5 @@ Route::prefix('api/v1/control-panel/kubernetes')->middleware(['api', 'auth:sanct
     Route::post('/', [ClusterController::class, 'store'])->name('control-panel.kubernetes.store');
     Route::post('/resources', [ClusterController::class, 'resourceRecord'])->name('control-panel.kubernetes.resources.store');
     Route::post('/assets', [ClusterController::class, 'asset'])->name('control-panel.kubernetes.assets.store');
+    Route::get('{cluster}', [ClusterController::class, 'show'])->name('control-panel.kubernetes.show');
 });

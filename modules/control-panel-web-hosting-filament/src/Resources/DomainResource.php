@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\WebHostingFilament\Resources;
 
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\WebHosting\Models\Domain;
+use Liberu\ControlPanel\WebHostingFilament\Resources\DomainResource\Pages\CreateDomain;
+use Liberu\ControlPanel\WebHostingFilament\Resources\DomainResource\Pages\EditDomain;
 use Liberu\ControlPanel\WebHostingFilament\Resources\DomainResource\Pages\ListDomains;
 
 final class DomainResource extends Resource
@@ -22,7 +25,10 @@ final class DomainResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([]);
+        return $schema->components([
+            TextInput::make('hostname')->required()->maxLength(253),
+            TextInput::make('account_id')->label('Account')->maxLength(255),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -37,6 +43,6 @@ final class DomainResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => ListDomains::route('/')];
+        return ['index' => ListDomains::route('/'), 'create' => CreateDomain::route('/create'), 'edit' => EditDomain::route('/{record}/edit')];
     }
 }

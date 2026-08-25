@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\Security\Actions;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Database\Eloquent\Model;
 
 final class RecordSecurityResource
 {
@@ -16,6 +16,7 @@ final class RecordSecurityResource
         if (trim((string) ($attributes['team_id'] ?? '')) === '') {
             throw ValidationException::withMessages(['team_id' => 'A team context is required.']);
         }
+
         return $modelClass::query()->create(array_merge(['id' => (string) Str::uuid()], $attributes));
     }
 }

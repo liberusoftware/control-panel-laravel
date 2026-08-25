@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\MonitoringLivewire;
 
 use Illuminate\Support\ServiceProvider;
-use Liberu\ControlPanel\MonitoringLivewire\Components\MonitorInventory;
 use Liberu\ControlPanel\MonitoringLivewire\Components\MonitoringFeatureInventory;
+use Liberu\ControlPanel\MonitoringLivewire\Components\MonitorInventory;
 use Livewire\Livewire;
 
 final class MonitoringLivewireServiceProvider extends ServiceProvider

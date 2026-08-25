@@ -4,6 +4,12 @@ paths:
   /api/v1/control-panel/kubernetes:
     get: {operationId: control.panel.kubernetes.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.kubernetes.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [name, endpoint]}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/kubernetes/resources:
+    post: {operationId: control.panel.kubernetes.resources.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/kubernetes/assets:
+    post: {operationId: control.panel.kubernetes.assets.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/kubernetes/{cluster}:
+    get: {operationId: control.panel.kubernetes.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
 components:
   securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
   responses:

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
 use Liberu\ControlPanel\ControlCore\Enums\CredentialStatus;
-use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
