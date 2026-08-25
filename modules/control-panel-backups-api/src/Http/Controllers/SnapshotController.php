@@ -74,7 +74,7 @@ final class SnapshotController
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = BackupSnapshot::query()->whereKey($snapshot)->where('team_id', $teamId)->firstOrFail();
         $data = $request->validate(['target' => ['required', 'string', 'max:1024'], 'options' => ['nullable', 'array']]);
-        $run = $restore->execute($item, $teamId, $data['target'], $data['options'] ?? []);
+        $run = $restore->execute($item, (string) $teamId, $data['target'], $data['options'] ?? []);
 
         return response()->json(['data' => ['id' => $run->getKey(), 'type' => 'control-panel-backup-restore', 'attributes' => $run->only(['snapshot_id', 'target', 'status', 'options'])]], 202);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\BackupsFilament\Resources;
 
+use Filament\Actions\Action;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -12,6 +13,9 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\Backups\Actions\RequestRestore;
+use Liberu\ControlPanel\Backups\Actions\VerifySnapshot;
+use Liberu\ControlPanel\Backups\Models\BackupRestore;
 use Liberu\ControlPanel\Backups\Models\BackupSnapshot;
 use Liberu\ControlPanel\BackupsFilament\Resources\BackupSnapshotResource\Pages\CreateBackupSnapshot;
 use Liberu\ControlPanel\BackupsFilament\Resources\BackupSnapshotResource\Pages\EditBackupSnapshot;
@@ -39,7 +43,16 @@ final class BackupSnapshotResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('location')->searchable(), TextColumn::make('policy.name')->label('Policy'), TextColumn::make('status')->badge(), TextColumn::make('size_bytes')->numeric(), TextColumn::make('verified_at')->dateTime(), TextColumn::make('created_at')->dateTime()->sortable()])->defaultSort('created_at', 'desc');
+        return $table->columns([TextColumn::make('location')->searchable(), TextColumn::make('policy.name')->label('Policy'), TextColumn::make('status')->badge(), TextColumn::make('size_bytes')->numeric(), TextColumn::make('verified_at')->dateTime(), TextColumn::make('created_at')->dateTime()->sortable()])->recordActions([
+            Action::make('verify')
+                ->form([TextInput::make('checksum')->required()->maxLength(255)])
+                ->visible(fn (BackupSnapshot $record): bool => $record->status->value !== 'verified')
+                ->action(fn (BackupSnapshot $record, array $data): BackupSnapshot => app(VerifySnapshot::class)->execute($record, $data['checksum'])),
+            Action::make('restore')
+                ->form([TextInput::make('target')->required()->maxLength(1024)])
+                ->visible(fn (BackupSnapshot $record): bool => $record->status->value === 'verified')
+                ->action(fn (BackupSnapshot $record, array $data): BackupRestore => app(RequestRestore::class)->execute($record, (string) auth()->user()?->current_team_id, $data['target'])),
+        ])->defaultSort('created_at', 'desc');
     }
 
     public static function getEloquentQuery(): Builder
