@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\DnsFilament\Resources;
 
+use Filament\Actions\Action;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -12,6 +13,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
+use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Liberu\ControlPanel\DnsFilament\Resources\ZoneResource\Pages\CreateZone;
 use Liberu\ControlPanel\DnsFilament\Resources\ZoneResource\Pages\EditZone;
@@ -37,7 +40,16 @@ final class ZoneResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('domain')->searchable()->sortable(), TextColumn::make('provider'), TextColumn::make('status')->badge(), TextColumn::make('dnssec_enabled')->boolean(), TextColumn::make('created_at')->dateTime()->sortable()])->defaultSort('created_at', 'desc');
+        return $table->columns([TextColumn::make('domain')->searchable()->sortable(), TextColumn::make('provider'), TextColumn::make('status')->badge(), TextColumn::make('dnssec_enabled')->boolean(), TextColumn::make('created_at')->dateTime()->sortable()])->recordActions([
+            Action::make('suspend')
+                ->requiresConfirmation()
+                ->visible(fn (Zone $record): bool => $record->status->value !== 'suspended' && $record->status->value !== 'archived')
+                ->action(fn (Zone $record): Zone => app(SuspendZone::class)->execute($record)),
+            Action::make('archive')
+                ->requiresConfirmation()
+                ->visible(fn (Zone $record): bool => $record->status->value !== 'archived')
+                ->action(fn (Zone $record): Zone => app(ArchiveZone::class)->execute($record)),
+        ])->defaultSort('created_at', 'desc');
     }
 
     public static function getEloquentQuery(): Builder

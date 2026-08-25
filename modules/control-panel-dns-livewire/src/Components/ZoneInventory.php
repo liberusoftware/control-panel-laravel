@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\DnsLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
+use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -20,6 +22,18 @@ final class ZoneInventory extends Component
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function suspend(string $zoneId, SuspendZone $suspend): void
+    {
+        $zone = Zone::query()->whereKey($zoneId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $suspend->execute($zone);
+    }
+
+    public function archive(string $zoneId, ArchiveZone $archive): void
+    {
+        $zone = Zone::query()->whereKey($zoneId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $archive->execute($zone);
     }
 
     public function render(): View
