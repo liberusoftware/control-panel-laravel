@@ -20,8 +20,11 @@ final class StartOrchestration
         }
         if ($idempotencyKey !== null) {
             $existing = OrchestrationRun::query()->where('team_id', $teamId)->where('idempotency_key', $idempotencyKey)->first();
-            if ($existing !== null) { return $existing; }
+            if ($existing !== null) {
+                return $existing;
+            }
         }
+
         return OrchestrationRun::query()->create(['id' => (string) Str::uuid(), 'team_id' => $teamId, 'template_id' => $template->getKey(), 'status' => AutomationStatus::Active, 'input' => $input, 'idempotency_key' => $idempotencyKey, 'started_at' => now()]);
     }
 }

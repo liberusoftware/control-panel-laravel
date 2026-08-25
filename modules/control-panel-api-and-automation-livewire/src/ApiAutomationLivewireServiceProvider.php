@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\ApiAutomationLivewire;
 
 use Illuminate\Support\ServiceProvider;
+use Liberu\ControlPanel\ApiAutomationLivewire\Components\AutomationFeatureInventory;
 use Liberu\ControlPanel\ApiAutomationLivewire\Components\AutomationInventory;
 use Liberu\ControlPanel\ApiAutomationLivewire\Components\WebhookInventory;
-use Liberu\ControlPanel\ApiAutomationLivewire\Components\AutomationFeatureInventory;
 use Livewire\Livewire;
 
 final class ApiAutomationLivewireServiceProvider extends ServiceProvider

@@ -6,12 +6,12 @@ namespace Liberu\ControlPanel\ControlCoreFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
-use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeResource;
-use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource;
-use Liberu\ControlPanel\ControlCoreFilament\Resources\OperationTaskResource;
-use Liberu\ControlPanel\ControlCoreFilament\Resources\InventoryRecordResource;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\AuditEntryResource;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\InventoryRecordResource;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeResource;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\OperationLockResource;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\OperationTaskResource;
 
 final class ControlCoreFilamentPlugin implements Plugin
 {

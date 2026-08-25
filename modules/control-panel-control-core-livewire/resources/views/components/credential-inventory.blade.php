@@ -10,6 +10,9 @@
                     <span>{{ $credential->name }}</span>
                     <span>{{ $credential->type }}</span>
                     <span>{{ $credential->status->value }}</span>
+                    @if ($credential->status->value !== 'revoked')
+                        <button type="button" wire:click="revoke('{{ $credential->getKey() }}')">{{ __('Revoke') }}</button>
+                    @endif
                 </li>
             @endforeach
         </ul>

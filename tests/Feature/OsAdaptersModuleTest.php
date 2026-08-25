@@ -5,13 +5,13 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\OsAdapters\Actions\RecordOsResource;
-use Liberu\ControlPanel\OsAdapters\Models\FirewallRule;
+use Liberu\ControlPanel\OsAdapters\Actions\RecordSupportMatrix;
 use Liberu\ControlPanel\OsAdapters\Models\FilesystemMount;
+use Liberu\ControlPanel\OsAdapters\Models\FirewallRule;
 use Liberu\ControlPanel\OsAdapters\Models\OsPackage;
 use Liberu\ControlPanel\OsAdapters\Models\OsService;
 use Liberu\ControlPanel\OsAdapters\Models\OsUser;
 use Liberu\ControlPanel\OsAdapters\Models\PackageRepository;
-use Liberu\ControlPanel\OsAdapters\Actions\RecordSupportMatrix;
 use Liberu\ControlPanel\OsAdapters\OsAdaptersServiceProvider;
 
 uses(RefreshDatabase::class);

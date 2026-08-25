@@ -6,10 +6,10 @@ namespace Liberu\ControlPanel\ControlCore\Actions;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ControlCore\Events\InventoryRecorded;
 use Liberu\ControlPanel\ControlCore\Models\InventoryRecord;
 use Liberu\ControlPanel\ControlCore\Models\Node;
-use Illuminate\Validation\ValidationException;
 
 final readonly class RecordInventory
 {

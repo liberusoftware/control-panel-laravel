@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\OsAdaptersFilament\Resources;
 
+use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\OsAdapters\Models\OsAdapter;
+use Liberu\ControlPanel\OsAdaptersFilament\Resources\OsAdapterResource\Pages\CreateOsAdapter;
+use Liberu\ControlPanel\OsAdaptersFilament\Resources\OsAdapterResource\Pages\EditOsAdapter;
 use Liberu\ControlPanel\OsAdaptersFilament\Resources\OsAdapterResource\Pages\ListOsAdapters;
 
 final class OsAdapterResource extends Resource
@@ -22,7 +26,14 @@ final class OsAdapterResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([]);
+        return $schema->components([
+            TextInput::make('node_id')->required()->maxLength(255),
+            TextInput::make('operating_system')->required()->maxLength(120),
+            TextInput::make('version')->required()->maxLength(80),
+            TextInput::make('status')->required()->maxLength(40),
+            KeyValue::make('capabilities'),
+            KeyValue::make('metadata'),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -37,6 +48,6 @@ final class OsAdapterResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => ListOsAdapters::route('/')];
+        return ['index' => ListOsAdapters::route('/'), 'create' => CreateOsAdapter::route('/create'), 'edit' => EditOsAdapter::route('/{record}/edit')];
     }
 }

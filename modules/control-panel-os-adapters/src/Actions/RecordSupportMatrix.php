@@ -18,6 +18,7 @@ final class RecordSupportMatrix
                 throw ValidationException::withMessages([$field => "The {$field} field is required."]);
             }
         }
+
         return SupportMatrixEntry::query()->updateOrCreate(
             ['operating_system' => $attributes['operating_system'], 'version' => $attributes['version'], 'capability' => $attributes['capability']],
             ['id' => (string) Str::uuid(), 'supported' => (bool) ($attributes['supported'] ?? false), 'minimum_adapter_version' => $attributes['minimum_adapter_version'] ?? null, 'notes' => $attributes['notes'] ?? null],

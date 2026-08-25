@@ -1,6 +1,25 @@
 <?php
+
 declare(strict_types=1);
-use Illuminate\Foundation\Testing\RefreshDatabase; use Illuminate\Validation\ValidationException; use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationSchedule; use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationTemplate; use Liberu\ControlPanel\ApiAutomation\Actions\RecordBillingProvisioningEvent; use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomationCommand; use Liberu\ControlPanel\ApiAutomation\ApiAutomationServiceProvider;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationSchedule;
+use Liberu\ControlPanel\ApiAutomation\Actions\CreateAutomationTemplate;
+use Liberu\ControlPanel\ApiAutomation\Actions\RecordBillingProvisioningEvent;
+use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomationCommand;
+use Liberu\ControlPanel\ApiAutomation\ApiAutomationServiceProvider;
+
 uses(RefreshDatabase::class);
-beforeEach(function():void{$this->app->register(ApiAutomationServiceProvider::class);$this->artisan('migrate');});
-it('supports templates schedules commands and idempotent billing events',function():void{$template=app(CreateAutomationTemplate::class)->execute(['team_id'=>'team-1','name'=>'Provision','version'=>'1.0.0','steps'=>[['action'=>'provision']]]);$schedule=app(CreateAutomationSchedule::class)->execute(['team_id'=>'team-1','name'=>'Nightly','cron'=>'0 0 * * *','template_id'=>$template->getKey()]);$command=app(RegisterAutomationCommand::class)->execute(['team_id'=>'team-1','name'=>'Run provision','command'=>'provision:run']);$first=app(RecordBillingProvisioningEvent::class)->execute(['team_id'=>'team-1','external_id'=>'evt-1','event_type'=>'subscription.created','payload'=>['account'=>'acct-1']]);$second=app(RecordBillingProvisioningEvent::class)->execute(['team_id'=>'team-1','external_id'=>'evt-1','event_type'=>'subscription.created','payload'=>['account'=>'acct-1']]);expect($schedule->template_id)->toBe($template->getKey())->and($command->enabled)->toBeTrue()->and($second->getKey())->toBe($first->getKey());expect(fn()=>app(CreateAutomationSchedule::class)->execute(['team_id'=>'team-2','name'=>'Wrong tenant','cron'=>'* * * * *','template_id'=>$template->getKey()]))->toThrow(ValidationException::class);});
+beforeEach(function (): void {
+    $this->app->register(ApiAutomationServiceProvider::class);
+    $this->artisan('migrate');
+});
+it('supports templates schedules commands and idempotent billing events', function (): void {
+    $template = app(CreateAutomationTemplate::class)->execute(['team_id' => 'team-1', 'name' => 'Provision', 'version' => '1.0.0', 'steps' => [['action' => 'provision']]]);
+    $schedule = app(CreateAutomationSchedule::class)->execute(['team_id' => 'team-1', 'name' => 'Nightly', 'cron' => '0 0 * * *', 'template_id' => $template->getKey()]);
+    $command = app(RegisterAutomationCommand::class)->execute(['team_id' => 'team-1', 'name' => 'Run provision', 'command' => 'provision:run']);
+    $first = app(RecordBillingProvisioningEvent::class)->execute(['team_id' => 'team-1', 'external_id' => 'evt-1', 'event_type' => 'subscription.created', 'payload' => ['account' => 'acct-1']]);
+    $second = app(RecordBillingProvisioningEvent::class)->execute(['team_id' => 'team-1', 'external_id' => 'evt-1', 'event_type' => 'subscription.created', 'payload' => ['account' => 'acct-1']]);
+    expect($schedule->template_id)->toBe($template->getKey())->and($command->enabled)->toBeTrue()->and($second->getKey())->toBe($first->getKey());
+    expect(fn () => app(CreateAutomationSchedule::class)->execute(['team_id' => 'team-2', 'name' => 'Wrong tenant', 'cron' => '* * * * *', 'template_id' => $template->getKey()]))->toThrow(ValidationException::class);
+});

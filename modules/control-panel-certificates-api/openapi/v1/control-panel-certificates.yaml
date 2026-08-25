@@ -12,6 +12,33 @@ paths:
       operationId: control.panel.certificates.create
       security: [{sanctum: []}]
       responses: {'201': {description: Certificate issued}}
+  /api/v1/control-panel/certificates/acme-accounts:
+    post: {operationId: control.panel.certificates.acme.accounts.create, security: [{sanctum: []}], responses: {'201': {description: ACME account registered}}}
+  /api/v1/control-panel/certificates/operations:
+    post: {operationId: control.panel.certificates.operations.create, security: [{sanctum: []}], responses: {'201': {description: Certificate operation recorded}}}
+  /api/v1/control-panel/certificates/lifecycle:
+    post: {operationId: control.panel.certificates.lifecycle.record, security: [{sanctum: []}], responses: {'201': {description: Certificate lifecycle event recorded}}}
+  /api/v1/control-panel/certificates/{certificate}:
+    get: {operationId: control.panel.certificates.show, security: [{sanctum: []}], responses: {'200': {description: Authorized certificate}}}
+    post:
+      operationId: control.panel.certificates.revoke
+      security: [{sanctum: []}]
+      responses: {'200': {description: Certificate revoked}}
+  /api/v1/control-panel/certificates/{certificate}/deploy:
+    post:
+      operationId: control.panel.certificates.deploy
+      security: [{sanctum: []}]
+      responses: {'202': {description: Certificate deployment queued}}
+  /api/v1/control-panel/certificates/{certificate}/renew:
+    post:
+      operationId: control.panel.certificates.renew
+      security: [{sanctum: []}]
+      responses: {'202': {description: Certificate renewal queued}}
+  /api/v1/control-panel/certificates/{certificate}/expiry-check:
+    post:
+      operationId: control.panel.certificates.expiry.check
+      security: [{sanctum: []}]
+      responses: {'200': {description: Certificate expiry status recorded}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

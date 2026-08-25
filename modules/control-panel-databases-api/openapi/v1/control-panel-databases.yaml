@@ -22,6 +22,16 @@ paths:
       operationId: control.panel.databases.privileges.grant
       security: [{sanctum: []}]
       responses: {'201': {description: Database privilege granted}}
+  /api/v1/control-panel/databases/{database}/backups:
+    post: {operationId: control.panel.databases.backups.create, security: [{sanctum: []}], responses: {'201': {description: Database backup created}}}
+  /api/v1/control-panel/databases/{database}/health-checks:
+    post: {operationId: control.panel.databases.health.check, security: [{sanctum: []}], responses: {'201': {description: Database health check recorded}}}
+  /api/v1/control-panel/databases/{database}/upgrades:
+    post: {operationId: control.panel.databases.upgrades.request, security: [{sanctum: []}], responses: {'202': {description: Database upgrade requested}}}
+  /api/v1/control-panel/databases/{database}/remote-access:
+    post: {operationId: control.panel.databases.remote.access.configure, security: [{sanctum: []}], responses: {'201': {description: Remote database access configured}}}
+  /api/v1/control-panel/databases/{database}:
+    get: {operationId: control.panel.databases.show, security: [{sanctum: []}], responses: {'200': {description: Authorized database resource}}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

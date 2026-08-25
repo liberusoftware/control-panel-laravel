@@ -12,6 +12,18 @@ paths:
       operationId: control.panel.files.create
       security: [{sanctum: []}]
       responses: {'201': {description: File record created}}
+  /api/v1/control-panel/files/operations:
+    post: {operationId: control.panel.files.operations.create, security: [{sanctum: []}], responses: {'201': {description: File operation recorded}}}
+  /api/v1/control-panel/files/home-directories:
+    post: {operationId: control.panel.files.home.directories.create, security: [{sanctum: []}], responses: {'201': {description: Home directory created}}}
+  /api/v1/control-panel/files/permissions:
+    post: {operationId: control.panel.files.permissions.create, security: [{sanctum: []}], responses: {'201': {description: File permission granted}}}
+  /api/v1/control-panel/files/sftp-accounts:
+    post: {operationId: control.panel.files.sftp.accounts.create, security: [{sanctum: []}], responses: {'201': {description: SFTP account created}}}
+  /api/v1/control-panel/files/retention:
+    post: {operationId: control.panel.files.retention.create, security: [{sanctum: []}], responses: {'201': {description: File retention policy recorded}}}
+  /api/v1/control-panel/files/{file}:
+    get: {operationId: control.panel.files.show, security: [{sanctum: []}], responses: {'200': {description: Authorized file record}}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

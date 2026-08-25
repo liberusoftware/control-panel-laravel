@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\MailFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\MailFilament\Resources\DkimKeyResource;
 use Liberu\ControlPanel\MailFilament\Resources\MailAccountResource;
 use Liberu\ControlPanel\MailFilament\Resources\MailAliasResource;
 
@@ -23,7 +24,7 @@ final class MailFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([MailAccountResource::class, MailAliasResource::class]);
+        $panel->resources([MailAccountResource::class, MailAliasResource::class, DkimKeyResource::class]);
     }
 
     public function boot(Panel $panel): void {}

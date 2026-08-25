@@ -6,8 +6,8 @@ namespace Liberu\ControlPanel\MonitoringFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
-use Liberu\ControlPanel\MonitoringFilament\Resources\MonitorResource;
 use Liberu\ControlPanel\MonitoringFilament\Resources\MonitoringEventResource;
+use Liberu\ControlPanel\MonitoringFilament\Resources\MonitorResource;
 
 final class MonitoringFilamentPlugin implements Plugin
 {

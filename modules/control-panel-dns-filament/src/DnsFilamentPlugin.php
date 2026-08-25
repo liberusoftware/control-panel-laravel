@@ -6,8 +6,8 @@ namespace Liberu\ControlPanel\DnsFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
-use Liberu\ControlPanel\DnsFilament\Resources\ZoneResource;
 use Liberu\ControlPanel\DnsFilament\Resources\DnsCheckResource;
+use Liberu\ControlPanel\DnsFilament\Resources\ZoneResource;
 
 final class DnsFilamentPlugin implements Plugin
 {

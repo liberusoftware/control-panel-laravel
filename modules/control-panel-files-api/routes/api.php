@@ -13,4 +13,5 @@ Route::prefix('api/v1/control-panel/files')->middleware(['api', 'auth:sanctum', 
     Route::post('/permissions', [FileController::class, 'permission'])->name('control-panel.files.permissions.store');
     Route::post('/sftp-accounts', [FileController::class, 'sftp'])->name('control-panel.files.sftp-accounts.store');
     Route::post('/retention', [FileController::class, 'retention'])->name('control-panel.files.retention.store');
+    Route::get('{file}', [FileController::class, 'show'])->name('control-panel.files.show');
 });

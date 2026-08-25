@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\ControlCoreFilament\Resources;
 
+use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\ControlCore\Models\Node;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeResource\Pages\CreateNode;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeResource\Pages\EditNode;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeResource\Pages\ListNodes;
 
 final class NodeResource extends Resource
@@ -22,7 +26,13 @@ final class NodeResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([]);
+        return $schema->components([
+            TextInput::make('name')->required()->maxLength(160),
+            TextInput::make('hostname')->required()->maxLength(255),
+            TextInput::make('platform')->required()->maxLength(120),
+            TextInput::make('agent_version')->maxLength(80),
+            KeyValue::make('capabilities')->label('Declared capabilities'),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -43,6 +53,6 @@ final class NodeResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => ListNodes::route('/')];
+        return ['index' => ListNodes::route('/'), 'create' => CreateNode::route('/create'), 'edit' => EditNode::route('/{record}/edit')];
     }
 }

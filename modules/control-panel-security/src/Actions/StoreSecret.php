@@ -18,6 +18,7 @@ final class StoreSecret
         if ($name === '' || $value === '') {
             throw ValidationException::withMessages(['secret' => 'A secret name and value are required.']);
         }
+
         return SecretRecord::query()->updateOrCreate(
             ['team_id' => $attributes['team_id'], 'name' => $name],
             ['id' => (string) Str::uuid(), 'purpose' => $attributes['purpose'] ?? null, 'value' => $value, 'version' => ((int) ($attributes['version'] ?? 0)) + 1, 'status' => 'active', 'expires_at' => $attributes['expires_at'] ?? null, 'rotated_at' => now()],

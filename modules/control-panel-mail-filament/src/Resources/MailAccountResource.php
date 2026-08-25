@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\MailFilament\Resources;
 
+use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
+use Liberu\ControlPanel\MailFilament\Resources\MailAccountResource\Pages\CreateMailAccount;
+use Liberu\ControlPanel\MailFilament\Resources\MailAccountResource\Pages\EditMailAccount;
 use Liberu\ControlPanel\MailFilament\Resources\MailAccountResource\Pages\ListMailAccounts;
 
 final class MailAccountResource extends Resource
@@ -22,7 +26,13 @@ final class MailAccountResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([]);
+        return $schema->components([
+            TextInput::make('domain')->required()->maxLength(253),
+            TextInput::make('address')->required()->email()->maxLength(320),
+            TextInput::make('quota_bytes')->numeric()->minValue(0),
+            TextInput::make('status')->required()->maxLength(40),
+            KeyValue::make('settings'),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -37,6 +47,6 @@ final class MailAccountResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => ListMailAccounts::route('/')];
+        return ['index' => ListMailAccounts::route('/'), 'create' => CreateMailAccount::route('/create'), 'edit' => EditMailAccount::route('/{record}/edit')];
     }
 }

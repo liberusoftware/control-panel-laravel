@@ -1,3 +1,29 @@
 <?php
-declare(strict_types=1); use Illuminate\Database\Migrations\Migration; use Illuminate\Database\Schema\Blueprint; use Illuminate\Support\Facades\Schema;
-return new class extends Migration { public function up():void{Schema::create('control_panel_monitoring_events',function(Blueprint $t):void{$t->uuid('id')->primary();$t->string('team_id')->nullable()->index();$t->uuid('monitor_id')->nullable();$t->string('kind');$t->string('status');$t->json('payload')->nullable();$t->timestamp('starts_at')->nullable();$t->timestamp('ends_at')->nullable();$t->timestamps();});} public function down():void{Schema::dropIfExists('control_panel_monitoring_events');}};
+
+declare(strict_types=1);
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class() extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('control_panel_monitoring_events', function (Blueprint $t): void {
+            $t->uuid('id')->primary();
+            $t->string('team_id')->nullable()->index();
+            $t->uuid('monitor_id')->nullable();
+            $t->string('kind');
+            $t->string('status');
+            $t->json('payload')->nullable();
+            $t->timestamp('starts_at')->nullable();
+            $t->timestamp('ends_at')->nullable();
+            $t->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('control_panel_monitoring_events');
+    }
+};

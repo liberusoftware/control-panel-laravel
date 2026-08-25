@@ -18,6 +18,7 @@ final class RegisterApiCredential
         if ($name === '' || $secret === '') {
             throw ValidationException::withMessages(['credential' => 'A credential name and secret are required.']);
         }
+
         return ApiCredential::query()->create(['id' => (string) Str::uuid(), 'team_id' => $attributes['team_id'] ?? null, 'name' => $name, 'scopes' => array_values(array_unique($attributes['scopes'] ?? [])), 'secret' => $secret, 'status' => 'active', 'expires_at' => $attributes['expires_at'] ?? null]);
     }
 }

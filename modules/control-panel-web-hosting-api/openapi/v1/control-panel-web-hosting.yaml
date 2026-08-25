@@ -12,6 +12,29 @@ paths:
       summary: Register a domain
       security: [{sanctum: []}]
       responses: {'201': {description: Created}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/activate:
+    post:
+      operationId: control.panel.web.hosting.domains.activate
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Domain activated.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/suspend:
+    post:
+      operationId: control.panel.web.hosting.domains.suspend
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [reason], properties: {reason: {type: string, maxLength: 1000}}}
+      responses: {'200': {description: Domain suspended.}, '422': {description: Invalid lifecycle transition or reason.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/archive:
+    post:
+      operationId: control.panel.web.hosting.domains.archive
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Domain archived.}, '422': {description: Domain is already archived.}}
   /api/v1/control-panel/web-hosting/domains/{domain}/virtual-hosts:
     post:
       summary: Create or update a virtual host desired state
@@ -22,6 +45,12 @@ paths:
       operationId: control.panel.web.hosting.deployments.list
       security: [{sanctum: []}]
       responses: {'200': {description: Authorized Git deployment collection.}}
+  /api/v1/control-panel/web-hosting/deployments/{deployment}/deploy:
+    post:
+      operationId: control.panel.web.hosting.deployments.deploy
+      security: [{sanctum: []}]
+      parameters: [{name: deployment, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'202': {description: Git deployment queued.}}
   /api/v1/control-panel/web-hosting/domains/{domain}/deployments:
     post:
       operationId: control.panel.web.hosting.deployments.create
@@ -40,3 +69,30 @@ paths:
       security: [{sanctum: []}]
       parameters: [{name: kind, in: path, required: true, schema: {type: string}}]
       responses: {'200': {description: Authorized hosting resource collection.}}
+  /api/v1/control-panel/web-hosting/applications:
+    get:
+      operationId: control.panel.web.hosting.applications.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Authorized hosted application collection.}}
+    post:
+      operationId: control.panel.web.hosting.applications.create
+      security: [{sanctum: []}]
+      responses: {'201': {description: Hosted application registered.}}
+  /api/v1/control-panel/web-hosting/applications/{application}/performance:
+    get:
+      operationId: control.panel.web.hosting.applications.performance
+      security: [{sanctum: []}]
+      parameters: [{name: application, in: path, required: true, schema: {type: string, format: uuid}}, {name: hours, in: query, schema: {type: integer, minimum: 1, maximum: 720}}]
+      responses: {'200': {description: Application performance metrics and summary.}}
+  /api/v1/control-panel/web-hosting/applications/{application}/health-checks:
+    post:
+      operationId: control.panel.web.hosting.applications.health
+      security: [{sanctum: []}]
+      parameters: [{name: application, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'201': {description: Application health check recorded.}}
+  /api/v1/control-panel/web-hosting/applications/{application}/wordpress-update-checks:
+    post:
+      operationId: control.panel.web.hosting.applications.wordpress.update.check
+      security: [{sanctum: []}]
+      parameters: [{name: application, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: WordPress update status.}}

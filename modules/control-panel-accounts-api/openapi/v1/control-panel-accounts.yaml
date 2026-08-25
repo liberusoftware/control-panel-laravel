@@ -33,6 +33,8 @@ paths:
       operationId: control.panel.accounts.quota.check
       security: [{sanctum: []}]
       responses: {'200': {description: Account quota usage is within limits.}}
+  /api/v1/control-panel/accounts/{account}:
+    get: {operationId: control.panel.accounts.show, security: [{sanctum: []}], responses: {'200': {description: Authorized account resource}}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

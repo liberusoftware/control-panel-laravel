@@ -13,4 +13,5 @@ Route::prefix('api/v1/control-panel/backups')->middleware(['api', 'auth:sanctum'
     Route::post('/destinations', [SnapshotController::class, 'destination'])->name('control-panel.backups.destinations.store');
     Route::post('/schedules', [SnapshotController::class, 'schedule'])->name('control-panel.backups.schedules.store');
     Route::post('/features', [SnapshotController::class, 'feature'])->name('control-panel.backups.features.store');
+    Route::get('snapshots/{snapshot}', [SnapshotController::class, 'show'])->name('control-panel.backups.show');
 });

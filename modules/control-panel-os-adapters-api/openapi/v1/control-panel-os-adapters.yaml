@@ -4,6 +4,22 @@ paths:
   /api/v1/control-panel/os-adapters:
     get: {operationId: control.panel.os.adapters.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.os.adapters.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/Create'}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/os-adapters/packages:
+    post: {operationId: control.panel.os.adapters.packages.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/os-adapters/services:
+    post: {operationId: control.panel.os.adapters.services.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/os-adapters/firewall-rules:
+    post: {operationId: control.panel.os.adapters.firewall.rules.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/os-adapters/users:
+    post: {operationId: control.panel.os.adapters.users.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/os-adapters/filesystems:
+    post: {operationId: control.panel.os.adapters.filesystems.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/os-adapters/repositories:
+    post: {operationId: control.panel.os.adapters.repositories.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/os-adapters/support-matrix:
+    post: {operationId: control.panel.os.adapters.support.matrix.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/os-adapters/{adapter}:
+    get: {operationId: control.panel.os.adapters.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
 components:
   securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
   schemas:

@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\FilesFilament\Resources;
 
+use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\Files\Models\FileEntry;
+use Liberu\ControlPanel\FilesFilament\Resources\FileEntryResource\Pages\CreateFileEntry;
+use Liberu\ControlPanel\FilesFilament\Resources\FileEntryResource\Pages\EditFileEntry;
 use Liberu\ControlPanel\FilesFilament\Resources\FileEntryResource\Pages\ListFileEntries;
 
 final class FileEntryResource extends Resource
@@ -22,7 +26,15 @@ final class FileEntryResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([]);
+        return $schema->components([
+            TextInput::make('owner_id')->required()->maxLength(255),
+            TextInput::make('path')->required()->maxLength(2048),
+            TextInput::make('disk')->required()->maxLength(80),
+            TextInput::make('mime_type')->maxLength(160),
+            TextInput::make('size_bytes')->numeric()->minValue(0),
+            TextInput::make('checksum')->maxLength(255),
+            KeyValue::make('metadata'),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -37,6 +49,6 @@ final class FileEntryResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => ListFileEntries::route('/')];
+        return ['index' => ListFileEntries::route('/'), 'create' => CreateFileEntry::route('/create'), 'edit' => EditFileEntry::route('/{record}/edit')];
     }
 }

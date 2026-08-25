@@ -15,4 +15,5 @@ Route::prefix('api/v1/control-panel/os-adapters')->middleware(['api', 'auth:sanc
     Route::post('filesystems', [OsAdapterController::class, 'filesystem'])->name('control-panel.os-adapters.filesystems.store');
     Route::post('repositories', [OsAdapterController::class, 'repository'])->name('control-panel.os-adapters.repositories.store');
     Route::post('support-matrix', [OsAdapterController::class, 'supportMatrix'])->name('control-panel.os-adapters.support-matrix.store');
+    Route::get('{adapter}', [OsAdapterController::class, 'show'])->name('control-panel.os-adapters.show');
 });

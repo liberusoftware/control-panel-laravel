@@ -9,8 +9,9 @@ use Liberu\ControlPanel\Dns\Models\Zone;
 
 final class ListZones
 {
-    public function execute(?string $teamId, int $perPage = 25): LengthAwarePaginator
+    public function execute(?string $teamId, int $perPage = 25, string $search = ''): LengthAwarePaginator
     {
-        return Zone::query()->with('records')->where('team_id', $teamId)->latest()->paginate(min(max($perPage, 1), 100));
+        return Zone::query()->with('records')->where('team_id', $teamId)->when(trim($search) !== '', fn ($query) => $query->where('name', 'like', '%'.trim($search).'%'))
+            ->latest()->paginate(min(max($perPage, 1), 100));
     }
 }

@@ -15,4 +15,5 @@ Route::prefix('api/v1/control-panel/api-and-automation')->middleware(['api', 'au
     Route::post('schedules', [AutomationController::class, 'schedule'])->name('control-panel.api-and-automation.schedules.store');
     Route::post('commands', [AutomationController::class, 'command'])->name('control-panel.api-and-automation.commands.store');
     Route::post('billing-events', [AutomationController::class, 'billingEvent'])->name('control-panel.api-and-automation.billing-events.store');
+    Route::get('{automation}', [AutomationController::class, 'show'])->name('control-panel.api-and-automation.show');
 });

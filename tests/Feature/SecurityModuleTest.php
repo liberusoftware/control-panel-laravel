@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\Security\Actions\RecordFinding;
 use Liberu\ControlPanel\Security\Actions\RecordSecurityResource;
+use Liberu\ControlPanel\Security\Actions\ResolveSecurityFinding;
 use Liberu\ControlPanel\Security\Actions\StoreSecret;
 use Liberu\ControlPanel\Security\Models\ComplianceStatus;
 use Liberu\ControlPanel\Security\Models\HardeningControl;
 use Liberu\ControlPanel\Security\Models\IntrusionControl;
-use Liberu\ControlPanel\Security\Models\MfaRbacPolicy;
 use Liberu\ControlPanel\Security\Models\MalwareScan;
+use Liberu\ControlPanel\Security\Models\MfaRbacPolicy;
 use Liberu\ControlPanel\Security\Models\PatchRecord;
+use Liberu\ControlPanel\Security\Models\SecurityFinding;
 use Liberu\ControlPanel\Security\SecurityServiceProvider;
 
 uses(RefreshDatabase::class);
@@ -40,4 +43,16 @@ it('encrypts secrets and rejects missing secret values', function (): void {
 
     expect(fn () => app(StoreSecret::class)->execute(['team_id' => 'team-1', 'name' => 'empty', 'value' => '']))
         ->toThrow(ValidationException::class);
+});
+
+it('resolves only open security findings through the lifecycle action', function (): void {
+    $finding = app(RecordFinding::class)->execute([
+        'team_id' => 'team-1', 'subject_type' => 'node', 'subject_id' => 'node-1',
+        'code' => 'weak-ssh', 'severity' => 'high', 'summary' => 'SSH hardening is required',
+    ]);
+
+    expect(app(ResolveSecurityFinding::class)->execute($finding)->status)->toBe('resolved');
+    expect(fn () => app(ResolveSecurityFinding::class)->execute($finding->fresh()))
+        ->toThrow(ValidationException::class);
+    expect(SecurityFinding::query()->find($finding->getKey())->status)->toBe('resolved');
 });

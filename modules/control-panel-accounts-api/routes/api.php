@@ -20,4 +20,5 @@ Route::prefix('api/v1/control-panel/accounts')
         Route::patch('packages/{package}', [AccountController::class, 'updatePackage'])->name('control-panel.accounts.packages.update');
         Route::get('{account}/delegations', [AccountController::class, 'delegations'])->name('control-panel.accounts.delegations.index');
         Route::post('delegations/{delegation}/revoke', [AccountController::class, 'revokeDelegation'])->name('control-panel.accounts.delegations.revoke');
+        Route::get('{account}', [AccountController::class, 'show'])->name('control-panel.accounts.show');
     });

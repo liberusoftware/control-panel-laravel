@@ -6,10 +6,10 @@ namespace Liberu\ControlPanel\WebHostingLivewire;
 
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\WebHostingLivewire\Components\DomainInventory;
-use Liberu\ControlPanel\WebHostingLivewire\Components\HostingResourceInventory;
-use Livewire\Livewire;
 use Liberu\ControlPanel\WebHostingLivewire\Components\GitDeploymentInventory;
+use Liberu\ControlPanel\WebHostingLivewire\Components\HostingResourceInventory;
 use Liberu\ControlPanel\WebHostingLivewire\Components\PhpConfigurationInventory;
+use Livewire\Livewire;
 
 final class WebHostingLivewireServiceProvider extends ServiceProvider
 {

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\OsAdapters;
 
 use Illuminate\Support\ServiceProvider;
-use Liberu\ControlPanel\OsAdapters\Actions\RegisterOsAdapter;
-use Liberu\ControlPanel\OsAdapters\Queries\ListOsAdapters;
 use Liberu\ControlPanel\OsAdapters\Actions\RecordOsResource;
 use Liberu\ControlPanel\OsAdapters\Actions\RecordSupportMatrix;
+use Liberu\ControlPanel\OsAdapters\Actions\RegisterOsAdapter;
+use Liberu\ControlPanel\OsAdapters\Queries\ListOsAdapters;
 
 final class OsAdaptersServiceProvider extends ServiceProvider
 {

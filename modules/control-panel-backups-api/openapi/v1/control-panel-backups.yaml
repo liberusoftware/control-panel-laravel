@@ -12,6 +12,18 @@ paths:
       operationId: control.panel.backups.snapshots.create
       security: [{sanctum: []}]
       responses: {'201': {description: Snapshot queued}}
+  /api/v1/control-panel/backups/snapshots/{snapshot}/verify:
+    post: {operationId: control.panel.backups.snapshots.verify, security: [{sanctum: []}], responses: {'200': {description: Snapshot verification result}}}
+  /api/v1/control-panel/backups/snapshots/{snapshot}/restore:
+    post: {operationId: control.panel.backups.snapshots.restore, security: [{sanctum: []}], responses: {'202': {description: Snapshot restore queued}}}
+  /api/v1/control-panel/backups/destinations:
+    post: {operationId: control.panel.backups.destinations.create, security: [{sanctum: []}], responses: {'201': {description: Backup destination created}}}
+  /api/v1/control-panel/backups/schedules:
+    post: {operationId: control.panel.backups.schedules.create, security: [{sanctum: []}], responses: {'201': {description: Backup schedule created}}}
+  /api/v1/control-panel/backups/features:
+    post: {operationId: control.panel.backups.features.record, security: [{sanctum: []}], responses: {'201': {description: Backup feature recorded}}}
+  /api/v1/control-panel/backups/snapshots/{snapshot}:
+    get: {operationId: control.panel.backups.snapshots.show, security: [{sanctum: []}], responses: {'200': {description: Authorized backup snapshot}}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

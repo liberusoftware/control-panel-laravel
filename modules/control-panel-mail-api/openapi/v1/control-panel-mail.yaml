@@ -4,6 +4,18 @@ paths:
   /api/v1/control-panel/mail:
     get: {operationId: control.panel.mail.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.mail.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [domain, address]}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/mail/operations:
+    post: {operationId: control.panel.mail.operations.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/mail/aliases:
+    post: {operationId: control.panel.mail.aliases.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/mail/controls:
+    post: {operationId: control.panel.mail.controls.configure, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/mail/delivery-diagnostics:
+    post: {operationId: control.panel.mail.delivery.diagnostics.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/mail/dkim/rotate:
+    post: {operationId: control.panel.mail.dkim.rotate, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/mail/{mailAccount}:
+    get: {operationId: control.panel.mail.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
 components:
   securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
   responses:

@@ -4,6 +4,12 @@ paths:
   /api/v1/control-panel/containers:
     get: {operationId: control.panel.containers.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.containers.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [node_id, name, image]}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/containers/resources:
+    post: {operationId: control.panel.containers.resources.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/containers/assets:
+    post: {operationId: control.panel.containers.assets.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/containers/{workload}:
+    get: {operationId: control.panel.containers.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
 components:
   securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
   responses:

@@ -12,4 +12,6 @@ Route::prefix('api/v1/control-panel/mail')->middleware(['api', 'auth:sanctum', '
     Route::post('/aliases', [MailAccountController::class, 'alias'])->name('control-panel.mail.aliases.store');
     Route::post('/controls', [MailAccountController::class, 'controls'])->name('control-panel.mail.controls.store');
     Route::post('/delivery-diagnostics', [MailAccountController::class, 'diagnostic'])->name('control-panel.mail.delivery-diagnostics.store');
+    Route::post('/dkim/rotate', [MailAccountController::class, 'rotateDkim'])->name('control-panel.mail.dkim.rotate');
+    Route::get('/{mailAccount}', [MailAccountController::class, 'show'])->name('control-panel.mail.show');
 });

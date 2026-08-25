@@ -14,4 +14,5 @@ Route::prefix('api/v1/control-panel/databases')->middleware(['api', 'auth:sanctu
     Route::post('{database}/health-checks', [DatabaseController::class, 'health'])->name('control-panel.databases.health.store');
     Route::post('{database}/upgrades', [DatabaseController::class, 'upgrade'])->name('control-panel.databases.upgrades.store');
     Route::post('{database}/remote-access', [DatabaseController::class, 'remoteAccess'])->name('control-panel.databases.remote-access.store');
+    Route::get('{database}', [DatabaseController::class, 'show'])->name('control-panel.databases.show');
 });

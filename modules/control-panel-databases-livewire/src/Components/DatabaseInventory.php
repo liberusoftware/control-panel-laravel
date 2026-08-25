@@ -5,16 +5,40 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\DatabasesLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
+use Liberu\ControlPanel\Databases\Models\Database;
 use Liberu\ControlPanel\Databases\Queries\ListDatabases;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 final class DatabaseInventory extends Component
 {
+    use WithPagination;
+
     public int $perPage = 25;
+
+    public string $search = '';
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function activate(string $databaseId, ActivateDatabase $activate): void
+    {
+        $database = Database::query()
+            ->whereKey($databaseId)
+            ->where('team_id', auth()->user()?->current_team_id)
+            ->firstOrFail();
+
+        $activate->execute($database);
+    }
 
     public function render(ListDatabases $list): View
     {
-        $databases = $list->execute(auth()->user()?->current_team_id, min(max($this->perPage, 1), 100));
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $databases = $list->execute($teamId, min(max($this->perPage, 1), 100), $this->search);
 
         return view('control-panel-databases-livewire::components.database-inventory', ['databases' => $databases]);
     }

@@ -9,8 +9,8 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
 use Liberu\ControlPanel\ControlCore\Events\OperationTaskCreated;
-use Liberu\ControlPanel\ControlCore\Models\OperationTask;
 use Liberu\ControlPanel\ControlCore\Models\Node;
+use Liberu\ControlPanel\ControlCore\Models\OperationTask;
 
 final readonly class CreateOperationTask
 {

@@ -6,16 +6,16 @@ namespace Liberu\ControlPanel\ControlCoreApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
-use Liberu\ControlPanel\ControlCore\Queries\ListNodes;
-use Liberu\ControlPanel\ControlCore\Models\Node;
-use Liberu\ControlPanel\ControlCore\Actions\UpdateDesiredState;
-use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
-use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
-use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
+use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
+use Liberu\ControlPanel\ControlCore\Actions\UpdateDesiredState;
 use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
+use Liberu\ControlPanel\ControlCore\Models\Node;
+use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
+use Liberu\ControlPanel\ControlCore\Queries\ListNodes;
 
 final class NodeController
 {
@@ -104,7 +104,7 @@ final class NodeController
             'metadata' => ['nullable', 'array'],
         ]);
 
-        return response()->json(['data' => $this->credentialResource($register->execute(array_merge($data, ['team_id' => $teamId, 'node_id' => $item->getKey()]))),], 201);
+        return response()->json(['data' => $this->credentialResource($register->execute(array_merge($data, ['team_id' => $teamId, 'node_id' => $item->getKey()])))], 201);
     }
 
     public function revokeCredential(Request $request, string $credential, RevokeNodeCredential $revoke): JsonResponse

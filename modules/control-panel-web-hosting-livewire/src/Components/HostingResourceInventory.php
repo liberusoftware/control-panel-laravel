@@ -1,7 +1,11 @@
 <?php
+
 declare(strict_types=1);
+
 namespace Liberu\ControlPanel\WebHostingLivewire\Components;
+
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\WebHosting\Actions\CheckApplicationHealth;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
 use Liberu\ControlPanel\WebHosting\Models\HostingLog;
 use Liberu\ControlPanel\WebHosting\Models\Redirect;
@@ -13,6 +17,15 @@ use Livewire\Component;
 final class HostingResourceInventory extends Component
 {
     public int $perPage = 25;
+
+    public function checkApplication(string $applicationId, CheckApplicationHealth $check): void
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        $application = HostedApplication::query()->whereKey($applicationId)->where('team_id', $teamId)->firstOrFail();
+        $check->execute($application);
+    }
 
     public function render(): View
     {

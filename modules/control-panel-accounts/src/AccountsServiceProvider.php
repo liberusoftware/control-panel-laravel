@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\Accounts;
 
 use Illuminate\Support\ServiceProvider;
+use Liberu\ControlPanel\Accounts\Actions\ActivateAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
+use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
-use Liberu\ControlPanel\Accounts\Actions\ActivateAccount;
+use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
 use Liberu\ControlPanel\Accounts\Queries\ListAccounts;
 use Liberu\ControlPanel\Accounts\Services\QuotaGuard;
-use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
-use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 
 final class AccountsServiceProvider extends ServiceProvider
 {

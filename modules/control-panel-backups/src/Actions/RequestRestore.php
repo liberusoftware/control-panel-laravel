@@ -19,6 +19,7 @@ final class RequestRestore
         if ($target === '') {
             throw ValidationException::withMessages(['target' => 'A restore target is required.']);
         }
+
         return BackupRestore::query()->create(['id' => (string) Str::uuid(), 'team_id' => $teamId, 'snapshot_id' => $snapshot->getKey(), 'target' => $target, 'status' => RestoreStatus::Queued, 'options' => $options]);
     }
 }

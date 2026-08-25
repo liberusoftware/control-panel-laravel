@@ -10,4 +10,5 @@ Route::prefix('api/v1/control-panel/containers')->middleware(['api', 'auth:sanct
     Route::post('/', [WorkloadController::class, 'store'])->name('control-panel.containers.store');
     Route::post('/resources', [WorkloadController::class, 'resourceRecord'])->name('control-panel.containers.resources.store');
     Route::post('/assets', [WorkloadController::class, 'asset'])->name('control-panel.containers.assets.store');
+    Route::get('{workload}', [WorkloadController::class, 'show'])->name('control-panel.containers.show');
 });

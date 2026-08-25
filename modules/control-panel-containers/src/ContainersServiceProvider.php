@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\Containers;
 
 use Illuminate\Support\ServiceProvider;
-use Liberu\ControlPanel\Containers\Actions\RegisterWorkload;
-use Liberu\ControlPanel\Containers\Queries\ListWorkloads;
 use Liberu\ControlPanel\Containers\Actions\RecordContainerResource;
 use Liberu\ControlPanel\Containers\Actions\RegisterContainerAsset;
+use Liberu\ControlPanel\Containers\Actions\RegisterWorkload;
+use Liberu\ControlPanel\Containers\Queries\ListWorkloads;
 
 final class ContainersServiceProvider extends ServiceProvider
 {

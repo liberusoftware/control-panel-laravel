@@ -1,5 +1,6 @@
 <section>
     <h2>{{ __('Files') }}</h2>
+    <input type="search" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search files') }}">
     <ul>
         @forelse ($files as $file)
             <li wire:key="file-{{ $file->getKey() }}">{{ $file->path }} — {{ $file->status->value }}</li>

@@ -8,13 +8,13 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Liberu\ControlPanel\Databases\Actions\ConfigureRemoteAccess;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabase;
+use Liberu\ControlPanel\Databases\Actions\CreateDatabaseBackup;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabaseUser;
 use Liberu\ControlPanel\Databases\Actions\GrantDatabasePrivilege;
-use Liberu\ControlPanel\Databases\Actions\CreateDatabaseBackup;
 use Liberu\ControlPanel\Databases\Actions\RecordDatabaseHealth;
 use Liberu\ControlPanel\Databases\Actions\RequestDatabaseUpgrade;
-use Liberu\ControlPanel\Databases\Actions\ConfigureRemoteAccess;
 use Liberu\ControlPanel\Databases\Models\Database;
 use Liberu\ControlPanel\Databases\Models\DatabaseUser;
 use Liberu\ControlPanel\Databases\Queries\ListDatabases;
@@ -82,6 +82,15 @@ final class DatabaseController
         $access = $configure->execute($database, $data);
 
         return response()->json(['data' => ['id' => $access->getKey(), 'type' => 'control-panel-database-remote-access', 'attributes' => $access->only(['database_id', 'source_cidr', 'port', 'tls_required', 'active', 'expires_at'])]], 201);
+    }
+
+    public function show(Request $request, string $id): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = Database::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-database', 'attributes' => $item->toArray()]]);
     }
 
     public function store(Request $request, CreateDatabase $create): JsonResponse

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\DnsLivewire;
 
 use Illuminate\Support\ServiceProvider;
-use Liberu\ControlPanel\DnsLivewire\Components\ZoneInventory;
 use Liberu\ControlPanel\DnsLivewire\Components\DnsFeatureInventory;
+use Liberu\ControlPanel\DnsLivewire\Components\ZoneInventory;
 use Livewire\Livewire;
 
 final class DnsLivewireServiceProvider extends ServiceProvider

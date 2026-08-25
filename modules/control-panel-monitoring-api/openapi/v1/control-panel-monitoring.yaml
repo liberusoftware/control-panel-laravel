@@ -4,6 +4,14 @@ paths:
   /api/v1/control-panel/monitoring:
     get: {operationId: control.panel.monitoring.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.monitoring.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [subject_type, subject_id, name]}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/monitoring/events:
+    post: {operationId: control.panel.monitoring.events.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/monitoring/events/{event}/resolve:
+    post: {operationId: control.panel.monitoring.events.resolve, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/monitoring/resources:
+    post: {operationId: control.panel.monitoring.resources.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/monitoring/{monitor}:
+    get: {operationId: control.panel.monitoring.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
 components:
   securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
   responses:
