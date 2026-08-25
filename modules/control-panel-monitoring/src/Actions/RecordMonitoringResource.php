@@ -34,6 +34,6 @@ final class RecordMonitoringResource
             $attributes['status'] = $attributes['status'] ?? 'open';
         }
 
-return $map[$kind]::query()->create($attributes);
+        return $map[$kind]::query()->create($attributes);
     }
 }

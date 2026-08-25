@@ -18,6 +18,6 @@ final class CreateMailAlias
             throw ValidationException::withMessages(['alias' => 'A valid alias and at least one destination are required.']);
         }
 
-return MailAlias::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'domain' => $a['domain'], 'address' => $address, 'destinations' => $destinations, 'active' => true]);
+        return MailAlias::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'domain' => $a['domain'], 'address' => $address, 'destinations' => $destinations, 'active' => true]);
     }
 }

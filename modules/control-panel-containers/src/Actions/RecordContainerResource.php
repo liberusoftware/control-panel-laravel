@@ -17,6 +17,6 @@ final class RecordContainerResource
             throw ValidationException::withMessages(['kind' => 'Unsupported container resource.']);
         }
 
-return ContainerResource::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'workload_id' => $a['workload_id'] ?? null, 'kind' => $kind, 'name' => trim((string) ($a['name'] ?? '')), 'status' => $a['status'] ?? 'active', 'spec' => $a['spec'] ?? []]);
+        return ContainerResource::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'workload_id' => $a['workload_id'] ?? null, 'kind' => $kind, 'name' => trim((string) ($a['name'] ?? '')), 'status' => $a['status'] ?? 'active', 'spec' => $a['spec'] ?? []]);
     }
 }

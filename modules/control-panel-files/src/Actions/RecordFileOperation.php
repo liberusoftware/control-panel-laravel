@@ -17,6 +17,6 @@ final class RecordFileOperation
             throw ValidationException::withMessages(['operation' => 'Unsupported file operation.']);
         }
 
-return FileOperation::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'file_id' => $a['file_id'] ?? null, 'operation' => $op, 'status' => $a['status'] ?? 'queued', 'details' => $a['details'] ?? []]);
+        return FileOperation::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'file_id' => $a['file_id'] ?? null, 'operation' => $op, 'status' => $a['status'] ?? 'queued', 'details' => $a['details'] ?? []]);
     }
 }

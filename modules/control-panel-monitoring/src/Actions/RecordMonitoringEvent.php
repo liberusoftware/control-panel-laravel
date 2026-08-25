@@ -17,6 +17,6 @@ final class RecordMonitoringEvent
             throw ValidationException::withMessages(['kind' => 'Unsupported monitoring event.']);
         }
 
-return MonitoringEvent::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'monitor_id' => $a['monitor_id'] ?? null, 'kind' => $kind, 'status' => $a['status'] ?? 'open', 'payload' => $a['payload'] ?? [], 'starts_at' => $a['starts_at'] ?? now(), 'ends_at' => $a['ends_at'] ?? null]);
+        return MonitoringEvent::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'monitor_id' => $a['monitor_id'] ?? null, 'kind' => $kind, 'status' => $a['status'] ?? 'open', 'payload' => $a['payload'] ?? [], 'starts_at' => $a['starts_at'] ?? now(), 'ends_at' => $a['ends_at'] ?? null]);
     }
 }

@@ -17,6 +17,6 @@ final class RecordKubernetesResource
             throw ValidationException::withMessages(['kind' => 'Unsupported Kubernetes resource.']);
         }
 
-return KubernetesResource::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'cluster_id' => $a['cluster_id'] ?? null, 'kind' => $kind, 'name' => trim((string) ($a['name'] ?? '')), 'namespace' => $a['namespace'] ?? null, 'status' => $a['status'] ?? 'active', 'spec' => $a['spec'] ?? []]);
+        return KubernetesResource::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'cluster_id' => $a['cluster_id'] ?? null, 'kind' => $kind, 'name' => trim((string) ($a['name'] ?? '')), 'namespace' => $a['namespace'] ?? null, 'status' => $a['status'] ?? 'active', 'spec' => $a['spec'] ?? []]);
     }
 }

@@ -34,6 +34,6 @@ final class RegisterKubernetesAsset
             unset($a['kind']);
         }
 
-return $map[$kind]::query()->create($a);
+        return $map[$kind]::query()->create($a);
     }
 }

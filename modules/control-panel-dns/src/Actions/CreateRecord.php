@@ -19,6 +19,6 @@ final class CreateRecord
             throw ValidationException::withMessages(['content' => 'Record content is required.']);
         }
 
-return Record::query()->create(['id' => (string) Str::uuid(), 'zone_id' => $a['zone_id'], 'name' => trim((string) ($a['name'] ?? '@')), 'type' => $type, 'content' => trim((string) $a['content']), 'ttl' => max((int) ($a['ttl'] ?? 3600), 60), 'priority' => $a['priority'] ?? null, 'metadata' => $a['metadata'] ?? []]);
+        return Record::query()->create(['id' => (string) Str::uuid(), 'zone_id' => $a['zone_id'], 'name' => trim((string) ($a['name'] ?? '@')), 'type' => $type, 'content' => trim((string) $a['content']), 'ttl' => max((int) ($a['ttl'] ?? 3600), 60), 'priority' => $a['priority'] ?? null, 'metadata' => $a['metadata'] ?? []]);
     }
 }

@@ -17,6 +17,6 @@ final class ConfigureMailControls
             throw ValidationException::withMessages(['spam_threshold' => 'Spam threshold must be between 1 and 30.']);
         }
 
-return MailControl::query()->updateOrCreate(['team_id' => $a['team_id'] ?? null, 'mail_account_id' => $a['mail_account_id']], array_merge($a, ['id' => $a['id'] ?? (string) Str::uuid(), 'spam_threshold' => $threshold, 'spam_action' => $a['spam_action'] ?? 'quarantine']));
+        return MailControl::query()->updateOrCreate(['team_id' => $a['team_id'] ?? null, 'mail_account_id' => $a['mail_account_id']], array_merge($a, ['id' => $a['id'] ?? (string) Str::uuid(), 'spam_threshold' => $threshold, 'spam_action' => $a['spam_action'] ?? 'quarantine']));
     }
 }
