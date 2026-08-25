@@ -20,6 +20,7 @@ use Liberu\ControlPanel\AccountsLivewire\Components\AccountInventory;
 use Liberu\ControlPanel\ControlCore\Actions\AcquireOperationLock;
 use Liberu\ControlPanel\ControlCore\Actions\CreateOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
+use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\ReleaseOperationLock;
@@ -29,6 +30,7 @@ use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
 use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
 use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
 use Liberu\ControlPanel\ControlCore\Models\Node;
+use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
 use Liberu\ControlPanel\ControlCore\Models\OperationLock;
 use Liberu\ControlPanel\ControlCore\Models\OperationTask;
 use Liberu\ControlPanel\ControlCoreLivewire\Components\CredentialInventory;
@@ -132,6 +134,23 @@ it('decommissions only a current-team node from Livewire', function (): void {
     app(NodeInventory::class)->decommission($node->getKey(), app(DecommissionNode::class));
 
     expect(Node::query()->find($node->getKey())->status)->toBe(NodeStatus::Decommissioned);
+});
+
+it('expires only a current-team credential from Livewire', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute([
+        'team_id' => $team->getKey(), 'name' => 'Credential node', 'hostname' => 'credential.test',
+    ]);
+    $credential = app(RegisterNodeCredential::class)->execute([
+        'team_id' => $team->getKey(), 'node_id' => $node->getKey(), 'name' => 'Old key', 'secret' => 'long-enough-secret',
+        'expires_at' => now()->subMinute(),
+    ]);
+
+    $this->actingAs($user);
+    app(CredentialInventory::class)->expire($credential->getKey(), app(ExpireNodeCredential::class));
+
+    expect(NodeCredential::query()->find($credential->getKey())->status->value)->toBe('expired');
 });
 
 it('activates only a current-team database from the Livewire inventory', function (): void {

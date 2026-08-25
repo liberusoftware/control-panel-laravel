@@ -11,18 +11,22 @@ use Liberu\ControlPanel\ControlCore\Actions\AcquireOperationLock;
 use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
 use Liberu\ControlPanel\ControlCore\Actions\CreateOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
+use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RecordInventory;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
+use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\ReleaseOperationLock;
 use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
 use Liberu\ControlPanel\ControlCore\Actions\TransitionOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\UpdateDesiredState;
 use Liberu\ControlPanel\ControlCore\Actions\WriteAuditEntry;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
+use Liberu\ControlPanel\ControlCore\Enums\CredentialStatus;
 use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
 use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
 use Liberu\ControlPanel\ControlCore\Events\NodeRegistered;
 use Liberu\ControlPanel\ControlCore\Models\Node;
+use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
 use Liberu\ControlPanel\ControlCore\Models\OperationTask;
 use Liberu\ControlPanel\ControlCoreApi\ControlCoreApiServiceProvider;
 use Liberu\Foundation\Organizations\Models\Team;
@@ -89,6 +93,40 @@ it('decommissions a node through the tenant-scoped API', function (): void {
         ->postJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey().'/decommission')
         ->assertOk()
         ->assertJsonPath('data.attributes.status', 'decommissioned');
+});
+
+it('expires a past-dated credential and rejects invalid repeats', function (): void {
+    $node = app(RegisterNode::class)->execute(['team_id' => 'team-1', 'name' => 'Credential node', 'hostname' => 'credential.test']);
+    $credential = app(RegisterNodeCredential::class)->execute([
+        'team_id' => 'team-1', 'node_id' => $node->getKey(), 'name' => 'Old key', 'secret' => 'long-enough-secret',
+        'expires_at' => now()->subMinute(),
+    ]);
+
+    $expired = app(ExpireNodeCredential::class)->execute($credential);
+
+    expect($expired->status)->toBe(CredentialStatus::Expired)
+        ->and(fn () => app(ExpireNodeCredential::class)->execute($expired))
+        ->toThrow(ValidationException::class);
+    expect(fn () => app(ExpireNodeCredential::class)->execute(NodeCredential::query()->create([
+        'team_id' => 'team-1', 'node_id' => $node->getKey(), 'name' => 'Future key', 'type' => 'ssh',
+        'secret' => 'long-enough-secret', 'status' => CredentialStatus::Active, 'expires_at' => now()->addHour(),
+    ])))->toThrow(ValidationException::class);
+});
+
+it('expires a credential through the tenant-scoped API', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute(['team_id' => $team->getKey(), 'name' => 'API credential node', 'hostname' => 'api-credential.test']);
+    $credential = app(RegisterNodeCredential::class)->execute([
+        'team_id' => $team->getKey(), 'node_id' => $node->getKey(), 'name' => 'Old API key', 'secret' => 'long-enough-secret',
+        'expires_at' => now()->subMinute(),
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/control-core/credentials/'.$credential->getKey().'/expire')
+        ->assertOk()
+        ->assertJsonPath('data.attributes.status', 'expired');
 });
 
 it('never exposes credentials through a node query', function (): void {

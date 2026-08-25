@@ -21,6 +21,7 @@ Route::prefix('api/v1/control-panel/control-core')
         Route::put('nodes/{node}/capabilities', [NodeController::class, 'capabilities'])->name('control-panel.control-core.nodes.capabilities');
         Route::post('nodes/{node}/credentials', [NodeController::class, 'credential'])->name('control-panel.control-core.nodes.credentials.store');
         Route::post('credentials/{credential}/revoke', [NodeController::class, 'revokeCredential'])->name('control-panel.control-core.credentials.revoke');
+        Route::post('credentials/{credential}/expire', [NodeController::class, 'expireCredential'])->name('control-panel.control-core.credentials.expire');
         Route::get('tasks', [OperationTaskController::class, 'index'])->name('control-panel.control-core.tasks.index');
         Route::post('tasks', [OperationTaskController::class, 'store'])->name('control-panel.control-core.tasks.store');
         Route::post('tasks/{task}/transition', [OperationTaskController::class, 'transition'])->name('control-panel.control-core.tasks.transition');

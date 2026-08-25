@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
 use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
+use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
@@ -122,6 +123,14 @@ final class NodeController
         $item = NodeCredential::query()->whereKey($credential)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => $this->credentialResource($revoke->execute($item))]);
+    }
+
+    public function expireCredential(Request $request, string $credential, ExpireNodeCredential $expire): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        $item = NodeCredential::query()->whereKey($credential)->where('team_id', $teamId)->firstOrFail();
+
+        return response()->json(['data' => $this->credentialResource($expire->execute($item))]);
     }
 
     /** @return array<string, mixed> */
