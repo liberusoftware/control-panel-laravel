@@ -32,6 +32,10 @@ paths:
     post: {operationId: control.panel.databases.remote.access.configure, security: [{sanctum: []}], responses: {'201': {description: Remote database access configured}}}
   /api/v1/control-panel/databases/{database}:
     get: {operationId: control.panel.databases.show, security: [{sanctum: []}], responses: {'200': {description: Authorized database resource}}}
+  /api/v1/control-panel/databases/{database}/suspend:
+    post: {operationId: control.panel.databases.suspend, security: [{sanctum: []}], responses: {'200': {description: Database suspended.}, '422': {description: Database cannot be suspended.}}}
+  /api/v1/control-panel/databases/{database}/archive:
+    post: {operationId: control.panel.databases.archive, security: [{sanctum: []}], responses: {'200': {description: Database archived.}, '422': {description: Database is already archived.}}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

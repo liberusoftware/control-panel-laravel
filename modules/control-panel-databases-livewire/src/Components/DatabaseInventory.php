@@ -6,6 +6,8 @@ namespace Liberu\ControlPanel\DatabasesLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
+use Liberu\ControlPanel\Databases\Actions\ArchiveDatabase;
+use Liberu\ControlPanel\Databases\Actions\SuspendDatabase;
 use Liberu\ControlPanel\Databases\Models\Database;
 use Liberu\ControlPanel\Databases\Queries\ListDatabases;
 use Livewire\Component;
@@ -32,6 +34,18 @@ final class DatabaseInventory extends Component
             ->firstOrFail();
 
         $activate->execute($database);
+    }
+
+    public function suspend(string $databaseId, SuspendDatabase $suspend): void
+    {
+        $database = Database::query()->whereKey($databaseId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $suspend->execute($database);
+    }
+
+    public function archive(string $databaseId, ArchiveDatabase $archive): void
+    {
+        $database = Database::query()->whereKey($databaseId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $archive->execute($database);
     }
 
     public function render(ListDatabases $list): View

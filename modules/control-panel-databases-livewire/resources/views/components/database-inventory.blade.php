@@ -8,6 +8,12 @@
                 @if ($database->status->value !== 'active' && $database->status->value !== 'archived')
                     <button type="button" wire:click="activate('{{ $database->getKey() }}')">{{ __('Activate') }}</button>
                 @endif
+                @if ($database->status->value === 'active')
+                    <button type="button" wire:click="suspend('{{ $database->getKey() }}')">{{ __('Suspend') }}</button>
+                @endif
+                @if ($database->status->value !== 'archived')
+                    <button type="button" wire:click="archive('{{ $database->getKey() }}')">{{ __('Archive') }}</button>
+                @endif
             </li>
         @empty
             <li>{{ __('No databases found.') }}</li>

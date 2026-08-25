@@ -38,7 +38,9 @@ use Liberu\ControlPanel\ControlCoreLivewire\Components\NodeInventory;
 use Liberu\ControlPanel\ControlCoreLivewire\Components\OperationsInventory;
 use Liberu\ControlPanel\ControlCoreLivewire\ControlCoreLivewireServiceProvider;
 use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
+use Liberu\ControlPanel\Databases\Actions\ArchiveDatabase;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabase;
+use Liberu\ControlPanel\Databases\Actions\SuspendDatabase;
 use Liberu\ControlPanel\Databases\DatabasesServiceProvider;
 use Liberu\ControlPanel\Databases\Models\Database;
 use Liberu\ControlPanel\Databases\Models\DatabaseEngine;
@@ -168,6 +170,26 @@ it('activates only a current-team database from the Livewire inventory', functio
     app(DatabaseInventory::class)->activate($database->getKey(), app(ActivateDatabase::class));
 
     expect(Database::query()->find($database->getKey())->status->value)->toBe('active');
+});
+
+it('suspends and archives only a current-team database from Livewire', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $engine = DatabaseEngine::query()->create([
+        'id' => (string) Str::uuid(), 'team_id' => $team->getKey(), 'name' => 'MySQL',
+        'driver' => 'mysql', 'version' => '8.4', 'host' => 'database.test', 'port' => 3306, 'active' => true,
+    ]);
+    $database = app(CreateDatabase::class)->execute([
+        'team_id' => $team->getKey(), 'engine_id' => $engine->getKey(), 'name' => 'app',
+    ]);
+
+    $this->actingAs($user);
+    $inventory = app(DatabaseInventory::class);
+    $inventory->activate($database->getKey(), app(ActivateDatabase::class));
+    $inventory->suspend($database->getKey(), app(SuspendDatabase::class));
+    $inventory->archive($database->getKey(), app(ArchiveDatabase::class));
+
+    expect(Database::query()->find($database->getKey())->status->value)->toBe('archived');
 });
 
 it('suspends and revokes only current-team account records from Livewire', function (): void {
