@@ -23,6 +23,11 @@ paths:
       operationId: control.panel.accounts.delegate
       security: [{sanctum: []}]
       responses: {'201': {description: Delegation created.}}
+  /api/v1/control-panel/accounts/{account}/archive:
+    post:
+      operationId: control.panel.accounts.archive
+      security: [{sanctum: []}]
+      responses: {'200': {description: Account archived.}}
   /api/v1/control-panel/accounts/{account}/branding:
     patch:
       operationId: control.panel.accounts.branding.update

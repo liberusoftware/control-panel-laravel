@@ -15,6 +15,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\Accounts\Actions\ActivateAccount;
+use Liberu\ControlPanel\Accounts\Actions\ArchiveAccount;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
 use Liberu\ControlPanel\Accounts\Models\Account;
 use Liberu\ControlPanel\AccountsFilament\Resources\AccountResource\Pages\CreateAccount;
@@ -71,6 +72,10 @@ final class AccountResource extends Resource
             Action::make('activate')
                 ->visible(fn (Account $record): bool => $record->status->value === 'suspended')
                 ->action(fn (Account $record): Account => app(ActivateAccount::class)->execute($record)),
+            Action::make('archive')
+                ->requiresConfirmation()
+                ->visible(fn (Account $record): bool => $record->status->value !== 'archived')
+                ->action(fn (Account $record): Account => app(ArchiveAccount::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

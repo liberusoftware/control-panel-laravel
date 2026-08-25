@@ -7,6 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Liberu\ControlPanel\Accounts\AccountsServiceProvider;
+use Liberu\ControlPanel\Accounts\Actions\ArchiveAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
@@ -149,4 +150,17 @@ it('suspends and revokes only current-team account records from Livewire', funct
 
     expect(Account::query()->find($account->getKey())->status->value)->toBe('suspended')
         ->and(AccountDelegation::query()->find($delegation->getKey())->active)->toBeFalse();
+});
+
+it('archives only a current-team account from Livewire', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute([
+        'team_id' => $team->getKey(), 'owner_id' => $user->getKey(), 'name' => 'Archive customer',
+    ]);
+
+    $this->actingAs($user);
+    app(AccountInventory::class)->archive($account->getKey(), app(ArchiveAccount::class));
+
+    expect(Account::query()->find($account->getKey())->status->value)->toBe('archived');
 });

@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\AccountsLivewire\Components;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\Accounts\Actions\ActivateAccount;
+use Liberu\ControlPanel\Accounts\Actions\ArchiveAccount;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
 use Liberu\ControlPanel\Accounts\Models\Account;
 use Livewire\Component;
@@ -59,5 +60,14 @@ final class AccountInventory extends Component
             ->where('team_id', auth()->user()?->current_team_id)
             ->firstOrFail();
         $activate->execute($account);
+    }
+
+    public function archive(string $accountId, ArchiveAccount $archive): void
+    {
+        $account = Account::query()
+            ->whereKey($accountId)
+            ->where('team_id', auth()->user()?->current_team_id)
+            ->firstOrFail();
+        $archive->execute($account);
     }
 }

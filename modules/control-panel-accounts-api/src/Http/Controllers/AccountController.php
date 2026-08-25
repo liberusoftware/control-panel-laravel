@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\AccountsApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Liberu\ControlPanel\Accounts\Actions\ActivateAccount;
+use Liberu\ControlPanel\Accounts\Actions\ArchiveAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
@@ -52,6 +53,13 @@ final class AccountController
         $this->assertTeam($request, $account);
 
         return response()->json(['data' => self::resource($activate->execute($account))]);
+    }
+
+    public function archive(Request $request, Account $account, ArchiveAccount $archive): JsonResponse
+    {
+        $this->assertTeam($request, $account);
+
+        return response()->json(['data' => self::resource($archive->execute($account))]);
     }
 
     public function package(Request $request, CreateHostingPackage $create): JsonResponse
