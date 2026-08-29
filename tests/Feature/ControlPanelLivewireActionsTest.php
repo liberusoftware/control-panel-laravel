@@ -52,6 +52,7 @@ use Liberu\ControlPanel\WebHosting\WebHostingServiceProvider;
 use Liberu\ControlPanel\WebHostingLivewire\Components\HostingResourceInventory;
 use Liberu\ControlPanel\WebHostingLivewire\WebHostingLivewireServiceProvider;
 use Liberu\Foundation\Organizations\Models\Team;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
 
@@ -221,4 +222,13 @@ it('archives only a current-team account from Livewire', function (): void {
     app(AccountInventory::class)->archive($account->getKey(), app(ArchiveAccount::class));
 
     expect(Account::query()->find($account->getKey())->status->value)->toBe('archived');
+});
+
+it('requires a current team before rendering the account inventory', function (): void {
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    expect(fn () => app(AccountInventory::class)->render())
+        ->toThrow(HttpException::class);
 });

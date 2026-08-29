@@ -25,8 +25,9 @@ final class AccountInventory extends Component
 
     public function render(): View
     {
+        $teamId = $this->teamId();
         $accounts = Account::query()
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $teamId)
             ->when(trim($this->search) !== '', fn (Builder $query) => $query->where(function (Builder $query): void {
                 $query->where('name', 'like', '%'.trim($this->search).'%')
                     ->orWhere('owner_id', 'like', '%'.trim($this->search).'%');
@@ -46,7 +47,7 @@ final class AccountInventory extends Component
     {
         $account = Account::query()
             ->whereKey($accountId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
         $this->validate(['suspensionReason' => ['required', 'string', 'max:1000']]);
         $suspend->execute($account, $this->suspensionReason);
@@ -57,7 +58,7 @@ final class AccountInventory extends Component
     {
         $account = Account::query()
             ->whereKey($accountId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
         $activate->execute($account);
     }
@@ -66,8 +67,16 @@ final class AccountInventory extends Component
     {
         $account = Account::query()
             ->whereKey($accountId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
         $archive->execute($account);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }
