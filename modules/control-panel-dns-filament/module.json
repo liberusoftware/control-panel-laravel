@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\DnsFilament\\DnsFilamentServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-dns": "^1.0"}},
   "capabilities": ["control-panel.dns.filament"],
-  "features": ["Zone administration"],
+  "features": ["DNS zones", "DNS records", "DNS templates", "DNSSEC", "Validation", "Providers", "Propagation checks"],
   "default_enabled": false
 }
