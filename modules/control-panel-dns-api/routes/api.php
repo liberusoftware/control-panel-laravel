@@ -15,6 +15,8 @@ Route::prefix('api/v1/control-panel/dns')->middleware(['api', 'auth:sanctum', 't
     Route::delete('/records/{record}', [ZoneController::class, 'deleteRecord'])->name('control-panel.dns.records.delete');
     Route::post('/records/bulk', [ZoneController::class, 'bulkRecords'])->name('control-panel.dns.records.bulk');
     Route::post('/checks', [ZoneController::class, 'check'])->name('control-panel.dns.checks.store');
+    Route::post('zones/{zone}/resolution-check', [ZoneController::class, 'resolutionCheck'])->name('control-panel.dns.zones.resolution-check');
+    Route::post('zones/{zone}/propagation-check', [ZoneController::class, 'propagationCheck'])->name('control-panel.dns.zones.propagation-check');
     Route::post('/features', [ZoneController::class, 'feature'])->name('control-panel.dns.features.store');
     Route::post('zones/{zone}/suspend', [ZoneController::class, 'suspend'])->name('control-panel.dns.zones.suspend');
     Route::post('zones/{zone}/archive', [ZoneController::class, 'archive'])->name('control-panel.dns.zones.archive');

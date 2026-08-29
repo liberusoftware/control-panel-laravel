@@ -29,6 +29,10 @@ paths:
       responses: {'200': {description: DNS record validation result}}
   /api/v1/control-panel/dns/checks:
     post: {operationId: control.panel.dns.checks.create, security: [{sanctum: []}], responses: {'201': {description: DNS validation check recorded}}}
+  /api/v1/control-panel/dns/zones/{zone}/resolution-check:
+    post: {operationId: control.panel.dns.zones.resolutionCheck, security: [{sanctum: []}], responses: {'200': {description: DNS resolution result}}}
+  /api/v1/control-panel/dns/zones/{zone}/propagation-check:
+    post: {operationId: control.panel.dns.zones.propagationCheck, security: [{sanctum: []}], responses: {'200': {description: DNS propagation result}}}
   /api/v1/control-panel/dns/features:
     post: {operationId: control.panel.dns.features.record, security: [{sanctum: []}], responses: {'201': {description: DNS feature recorded}}}
   /api/v1/control-panel/dns/zones/{zone}:
