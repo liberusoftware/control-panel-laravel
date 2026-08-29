@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\Files\Actions\DeleteFile;
 use Liberu\ControlPanel\Files\Actions\MarkFileScanned;
 use Liberu\ControlPanel\Files\Actions\RegisterFile;
 use Liberu\ControlPanel\Files\Enums\FileStatus;
@@ -40,4 +41,15 @@ it('marks a clean file available and an unsafe file quarantined', function (): v
 it('rejects absolute and traversal paths', function (): void {
     expect(fn () => app(RegisterFile::class)->execute(['path' => '/etc/passwd', 'disk' => 'local']))->toThrow(ValidationException::class)
         ->and(fn () => app(RegisterFile::class)->execute(['path' => '../secret', 'disk' => 'local']))->toThrow(ValidationException::class);
+});
+
+it('marks files deleted while protecting retained files', function (): void {
+    $file = app(RegisterFile::class)->execute(['team_id' => 'team-1', 'path' => 'home/index.html', 'disk' => 'local']);
+
+    expect(app(DeleteFile::class)->execute($file)->status)->toBe(FileStatus::Deleted);
+
+    $retained = app(RegisterFile::class)->execute(['team_id' => 'team-1', 'path' => 'home/retained.html', 'disk' => 'local']);
+    $retained->update(['status' => FileStatus::Retained]);
+
+    expect(fn () => app(DeleteFile::class)->execute($retained))->toThrow(ValidationException::class);
 });

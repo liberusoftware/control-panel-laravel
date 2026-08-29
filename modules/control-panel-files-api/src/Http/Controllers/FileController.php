@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Liberu\ControlPanel\Files\Actions\CreateHomeDirectory;
 use Liberu\ControlPanel\Files\Actions\CreateSftpAccount;
+use Liberu\ControlPanel\Files\Actions\DeleteFile;
 use Liberu\ControlPanel\Files\Actions\GrantFilePermission;
 use Liberu\ControlPanel\Files\Actions\RecordFileOperation;
 use Liberu\ControlPanel\Files\Actions\RegisterFile;
@@ -34,6 +35,16 @@ final class FileController
         $item = FileEntry::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-file', 'attributes' => $item->toArray()]]);
+    }
+
+    public function delete(Request $request, string $id, DeleteFile $delete): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $file = FileEntry::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($file);
+
+        return response()->json(['data' => self::resource($file)]);
     }
 
     public function store(Request $request, RegisterFile $register): JsonResponse

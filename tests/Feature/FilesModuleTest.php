@@ -3,17 +3,21 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Files\Actions\CreateHomeDirectory;
 use Liberu\ControlPanel\Files\Actions\CreateSftpAccount;
+use Liberu\ControlPanel\Files\Actions\DeleteFile;
 use Liberu\ControlPanel\Files\Actions\GrantFilePermission;
 use Liberu\ControlPanel\Files\Actions\RegisterFile;
 use Liberu\ControlPanel\Files\Actions\SetFileRetention;
+use Liberu\ControlPanel\Files\Enums\FileStatus;
 use Liberu\ControlPanel\Files\FilesServiceProvider;
 use Liberu\ControlPanel\Files\Queries\ListFiles;
 use Liberu\ControlPanel\FilesLivewire\Components\FileInventory;
 use Liberu\ControlPanel\FilesLivewire\FilesLivewireServiceProvider;
+use Liberu\Foundation\Organizations\Models\Team;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
@@ -56,4 +60,20 @@ it('requires a current team before rendering the files inventory', function (): 
 
     expect(fn () => app(FileInventory::class)->render(app(ListFiles::class)))
         ->toThrow(HttpException::class);
+});
+
+it('deletes only a current-team file from Livewire', function (): void {
+    app()->register(FilesLivewireServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreign = app(RegisterFile::class)->execute(['team_id' => $otherTeam->getKey(), 'path' => 'foreign.txt', 'disk' => 'local']);
+    $owned = app(RegisterFile::class)->execute(['team_id' => $team->getKey(), 'path' => 'owned.txt', 'disk' => 'local']);
+
+    $this->actingAs($user);
+    $inventory = app(FileInventory::class);
+    expect(fn () => $inventory->delete($foreign->getKey(), app(DeleteFile::class)))->toThrow(ModelNotFoundException::class);
+    $inventory->delete($owned->getKey(), app(DeleteFile::class));
+
+    expect($owned->refresh()->status)->toBe(FileStatus::Deleted);
 });
