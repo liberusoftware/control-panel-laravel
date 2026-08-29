@@ -16,6 +16,7 @@ use Liberu\ControlPanel\Dns\Actions\RegisterDnsFeature;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
 use Liberu\ControlPanel\Dns\Actions\UpdateZone;
+use Liberu\ControlPanel\Dns\Actions\ValidateRecord;
 use Liberu\ControlPanel\Dns\Models\Record;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Liberu\ControlPanel\Dns\Queries\ListZones;
@@ -73,6 +74,19 @@ final class ZoneController
         $item = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-dns-record', 'attributes' => $item->only(['zone_id', 'name', 'type', 'content', 'ttl', 'priority', 'metadata'])]], 201);
+    }
+
+    public function validateRecord(Request $request, ValidateRecord $validate): JsonResponse
+    {
+        $data = $request->validate([
+            'record_type' => ['required', 'in:A,AAAA,CNAME,MX,TXT,NS,PTR,SRV,CAA'],
+            'name' => ['required', 'string', 'max:253', 'regex:/^(@|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)$/'],
+            'value' => ['required', 'string', 'max:1000'],
+            'ttl' => ['nullable', 'integer', 'between:60,86400'],
+            'priority' => ['nullable', 'integer', 'between:0,65535'],
+        ]);
+
+        return response()->json(['success' => true] + $validate->execute($data));
     }
 
     public function updateRecord(Request $request, string $id, UpdateRecord $update): JsonResponse

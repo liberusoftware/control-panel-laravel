@@ -22,6 +22,11 @@ paths:
       responses: {'201': {description: Zone created}}
   /api/v1/control-panel/dns/records:
     post: {operationId: control.panel.dns.records.create, security: [{sanctum: []}], responses: {'201': {description: DNS record created}}}
+  /api/v1/control-panel/dns/records/validate:
+    post:
+      operationId: control.panel.dns.records.validate
+      security: [{sanctum: []}]
+      responses: {'200': {description: DNS record validation result}}
   /api/v1/control-panel/dns/checks:
     post: {operationId: control.panel.dns.checks.create, security: [{sanctum: []}], responses: {'201': {description: DNS validation check recorded}}}
   /api/v1/control-panel/dns/features:

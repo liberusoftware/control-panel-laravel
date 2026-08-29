@@ -11,6 +11,7 @@ use Liberu\ControlPanel\Dns\Actions\DeleteRecord;
 use Liberu\ControlPanel\Dns\Actions\RecordDnsCheck;
 use Liberu\ControlPanel\Dns\Actions\RegisterDnsFeature;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
+use Liberu\ControlPanel\Dns\Actions\ValidateRecord;
 
 final class DnsServiceProvider extends ServiceProvider
 {
@@ -22,6 +23,7 @@ final class DnsServiceProvider extends ServiceProvider
         $this->app->scoped(RecordDnsCheck::class);
         $this->app->scoped(RegisterDnsFeature::class);
         $this->app->scoped(SuspendZone::class);
+        $this->app->scoped(ValidateRecord::class);
     }
 
     public function boot(): void

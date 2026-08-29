@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\DeleteRecord;
 use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
+use Liberu\ControlPanel\Dns\Actions\ValidateRecord;
 use Liberu\ControlPanel\Dns\Models\Record;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -65,6 +66,13 @@ final class RecordInventory extends Component
         $record = Record::query()->whereKey($recordId)->whereHas('zone', fn ($query) => $query->where('team_id', $this->teamId()))->firstOrFail();
         $delete->execute($record);
         unset($this->edits[$recordId]);
+    }
+
+    public function validateRecord(string $recordId, ValidateRecord $validate): void
+    {
+        $record = Record::query()->whereKey($recordId)->whereHas('zone', fn ($query) => $query->where('team_id', $this->teamId()))->firstOrFail();
+        $result = $validate->execute(['type' => $record->type, 'name' => $record->name, 'content' => $record->content]);
+        $this->dispatch('dns-record-validated', recordId: $recordId, message: $result['message']);
     }
 
     public function render(): View
