@@ -67,6 +67,15 @@ it('rejects duplicate renewal requests and revokes a certificate through the dom
     expect($revoked->status->value)->toBe('revoked');
 });
 
+it('never serializes certificate private keys', function (): void {
+    $certificate = app(IssueCertificate::class)->execute([
+        'team_id' => 'team-1', 'domains' => ['secure.example.test'], 'private_key' => 'private-key-material',
+    ]);
+
+    expect($certificate->toArray())->not->toHaveKey('private_key')
+        ->and($certificate->private_key)->toBe('private-key-material');
+});
+
 it('expires a past-dated active certificate and rejects invalid repeats', function (): void {
     $certificate = app(IssueCertificate::class)->execute([
         'team_id' => 'team-1', 'domains' => ['expired.example.test'], 'expires_at' => now()->subMinute(),

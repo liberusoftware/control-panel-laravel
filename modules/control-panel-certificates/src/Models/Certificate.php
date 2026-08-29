@@ -16,6 +16,8 @@ final class Certificate extends Model
 
     protected $fillable = ['team_id', 'domains', 'status', 'issuer', 'certificate_pem', 'private_key', 'issued_at', 'expires_at', 'metadata'];
 
+    protected $hidden = ['private_key'];
+
     protected function casts(): array
     {
         return ['domains' => 'array', 'status' => CertificateStatus::class, 'private_key' => 'encrypted', 'issued_at' => 'datetime', 'expires_at' => 'datetime', 'metadata' => 'array'];
