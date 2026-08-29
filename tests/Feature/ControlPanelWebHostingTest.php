@@ -187,3 +187,22 @@ it('queues a Git deployment without executing untrusted remote commands', functi
 
     expect($queued->status)->toBe('queued')->and($queued->isDeploying())->toBeTrue();
 });
+
+it('accepts only a valid matching GitHub webhook for auto-deploy', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'webhook.test']);
+    $deployment = app(RegisterGitDeployment::class)->execute($domain, [
+        'repository_url' => 'https://github.com/example/project.git', 'branch' => 'main', 'deploy_path' => '/srv/webhook',
+        'webhook_secret' => 'webhook-secret', 'auto_deploy' => true,
+    ]);
+    $payload = ['ref' => 'refs/heads/main'];
+    $rawPayload = json_encode($payload, JSON_THROW_ON_ERROR);
+    $signature = 'sha256='.hash_hmac('sha256', $rawPayload, 'webhook-secret');
+
+    $this->call('POST', '/webhooks/github/'.$deployment->getKey(), [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_X_HUB_SIGNATURE_256' => $signature], $rawPayload)
+        ->assertAccepted();
+    expect($deployment->refresh()->status)->toBe('queued');
+
+    $this->call('POST', '/webhooks/github/'.$deployment->getKey(), [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_X_HUB_SIGNATURE_256' => 'sha256=invalid'], $rawPayload)
+        ->assertUnauthorized();
+});

@@ -222,6 +222,48 @@ final class DomainController
         return response()->json(['data' => self::deploymentResource($requestDeployment->execute($item))], 202);
     }
 
+    public function githubWebhook(Request $request, string $deployment, RequestGitDeployment $requestDeployment): JsonResponse
+    {
+        $item = GitDeployment::query()->whereKey($deployment)->where('repository_type', 'github')->firstOrFail();
+        $signature = (string) $request->header('X-Hub-Signature-256');
+
+        abort_unless($signature !== '' && GitDeployment::validateGitHubWebhook($request->getContent(), $signature, (string) $item->webhook_secret), 401, 'Invalid webhook signature.');
+
+        return $this->triggerWebhook($request, $item, $requestDeployment);
+    }
+
+    public function gitlabWebhook(Request $request, string $deployment, RequestGitDeployment $requestDeployment): JsonResponse
+    {
+        $item = GitDeployment::query()->whereKey($deployment)->where('repository_type', 'gitlab')->firstOrFail();
+        $token = (string) $request->header('X-Gitlab-Token');
+
+        abort_unless($token !== '' && GitDeployment::validateGitLabWebhook($token, (string) $item->webhook_secret), 401, 'Invalid webhook token.');
+
+        return $this->triggerWebhook($request, $item, $requestDeployment);
+    }
+
+    public function genericWebhook(Request $request, string $deployment, RequestGitDeployment $requestDeployment): JsonResponse
+    {
+        $item = GitDeployment::query()->whereKey($deployment)->firstOrFail();
+        $secret = (string) ($request->header('X-Webhook-Secret') ?: $request->query('secret', ''));
+
+        abort_unless($secret !== '' && hash_equals((string) $item->webhook_secret, $secret), 401, 'Invalid webhook secret.');
+
+        return $this->triggerWebhook($request, $item, $requestDeployment);
+    }
+
+    private function triggerWebhook(Request $request, GitDeployment $deployment, RequestGitDeployment $requestDeployment): JsonResponse
+    {
+        $payload = $request->json()->all();
+        $branch = str_replace('refs/heads/', '', (string) ($payload['ref'] ?? ''));
+
+        if (! $deployment->auto_deploy || $branch !== $deployment->branch) {
+            return response()->json(['message' => 'Deployment not triggered.']);
+        }
+
+        return response()->json(['data' => self::deploymentResource($requestDeployment->execute($deployment))], 202);
+    }
+
     public function phpConfiguration(Request $request, Domain $domain, SavePhpConfiguration $save): JsonResponse
     {
         $this->assertTeam($request, $domain);
