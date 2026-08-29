@@ -51,3 +51,20 @@ it('rejects DNS records for a zone outside the current team', function (): void 
         ])
         ->assertNotFound();
 });
+
+it('bulk creates tenant DNS records with bounded partial results', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $zone = app(CreateZone::class)->execute(['team_id' => $team->getKey(), 'domain' => 'bulk.example.test']);
+
+    $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/dns/records/bulk', [
+        'zone_id' => $zone->getKey(),
+        'records' => [
+            ['name' => '@', 'type' => 'A', 'content' => '192.0.2.10'],
+            ['name' => 'www', 'type' => 'CNAME', 'content' => 'bulk.example.test'],
+        ],
+    ]);
+
+    $response->assertCreated()->assertJsonCount(2, 'data');
+    expect($zone->records()->count())->toBe(2);
+});

@@ -6,12 +6,14 @@ namespace Liberu\ControlPanel\DnsApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\RecordDnsCheck;
 use Liberu\ControlPanel\Dns\Actions\RegisterDnsFeature;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
+use Liberu\ControlPanel\Dns\Models\Record;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Liberu\ControlPanel\Dns\Queries\ListZones;
 
@@ -55,6 +57,41 @@ final class ZoneController
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-dns-record', 'attributes' => $item->only(['zone_id', 'name', 'type', 'content', 'ttl', 'priority', 'metadata'])]], 201);
     }
 
+    public function bulkRecords(Request $request, CreateRecord $create): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $data = $request->validate([
+            'zone_id' => ['required', 'uuid'],
+            'records' => ['required', 'array', 'min:1', 'max:50'],
+            'records.*.name' => ['required', 'string', 'max:253', 'regex:/^(@|[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)$/'],
+            'records.*.type' => ['required', 'string', 'in:A,AAAA,CNAME,MX,TXT,NS,SRV,CAA'],
+            'records.*.content' => ['required', 'string', 'max:4096'],
+            'records.*.ttl' => ['nullable', 'integer', 'min:60', 'max:86400'],
+            'records.*.priority' => ['nullable', 'integer', 'min:0', 'max:65535'],
+            'records.*.metadata' => ['nullable', 'array'],
+        ]);
+
+        Zone::query()->whereKey($data['zone_id'])->where('team_id', $teamId)->firstOrFail();
+        $created = [];
+        $errors = [];
+
+        foreach ($data['records'] as $index => $record) {
+            try {
+                $item = $create->execute(array_merge($record, ['zone_id' => $data['zone_id'], 'team_id' => $teamId]));
+                $created[] = self::recordResource($item);
+            } catch (ValidationException $exception) {
+                $errors["records.{$index}"] = $exception->errors();
+            }
+        }
+
+        if ($created === []) {
+            return response()->json(['message' => 'No DNS records were created.', 'errors' => $errors], 422);
+        }
+
+        return response()->json(['data' => $created, 'errors' => $errors], $errors === [] ? 201 : 207);
+    }
+
     public function check(Request $request, RecordDnsCheck $record): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
@@ -96,5 +133,10 @@ final class ZoneController
     private static function resource(Zone $zone): array
     {
         return ['id' => $zone->getKey(), 'type' => 'control-panel-dns-zone', 'attributes' => $zone->only(['domain', 'status', 'provider', 'dnssec_enabled', 'metadata'])];
+    }
+
+    private static function recordResource(Record $record): array
+    {
+        return ['id' => $record->getKey(), 'type' => 'control-panel-dns-record', 'attributes' => $record->only(['zone_id', 'name', 'type', 'content', 'ttl', 'priority', 'metadata'])];
     }
 }

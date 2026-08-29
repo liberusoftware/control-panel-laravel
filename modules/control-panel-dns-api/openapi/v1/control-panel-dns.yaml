@@ -3,6 +3,12 @@ info:
   title: Control Panel DNS API
   version: 1.0.0
 paths:
+  /api/v1/control-panel/dns/records/bulk:
+    post:
+      operationId: control.panel.dns.records.bulk
+      security: [{sanctum: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [zone_id, records], properties: {zone_id: {type: string, format: uuid}, records: {type: array, minItems: 1, maxItems: 50, items: {type: object, required: [name, type, content]}}}}}}}
+      responses: {'201': {description: All records created.}, '207': {description: Some records created.}, '422': {description: No records created or invalid input.}}
   /api/v1/control-panel/dns/zones:
     get:
       operationId: control.panel.dns.zones.list
