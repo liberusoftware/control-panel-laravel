@@ -26,13 +26,13 @@ final class ZoneInventory extends Component
 
     public function suspend(string $zoneId, SuspendZone $suspend): void
     {
-        $zone = Zone::query()->whereKey($zoneId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $zone = Zone::query()->whereKey($zoneId)->where('team_id', $this->teamId())->firstOrFail();
         $suspend->execute($zone);
     }
 
     public function archive(string $zoneId, ArchiveZone $archive): void
     {
-        $zone = Zone::query()->whereKey($zoneId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $zone = Zone::query()->whereKey($zoneId)->where('team_id', $this->teamId())->firstOrFail();
         $archive->execute($zone);
     }
 
@@ -40,8 +40,16 @@ final class ZoneInventory extends Component
     {
         $teamId = auth()->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
-        $zones = Zone::query()->with('records')->where('team_id', $teamId)->when(trim($this->search) !== '', fn ($query) => $query->where('name', 'like', '%'.trim($this->search).'%'))->latest()->paginate(min(max($this->perPage, 1), 100));
+        $zones = Zone::query()->with('records')->where('team_id', $teamId)->when(trim($this->search) !== '', fn ($query) => $query->where('domain', 'like', '%'.trim($this->search).'%'))->latest()->paginate(min(max($this->perPage, 1), 100));
 
         return view('control-panel-dns-livewire::components.zone-inventory', ['zones' => $zones]);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }

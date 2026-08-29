@@ -32,3 +32,16 @@ it('suspends and archives only a current-team DNS zone from Livewire', function 
 
     expect($zone->refresh()->status->value)->toBe('archived');
 });
+
+it('searches DNS zones by their domain field', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    app(CreateZone::class)->execute(['team_id' => $team->getKey(), 'domain' => 'example.test']);
+    app(CreateZone::class)->execute(['team_id' => $team->getKey(), 'domain' => 'other.test']);
+
+    $this->actingAs($user);
+    $inventory = app(ZoneInventory::class);
+    $inventory->search = 'example';
+
+    expect($inventory->render()->getData()['zones']->total())->toBe(1);
+});
