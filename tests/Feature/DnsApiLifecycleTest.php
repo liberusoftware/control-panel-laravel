@@ -78,6 +78,15 @@ it('deletes only a current-team DNS record through the API', function (): void {
     expect($zone->records()->whereKey($record->getKey())->exists())->toBeFalse();
 });
 
+it('rejects DNS checks for a zone outside the current team', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreignZone = app(CreateZone::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'foreign-check.test']);
+
+    $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/dns/checks', ['zone_id' => $foreignZone->getKey(), 'kind' => 'validation'])->assertNotFound();
+});
+
 it('bulk creates tenant DNS records with bounded partial results', function (): void {
     $team = Team::factory()->create();
     $user = User::factory()->create(['current_team_id' => $team->getKey()]);

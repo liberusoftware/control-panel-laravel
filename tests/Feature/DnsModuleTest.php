@@ -5,6 +5,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
+use Liberu\ControlPanel\Dns\Actions\RecordDnsCheck;
 use Liberu\ControlPanel\Dns\Actions\RegisterDnsFeature;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
@@ -49,4 +50,16 @@ it('suspends and archives a DNS zone with terminal-state validation', function (
     expect(app(ArchiveZone::class)->execute($zone->refresh())->status->value)->toBe('archived')
         ->and(fn () => app(ArchiveZone::class)->execute($zone->refresh()))
         ->toThrow(ValidationException::class);
+});
+
+it('requires tenant context and scopes recorded DNS checks to the tenant zone', function (): void {
+    $zone = app(CreateZone::class)->execute(['team_id' => 'team-1', 'domain' => 'checks.example.test']);
+
+    expect(fn () => app(RecordDnsCheck::class)->execute(['zone_id' => $zone->getKey(), 'kind' => 'validation']))
+        ->toThrow(ValidationException::class);
+    expect(fn () => app(RecordDnsCheck::class)->execute(['team_id' => 'team-2', 'zone_id' => $zone->getKey(), 'kind' => 'validation']))
+        ->toThrow(HttpException::class);
+
+    $check = app(RecordDnsCheck::class)->execute(['team_id' => 'team-1', 'zone_id' => $zone->getKey(), 'kind' => 'validation', 'status' => 'passed']);
+    expect($check->team_id)->toBe('team-1')->and($check->zone_id)->toBe($zone->getKey());
 });
