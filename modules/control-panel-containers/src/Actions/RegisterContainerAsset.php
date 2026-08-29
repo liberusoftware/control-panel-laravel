@@ -14,11 +14,17 @@ use Liberu\ControlPanel\Containers\Models\ContainerNetwork;
 use Liberu\ControlPanel\Containers\Models\ContainerRegistry;
 use Liberu\ControlPanel\Containers\Models\ContainerSecret;
 use Liberu\ControlPanel\Containers\Models\ContainerVolume;
+use Liberu\ControlPanel\Containers\Models\Workload;
 
 final class RegisterContainerAsset
 {
     public function execute(array $attributes): Model
     {
+        $teamId = trim((string) ($attributes['team_id'] ?? ''));
+        if ($teamId === '') {
+            throw ValidationException::withMessages(['team_id' => 'A team is required.']);
+        }
+
         $kind = (string) ($attributes['kind'] ?? '');
         $map = [
             'image' => ContainerImage::class,
@@ -33,7 +39,10 @@ final class RegisterContainerAsset
             throw ValidationException::withMessages(['kind' => 'Unsupported container asset.']);
         }
         $attributes['id'] = $attributes['id'] ?? (string) Str::uuid();
-        $attributes['team_id'] = $attributes['team_id'] ?? null;
+        $attributes['team_id'] = $teamId;
+        if (isset($attributes['workload_id']) && ! Workload::query()->whereKey($attributes['workload_id'])->where('team_id', $teamId)->exists()) {
+            abort(404);
+        }
         unset($attributes['kind']);
         $defaults = match ($kind) {
             'network' => ['status' => 'active'],
