@@ -34,7 +34,7 @@ final class DatabaseController
 
     public function user(Request $request, Database $database, CreateDatabaseUser $create): JsonResponse
     {
-        abort_unless((string) $database->team_id === (string) $request->user()?->current_team_id, 404);
+        $this->assertTeam($request, $database);
         $data = $request->validate(['username' => ['required', 'string', 'max:128'], 'host' => ['nullable', 'string', 'max:255'], 'password' => ['required', 'string', 'min:16', 'max:512']]);
         $user = $create->execute($database, $data);
 
@@ -43,7 +43,9 @@ final class DatabaseController
 
     public function privilege(Request $request, DatabaseUser $user, GrantDatabasePrivilege $grant): JsonResponse
     {
-        abort_unless((string) $user->team_id === (string) $request->user()?->current_team_id, 404);
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        abort_unless((string) $user->team_id === (string) $teamId, 404);
         $data = $request->validate(['privilege' => ['required', 'string', 'max:40'], 'object_name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9_.*:-]+$/']]);
         $privilege = $grant->execute($user, $data['privilege'], $data['object_name']);
 
@@ -128,6 +130,7 @@ final class DatabaseController
 
     private function assertTeam(Request $request, Database $database): void
     {
+        abort_if($request->user()?->current_team_id === null, 403, 'A current team is required.');
         abort_unless((string) $database->team_id === (string) $request->user()?->current_team_id, 404);
     }
 }

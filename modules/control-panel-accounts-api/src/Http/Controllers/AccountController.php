@@ -41,7 +41,7 @@ final class AccountController
 
     public function suspend(Request $request, Account $account, SuspendAccount $suspend): JsonResponse
     {
-        abort_unless((string) $account->team_id === (string) $request->user()?->current_team_id, 404);
+        $this->assertTeam($request, $account);
         $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);
         $account = $suspend->execute($account, $data['reason']);
 
@@ -85,6 +85,7 @@ final class AccountController
     public function updatePackage(Request $request, string $package, UpdateHostingPackage $update): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = HostingPackage::query()->whereKey($package)->where('team_id', $teamId)->firstOrFail();
         $data = $request->validate(['name' => ['sometimes', 'string', 'max:160'], 'limits' => ['sometimes', 'array'], 'features' => ['sometimes', 'array'], 'active' => ['sometimes', 'boolean']]);
         $item = $update->execute($item, $data);
@@ -94,7 +95,7 @@ final class AccountController
 
     public function delegate(Request $request, Account $account, DelegateAccount $delegate): JsonResponse
     {
-        abort_unless((string) $account->team_id === (string) $request->user()?->current_team_id, 404);
+        $this->assertTeam($request, $account);
         $data = $request->validate(['delegate_id' => ['required', 'string', 'max:255'], 'permissions' => ['nullable', 'array'], 'expires_at' => ['nullable', 'date']]);
 
         return response()->json(['data' => $delegate->execute($account, $data)], 201);
@@ -118,7 +119,7 @@ final class AccountController
 
     public function branding(Request $request, Account $account, UpdateBranding $update): JsonResponse
     {
-        abort_unless((string) $account->team_id === (string) $request->user()?->current_team_id, 404);
+        $this->assertTeam($request, $account);
         $data = $request->validate(['logo_url' => ['nullable', 'url', 'max:2048'], 'name' => ['nullable', 'string', 'max:160'], 'primary_color' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/']]);
 
         return response()->json(['data' => self::resource($update->execute($account, $data))]);
@@ -167,6 +168,7 @@ final class AccountController
 
     private function assertTeam(Request $request, Account $account): void
     {
+        abort_if($request->user()?->current_team_id === null, 403, 'A current team is required.');
         abort_unless((string) $account->team_id === (string) $request->user()?->current_team_id, 404);
     }
 }

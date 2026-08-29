@@ -85,6 +85,7 @@ final class WorkloadController
 
     private function assertTeam(Request $request, Workload $workload): void
     {
+        abort_if($request->user()?->current_team_id === null, 403, 'A current team is required.');
         abort_unless((string) $workload->team_id === (string) $request->user()?->current_team_id, 404);
     }
 }

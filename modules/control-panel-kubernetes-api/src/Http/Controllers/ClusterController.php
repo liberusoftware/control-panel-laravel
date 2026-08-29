@@ -85,6 +85,7 @@ final class ClusterController
 
     private function assertTeam(Request $request, Cluster $cluster): void
     {
+        abort_if($request->user()?->current_team_id === null, 403, 'A current team is required.');
         abort_unless((string) $cluster->team_id === (string) $request->user()?->current_team_id, 404);
     }
 }

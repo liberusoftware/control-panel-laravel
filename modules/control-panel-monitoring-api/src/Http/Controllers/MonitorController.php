@@ -79,7 +79,9 @@ final class MonitorController
 
     public function cancelMaintenance(Request $request, MaintenanceWindow $window, CancelMaintenanceWindow $cancel): JsonResponse
     {
-        abort_unless((string) $window->team_id === (string) $request->user()?->current_team_id, 404);
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        abort_unless((string) $window->team_id === (string) $teamId, 404);
 
         return response()->json(['data' => ['id' => $window->getKey(), 'type' => 'control-panel-monitoring-maintenance', 'attributes' => $cancel->execute($window)->only(['name', 'starts_at', 'ends_at', 'scope', 'status', 'details'])]]);
     }
