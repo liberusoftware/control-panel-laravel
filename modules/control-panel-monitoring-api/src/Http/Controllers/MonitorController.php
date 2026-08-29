@@ -12,6 +12,7 @@ use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringEvent;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringResource;
 use Liberu\ControlPanel\Monitoring\Actions\RegisterMonitor;
 use Liberu\ControlPanel\Monitoring\Actions\ResolveMonitoringEvent;
+use Liberu\ControlPanel\Monitoring\Actions\UpdateMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Models\MaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Models\Monitor;
 use Liberu\ControlPanel\Monitoring\Models\MonitoringEvent;
@@ -95,6 +96,18 @@ final class MonitorController
         $delete->execute($window);
 
         return response()->json(status: 204);
+    }
+
+    public function updateMaintenance(Request $request, string $id, UpdateMaintenanceWindow $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $window = MaintenanceWindow::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['name' => ['sometimes', 'string', 'max:255'], 'starts_at' => ['sometimes', 'date'], 'ends_at' => ['sometimes', 'date'], 'scope' => ['sometimes', 'string', 'max:255'], 'details' => ['sometimes', 'array']]);
+
+        $window = $update->execute($window, $data);
+
+        return response()->json(['data' => ['id' => $window->getKey(), 'type' => 'control-panel-monitoring-maintenance', 'attributes' => $window->only(['name', 'starts_at', 'ends_at', 'scope', 'status', 'details'])]]);
     }
 
     private static function resource(Monitor $item): array

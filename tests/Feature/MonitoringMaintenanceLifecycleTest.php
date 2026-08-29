@@ -8,6 +8,7 @@ use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Monitoring\Actions\CancelMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Actions\DeleteMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringResource;
+use Liberu\ControlPanel\Monitoring\Actions\UpdateMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Models\MaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\MonitoringServiceProvider;
 use Liberu\ControlPanel\MonitoringApi\MonitoringApiServiceProvider;
@@ -31,6 +32,16 @@ it('cancels scheduled maintenance and rejects terminal repeats', function (): vo
     expect(fn () => app(CancelMaintenanceWindow::class)->execute($cancelled))->toThrow(ValidationException::class);
     app(DeleteMaintenanceWindow::class)->execute($cancelled);
     expect(MaintenanceWindow::query()->whereKey($window->getKey())->exists())->toBeFalse();
+});
+
+it('updates scheduled maintenance through the domain action', function (): void {
+    $window = app(RecordMonitoringResource::class)->execute(['team_id' => 'team-1', 'kind' => 'maintenance', 'name' => 'Upgrade', 'starts_at' => now()->addHour(), 'ends_at' => now()->addHours(2), 'scope' => 'cluster-1']);
+
+    $updated = app(UpdateMaintenanceWindow::class)->execute($window, ['name' => '延期', 'scope' => 'cluster-2', 'starts_at' => now()->addHours(3), 'ends_at' => now()->addHours(4)]);
+
+    expect($updated->name)->toBe('延期')->and($updated->scope)->toBe('cluster-2');
+    app(CancelMaintenanceWindow::class)->execute($updated);
+    expect(fn () => app(UpdateMaintenanceWindow::class)->execute($updated, ['name' => 'Blocked']))->toThrow(ValidationException::class);
 });
 
 it('cancels only a current-team maintenance window through API and Livewire', function (): void {
