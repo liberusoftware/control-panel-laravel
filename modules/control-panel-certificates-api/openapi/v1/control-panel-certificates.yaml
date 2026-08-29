@@ -20,6 +20,7 @@ paths:
     post: {operationId: control.panel.certificates.lifecycle.record, security: [{sanctum: []}], responses: {'201': {description: Certificate lifecycle event recorded}}}
   /api/v1/control-panel/certificates/{certificate}:
     get: {operationId: control.panel.certificates.show, security: [{sanctum: []}], responses: {'200': {description: Authorized certificate}}}
+    patch: {operationId: control.panel.certificates.update, security: [{sanctum: []}], responses: {'200': {description: Certificate updated}}}
   /api/v1/control-panel/certificates/{certificate}/revoke:
     post:
       operationId: control.panel.certificates.revoke

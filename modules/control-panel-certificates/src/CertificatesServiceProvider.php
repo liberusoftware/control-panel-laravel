@@ -12,6 +12,7 @@ use Liberu\ControlPanel\Certificates\Actions\RegisterAcmeAccount;
 use Liberu\ControlPanel\Certificates\Actions\RegisterCertificateLifecycle;
 use Liberu\ControlPanel\Certificates\Actions\RequestCertificateDeployment;
 use Liberu\ControlPanel\Certificates\Actions\RequestCertificateRenewal;
+use Liberu\ControlPanel\Certificates\Actions\UpdateCertificate;
 
 final class CertificatesServiceProvider extends ServiceProvider
 {
@@ -29,5 +30,6 @@ final class CertificatesServiceProvider extends ServiceProvider
         $this->app->scoped(ExpireCertificate::class);
         $this->app->scoped(RequestCertificateDeployment::class);
         $this->app->scoped(RequestCertificateRenewal::class);
+        $this->app->scoped(UpdateCertificate::class);
     }
 }

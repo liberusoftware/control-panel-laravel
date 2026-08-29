@@ -6,8 +6,10 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Liberu\ControlPanel\Certificates\Actions\ExpireCertificate;
 use Liberu\ControlPanel\Certificates\Actions\IssueCertificate;
+use Liberu\ControlPanel\Certificates\Actions\UpdateCertificate;
 use Liberu\ControlPanel\Certificates\CertificatesServiceProvider;
 use Liberu\ControlPanel\CertificatesLivewire\CertificatesLivewireServiceProvider;
+use Liberu\ControlPanel\CertificatesLivewire\Components\CertificateInventory;
 use Liberu\ControlPanel\CertificatesLivewire\Components\CertificateOperationInventory;
 use Liberu\Foundation\Organizations\Models\Team;
 
@@ -30,4 +32,15 @@ it('expires only a current-team certificate from Livewire', function (): void {
     app(CertificateOperationInventory::class)->expire($certificate->getKey(), app(ExpireCertificate::class));
 
     expect($certificate->refresh()->status->value)->toBe('expired');
+});
+
+it('updates only a current-team certificate from Livewire', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $certificate = app(IssueCertificate::class)->execute(['team_id' => $team->getKey(), 'domains' => ['old.example.test']]);
+
+    $this->actingAs($user);
+    app(CertificateInventory::class)->update($certificate->getKey(), ['domains' => ['new.example.test'], 'issuer' => 'acme', 'expires_at' => now()->addDays(90)], app(UpdateCertificate::class));
+
+    expect($certificate->refresh()->domains)->toBe(['new.example.test']);
 });
