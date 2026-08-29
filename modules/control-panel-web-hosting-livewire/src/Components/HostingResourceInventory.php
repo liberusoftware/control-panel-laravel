@@ -6,6 +6,8 @@ namespace Liberu\ControlPanel\WebHostingLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\WebHosting\Actions\CheckApplicationHealth;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteHostedApplication;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteVirtualHost;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateHostedApplication;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateVirtualHost;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
@@ -73,6 +75,20 @@ final class HostingResourceInventory extends Component
         unset($this->virtualHostEdits[$virtualHostId]);
     }
 
+    public function deleteApplication(string $applicationId, DeleteHostedApplication $delete): void
+    {
+        $application = HostedApplication::query()->whereKey($applicationId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($application);
+        unset($this->applicationEdits[$applicationId]);
+    }
+
+    public function deleteVirtualHost(string $virtualHostId, DeleteVirtualHost $delete): void
+    {
+        $virtualHost = VirtualHost::query()->whereKey($virtualHostId)->whereHas('domain', fn ($query) => $query->where('team_id', $this->teamId()))->firstOrFail();
+        $delete->execute($virtualHost);
+        unset($this->virtualHostEdits[$virtualHostId]);
+    }
+
     public function render(): View
     {
         $teamId = auth()->user()?->current_team_id;
@@ -87,5 +103,13 @@ final class HostingResourceInventory extends Component
             'virtualHosts' => VirtualHost::query()->whereHas('domain', fn ($query) => $query->where('team_id', $teamId))->with('domain')->latest()->limit(10)->get(),
             'logs' => HostingLog::query()->where('team_id', $teamId)->latest()->paginate(min(max($this->perPage, 1), 100)),
         ]);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }

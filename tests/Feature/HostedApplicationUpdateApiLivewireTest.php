@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Liberu\ControlPanel\WebHosting\Actions\CreateDomain;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteHostedApplication;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateHostedApplication;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
 use Liberu\ControlPanel\WebHosting\WebHostingServiceProvider;
@@ -51,4 +52,23 @@ it('updates only a current-team hosted application from Livewire', function (): 
     $inventory->updateApplication($owned->getKey(), ['domain_id' => $ownedDomain->getKey(), 'name' => 'Updated', 'type' => 'static', 'document_root' => '/srv/updated'], app(UpdateHostedApplication::class));
 
     expect($owned->refresh()->name)->toBe('Updated');
+});
+
+it('deletes only a current-team hosted application through API and Livewire', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreignDomain = app(CreateDomain::class)->execute(['team_id' => $otherTeam->getKey(), 'hostname' => 'foreign-delete.test']);
+    $ownedDomain = app(CreateDomain::class)->execute(['team_id' => $team->getKey(), 'hostname' => 'owned-delete.test']);
+    $foreign = HostedApplication::query()->create(['team_id' => $otherTeam->getKey(), 'domain_id' => $foreignDomain->getKey(), 'name' => 'Foreign', 'type' => 'static', 'document_root' => '/srv/foreign', 'status' => 'installed']);
+    $owned = HostedApplication::query()->create(['team_id' => $team->getKey(), 'domain_id' => $ownedDomain->getKey(), 'name' => 'Owned', 'type' => 'static', 'document_root' => '/srv/owned', 'status' => 'installed']);
+
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/web-hosting/applications/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/web-hosting/applications/'.$owned->getKey())->assertNoContent();
+
+    $livewireApplication = HostedApplication::query()->create(['team_id' => $team->getKey(), 'domain_id' => $ownedDomain->getKey(), 'name' => 'Livewire', 'type' => 'static', 'document_root' => '/srv/livewire', 'status' => 'installed']);
+    $this->actingAs($user);
+    app(HostingResourceInventory::class)->deleteApplication($livewireApplication->getKey(), app(DeleteHostedApplication::class));
+
+    expect($owned->fresh())->toBeNull()->and($livewireApplication->fresh())->toBeNull();
 });

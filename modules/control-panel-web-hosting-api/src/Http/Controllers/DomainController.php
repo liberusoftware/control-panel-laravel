@@ -15,6 +15,8 @@ use Liberu\ControlPanel\WebHosting\Actions\CheckWordPressUpdates;
 use Liberu\ControlPanel\WebHosting\Actions\CreateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\CreateRedirect;
 use Liberu\ControlPanel\WebHosting\Actions\CreateVirtualHost;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteHostedApplication;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteVirtualHost;
 use Liberu\ControlPanel\WebHosting\Actions\RegisterGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\RegisterHostingResource;
 use Liberu\ControlPanel\WebHosting\Actions\RequestCertificate;
@@ -127,6 +129,15 @@ final class DomainController
         return response()->json(['data' => ['id' => $id, 'type' => 'control-panel-virtual-host', 'attributes' => $update->execute($host, $data)->only(['domain_id', 'node_id', 'server', 'runtime', 'document_root', 'desired_state', 'active'])]]);
     }
 
+    public function deleteVirtualHost(Request $request, string $id, DeleteVirtualHost $delete): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $host = VirtualHost::query()->whereKey($id)->whereHas('domain', fn (Builder $query) => $query->where('team_id', $teamId))->firstOrFail();
+        $delete->execute($host);
+
+        return response()->json(status: 204);
+    }
+
     public function redirect(Request $request, Domain $domain, CreateRedirect $create): JsonResponse
     {
         $this->assertTeam($request, $domain);
@@ -223,6 +234,15 @@ final class DomainController
         ]);
 
         return response()->json(['data' => self::applicationResource($update->execute($application, $data))]);
+    }
+
+    public function deleteApplication(Request $request, string $id, DeleteHostedApplication $delete): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $application = HostedApplication::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($application);
+
+        return response()->json(status: 204);
     }
 
     public function applicationPerformance(Request $request, HostedApplication $application): JsonResponse

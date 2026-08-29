@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\WebHostingFilament\Resources;
 
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -12,6 +13,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteVirtualHost;
 use Liberu\ControlPanel\WebHosting\Models\VirtualHost;
 use Liberu\ControlPanel\WebHostingFilament\Resources\VirtualHostResource\Pages\CreateVirtualHost;
 use Liberu\ControlPanel\WebHostingFilament\Resources\VirtualHostResource\Pages\EditVirtualHost;
@@ -34,7 +36,9 @@ final class VirtualHostResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('domain.hostname')->searchable(), TextColumn::make('server')->badge(), TextColumn::make('runtime'), TextColumn::make('document_root'), TextColumn::make('active')->badge()])->defaultSort('created_at', 'desc');
+        return $table->columns([TextColumn::make('domain.hostname')->searchable(), TextColumn::make('server')->badge(), TextColumn::make('runtime'), TextColumn::make('document_root'), TextColumn::make('active')->badge()])->recordActions([
+            DeleteAction::make()->action(fn (VirtualHost $record): void => app(DeleteVirtualHost::class)->execute($record)),
+        ])->defaultSort('created_at', 'desc');
     }
 
     public static function getEloquentQuery(): Builder

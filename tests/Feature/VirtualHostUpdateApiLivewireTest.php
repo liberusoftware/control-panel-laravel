@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Liberu\ControlPanel\WebHosting\Actions\CreateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\CreateVirtualHost;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteVirtualHost;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateVirtualHost;
 use Liberu\ControlPanel\WebHosting\Models\VirtualHost;
 use Liberu\ControlPanel\WebHosting\WebHostingServiceProvider;
@@ -52,4 +53,23 @@ it('updates only a current-team virtual host from Livewire', function (): void {
     $inventory->updateVirtualHost($owned->getKey(), ['domain_id' => $ownedDomain->getKey(), 'server' => 'nginx', 'document_root' => '/srv/updated'], app(UpdateVirtualHost::class));
 
     expect(VirtualHost::query()->findOrFail($owned->getKey())->document_root)->toBe('/srv/updated');
+});
+
+it('deletes only a current-team virtual host through API and Livewire', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreignDomain = app(CreateDomain::class)->execute(['team_id' => $otherTeam->getKey(), 'hostname' => 'foreign-delete.test']);
+    $ownedDomain = app(CreateDomain::class)->execute(['team_id' => $team->getKey(), 'hostname' => 'owned-delete.test']);
+    $foreign = app(CreateVirtualHost::class)->execute($foreignDomain, ['node_id' => 'foreign-node', 'server' => 'nginx', 'document_root' => '/srv/foreign']);
+    $owned = app(CreateVirtualHost::class)->execute($ownedDomain, ['node_id' => 'owned-node', 'server' => 'nginx', 'document_root' => '/srv/owned']);
+
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/web-hosting/virtual-hosts/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/web-hosting/virtual-hosts/'.$owned->getKey())->assertNoContent();
+
+    $livewireHost = app(CreateVirtualHost::class)->execute($ownedDomain, ['node_id' => 'owned-node', 'server' => 'nginx', 'document_root' => '/srv/livewire']);
+    $this->actingAs($user);
+    app(HostingResourceInventory::class)->deleteVirtualHost($livewireHost->getKey(), app(DeleteVirtualHost::class));
+
+    expect($owned->fresh())->toBeNull()->and($livewireHost->fresh())->toBeNull();
 });
