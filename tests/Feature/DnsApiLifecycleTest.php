@@ -38,3 +38,16 @@ it('suspends and archives only a current-team DNS zone through the API', functio
         ->postJson('/api/v1/control-panel/dns/zones/'.$otherZone->getKey().'/archive')
         ->assertNotFound();
 });
+
+it('rejects DNS records for a zone outside the current team', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $otherZone = app(CreateZone::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'other-records.test']);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/dns/records', [
+            'zone_id' => $otherZone->getKey(), 'name' => '@', 'type' => 'A', 'content' => '192.0.2.10',
+        ])
+        ->assertNotFound();
+});

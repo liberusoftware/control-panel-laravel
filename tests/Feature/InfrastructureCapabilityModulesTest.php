@@ -37,5 +37,5 @@ it('rejects unsupported infrastructure operations', function (): void {
     expect(fn () => app(RecordMonitoringEvent::class)->execute(['team_id' => 'team-1', 'kind' => 'unknown']))->toThrow(ValidationException::class);
     expect(fn () => app(RecordContainerResource::class)->execute(['team_id' => 'team-1', 'kind' => 'unknown', 'name' => 'x']))->toThrow(ValidationException::class);
     expect(fn () => app(RecordKubernetesResource::class)->execute(['team_id' => 'team-1', 'kind' => 'unknown', 'name' => 'x']))->toThrow(ValidationException::class);
-    expect(fn () => app(CreateRecord::class)->execute(['zone_id' => 'zone-1', 'type' => 'BAD', 'content' => 'x']))->toThrow(ValidationException::class);
+    expect(fn () => app(CreateRecord::class)->execute(['team_id' => 'team-1', 'zone_id' => 'zone-1', 'type' => 'BAD', 'content' => 'x']))->toThrow(ValidationException::class);
 });

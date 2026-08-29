@@ -50,7 +50,7 @@ final class ZoneController
         $teamId = $request->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
         $data = $request->validate(['zone_id' => ['required', 'uuid'], 'name' => ['nullable', 'string', 'max:253'], 'type' => ['required', 'string'], 'content' => ['required', 'string', 'max:4096'], 'ttl' => ['nullable', 'integer', 'min:60'], 'priority' => ['nullable', 'integer', 'min:0'], 'metadata' => ['nullable', 'array']]);
-        $item = $create->execute($data);
+        $item = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-dns-record', 'attributes' => $item->only(['zone_id', 'name', 'type', 'content', 'ttl', 'priority', 'metadata'])]], 201);
     }
@@ -77,14 +77,18 @@ final class ZoneController
 
     public function suspend(Request $request, string $zone, SuspendZone $suspend): JsonResponse
     {
-        $item = Zone::query()->whereKey($zone)->where('team_id', $request->user()?->current_team_id)->firstOrFail();
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = Zone::query()->whereKey($zone)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => self::resource($suspend->execute($item))]);
     }
 
     public function archive(Request $request, string $zone, ArchiveZone $archive): JsonResponse
     {
-        $item = Zone::query()->whereKey($zone)->where('team_id', $request->user()?->current_team_id)->firstOrFail();
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = Zone::query()->whereKey($zone)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => self::resource($archive->execute($item))]);
     }
