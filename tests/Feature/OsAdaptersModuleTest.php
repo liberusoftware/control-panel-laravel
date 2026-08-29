@@ -14,6 +14,7 @@ use Liberu\ControlPanel\OsAdapters\Models\OsService;
 use Liberu\ControlPanel\OsAdapters\Models\OsUser;
 use Liberu\ControlPanel\OsAdapters\Models\PackageRepository;
 use Liberu\ControlPanel\OsAdapters\OsAdaptersServiceProvider;
+use Liberu\ControlPanel\OsAdapters\Queries\ServiceStatusReport;
 
 uses(RefreshDatabase::class);
 
@@ -53,4 +54,16 @@ it('updates an OS service through the domain action', function (): void {
     $updated = app(UpdateOsService::class)->execute($service, ['name' => 'nginx-mainline', 'status' => 'stopped', 'enabled' => false]);
 
     expect($updated->name)->toBe('nginx-mainline')->and($updated->status)->toBe('stopped')->and($updated->enabled)->toBeFalse();
+});
+
+it('reports missing and stopped services for a tenant', function (): void {
+    $record = app(RecordOsResource::class);
+    $record->execute(OsService::class, ['team_id' => 'team-1', 'node_id' => 'node-1', 'name' => 'nginx', 'status' => 'running']);
+    $missing = $record->execute(OsService::class, ['team_id' => 'team-1', 'node_id' => 'node-1', 'name' => 'redis', 'status' => 'missing']);
+
+    $report = app(ServiceStatusReport::class);
+    expect($report->all('team-1'))->toHaveCount(2)
+        ->and($report->missing('team-1')->modelKeys())->toContain($missing->getKey())
+        ->and($report->stopped('team-1')->modelKeys())->toContain($missing->getKey())
+        ->and($report->find('team-1', 'nginx')->name)->toBe('nginx');
 });
