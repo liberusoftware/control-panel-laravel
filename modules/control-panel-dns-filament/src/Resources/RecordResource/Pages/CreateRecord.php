@@ -16,7 +16,9 @@ final class CreateRecord extends BaseCreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
-        $zone = Zone::query()->whereKey($data['zone_id'])->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $zone = Zone::query()->whereKey($data['zone_id'])->where('team_id', $teamId)->firstOrFail();
 
         return app(CreateRecordAction::class)->execute(array_merge($data, ['team_id' => $zone->team_id]));
     }
