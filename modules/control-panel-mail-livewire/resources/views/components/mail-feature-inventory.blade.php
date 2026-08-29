@@ -7,6 +7,14 @@
             <li>{{ __('No mail domains found.') }}</li>
         @endforelse
     </ul>
+    <h2>{{ __('Mail routes') }}</h2>
+    <ul>
+        @forelse ($routes as $route)
+            <li wire:key="route-{{ $route->getKey() }}">{{ $route->domain }} — {{ $route->source_pattern }} → {{ $route->destination }}</li>
+        @empty
+            <li>{{ __('No mail routes found.') }}</li>
+        @endforelse
+    </ul>
     <h2>{{ __('Mail aliases and delivery diagnostics') }}</h2>
     <ul>@forelse ($aliases as $alias)<li wire:key="alias-{{ $alias->getKey() }}">{{ $alias->address }}@{{ $alias->domain }}</li>@empty<li>{{ __('No aliases found.') }}</li>@endforelse</ul>
     {{ $aliases->links() }}

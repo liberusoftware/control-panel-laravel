@@ -9,12 +9,14 @@ use Illuminate\Http\Request;
 use Liberu\ControlPanel\Mail\Actions\ConfigureMailControls;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
+use Liberu\ControlPanel\Mail\Actions\CreateMailRoute;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\Actions\RegisterMailDomain;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
 use Liberu\ControlPanel\Mail\Models\MailDomain;
+use Liberu\ControlPanel\Mail\Models\MailRoute;
 use Liberu\ControlPanel\Mail\Queries\ListMailAccounts;
 
 final class MailAccountController
@@ -65,6 +67,22 @@ final class MailAccountController
         $item = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-mail-alias', 'attributes' => $item->only(['domain', 'address', 'destinations', 'active'])]], 201);
+    }
+
+    public function route(Request $request, CreateMailRoute $create): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $data = $request->validate([
+            'domain' => ['required', 'string', 'max:253'],
+            'source_pattern' => ['required', 'string', 'max:255'],
+            'destination' => ['required', 'email:rfc', 'max:320'],
+            'priority' => ['nullable', 'integer', 'min:0'],
+            'active' => ['sometimes', 'boolean'],
+        ]);
+        $item = $create->execute(array_merge($data, ['team_id' => $teamId]));
+
+        return response()->json(['data' => self::routeResource($item)], 201);
     }
 
     public function controls(Request $request, ConfigureMailControls $configure): JsonResponse
@@ -120,5 +138,10 @@ final class MailAccountController
     private static function domainResource(MailDomain $item): array
     {
         return ['id' => $item->getKey(), 'type' => 'control-panel-mail-domain', 'attributes' => $item->only(['domain', 'status', 'dkim', 'spf', 'dmarc'])];
+    }
+
+    private static function routeResource(MailRoute $item): array
+    {
+        return ['id' => $item->getKey(), 'type' => 'control-panel-mail-route', 'attributes' => $item->only(['domain', 'source_pattern', 'destination', 'priority', 'active'])];
     }
 }
