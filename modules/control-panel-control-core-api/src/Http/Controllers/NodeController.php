@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
 use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
 use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
+use Liberu\ControlPanel\ControlCore\Actions\GenerateSshKeyPair;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
@@ -122,6 +123,21 @@ final class NodeController
         ]);
 
         return response()->json(['data' => $this->credentialResource($register->execute(array_merge($data, ['team_id' => $teamId, 'node_id' => $item->getKey()])))], 201);
+    }
+
+    public function generateKeyPair(Request $request, GenerateSshKeyPair $generate): JsonResponse
+    {
+        abort_if($request->user()?->current_team_id === null, 403, 'A current team is required.');
+        $data = $request->validate([
+            'passphrase' => ['nullable', 'string', 'min:8', 'max:4096'],
+            'bits' => ['nullable', 'integer', 'in:2048,4096'],
+            'comment' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return response()->json(['data' => [
+            'type' => 'control-panel-ssh-key-pair',
+            'attributes' => $generate->execute($data['passphrase'] ?? null, (int) ($data['bits'] ?? 4096), $data['comment'] ?? null),
+        ]], 201);
     }
 
     public function revokeCredential(Request $request, string $credential, RevokeNodeCredential $revoke): JsonResponse

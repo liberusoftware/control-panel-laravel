@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\ControlCore\Actions\GenerateSshKeyPair;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
@@ -56,4 +57,12 @@ it('updates active credential metadata without changing its secret', function ()
 it('exposes a tenant-scoped Filament create workflow for node credentials', function (): void {
     expect(NodeCredentialResource::getPages()['create']->getPage())->toBe(CreateNodeCredential::class);
     expect(NodeCredentialResource::getPages()['edit']->getPage())->toBe(EditNodeCredential::class);
+});
+
+it('generates an ephemeral encrypted SSH key pair', function (): void {
+    $pair = app(GenerateSshKeyPair::class)->execute('a-secure-passphrase', 2048, 'deploy');
+
+    expect($pair['public_key'])->toStartWith('ssh-rsa ')
+        ->and($pair['public_key'])->toEndWith(' deploy')
+        ->and($pair['private_key'])->toContain('BEGIN ENCRYPTED PRIVATE KEY');
 });

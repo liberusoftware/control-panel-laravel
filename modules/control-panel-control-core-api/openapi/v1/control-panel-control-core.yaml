@@ -60,6 +60,11 @@ paths:
       security: [{sanctum: []}]
       parameters: [{name: credential, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {'200': {description: Credential revoked.}}
+  /api/v1/control-panel/control-core/credentials/generate-key-pair:
+    post:
+      operationId: control.panel.control.core.credentials.generate.key.pair
+      security: [{sanctum: []}]
+      responses: {'201': {description: Ephemeral SSH key pair generated.}, '422': {description: Invalid key parameters.}}
   /api/v1/control-panel/control-core/credentials/{credential}/expire:
     post:
       operationId: control.panel.control.core.credentials.expire

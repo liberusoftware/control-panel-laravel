@@ -153,6 +153,23 @@ it('updates only a current-team credential through the API', function (): void {
     $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/control-core/credentials/'.$credential->getKey(), ['name' => 'Release key', 'username' => 'deploy'])->assertOk()->assertJsonPath('data.attributes.name', 'Release key')->assertJsonMissingPath('data.attributes.secret');
 });
 
+it('generates an SSH key pair through the tenant-scoped API', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/control-core/credentials/generate-key-pair', [
+            'bits' => 2048,
+            'passphrase' => 'a-secure-passphrase',
+            'comment' => 'deploy',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.type', 'control-panel-ssh-key-pair')
+        ->assertJsonPath('data.attributes.public_key', fn (string $key): bool => str_starts_with($key, 'ssh-rsa '))
+        ->assertJsonPath('data.attributes.private_key', fn (string $key): bool => str_contains($key, 'BEGIN ENCRYPTED PRIVATE KEY'));
+});
+
 it('never exposes credentials through a node query', function (): void {
     $node = Node::query()->create([
         'team_id' => 'team-1',
