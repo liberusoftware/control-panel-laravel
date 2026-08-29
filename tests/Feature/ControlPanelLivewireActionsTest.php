@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -12,6 +13,7 @@ use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
+use Liberu\ControlPanel\Accounts\Actions\UpdateDelegation;
 use Liberu\ControlPanel\Accounts\Models\Account;
 use Liberu\ControlPanel\Accounts\Models\AccountDelegation;
 use Liberu\ControlPanel\AccountsLivewire\AccountsLivewireServiceProvider;
@@ -240,6 +242,29 @@ it('suspends and revokes only current-team account records from Livewire', funct
 
     expect(Account::query()->find($account->getKey())->status->value)->toBe('suspended')
         ->and(AccountDelegation::query()->find($delegation->getKey())->active)->toBeFalse();
+});
+
+it('updates only a current-team delegation from the Livewire inventory', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute([
+        'team_id' => $team->getKey(), 'owner_id' => $user->getKey(), 'name' => 'Delegation account',
+    ]);
+    $delegation = app(DelegateAccount::class)->execute($account, ['delegate_id' => 'delegate-1']);
+    $otherAccount = app(CreateAccount::class)->execute([
+        'team_id' => $otherTeam->getKey(), 'owner_id' => 'other-owner', 'name' => 'Other account',
+    ]);
+    $otherDelegation = app(DelegateAccount::class)->execute($otherAccount, ['delegate_id' => 'delegate-2']);
+
+    $this->actingAs($user);
+    $inventory = app(AccountFeatureInventory::class);
+    $inventory->delegationEdits[$delegation->getKey()] = ['permissions' => ['manage' => true]];
+    $inventory->updateDelegation($delegation->getKey(), null, app(UpdateDelegation::class));
+
+    expect($delegation->fresh()->permissions)->toMatchArray(['manage' => true]);
+    expect(fn () => $inventory->updateDelegation($otherDelegation->getKey(), [], app(UpdateDelegation::class)))
+        ->toThrow(ModelNotFoundException::class);
 });
 
 it('archives only a current-team account from Livewire', function (): void {
