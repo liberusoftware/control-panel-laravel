@@ -13,6 +13,7 @@ use Liberu\ControlPanel\Databases\Actions\ConfigureRemoteAccess;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabase;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabaseBackup;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabaseUser;
+use Liberu\ControlPanel\Databases\Actions\DeleteDatabase;
 use Liberu\ControlPanel\Databases\Actions\GrantDatabasePrivilege;
 use Liberu\ControlPanel\Databases\Actions\RecordDatabaseHealth;
 use Liberu\ControlPanel\Databases\Actions\RequestDatabaseUpgrade;
@@ -101,6 +102,14 @@ final class DatabaseController
         $this->assertTeam($request, $database);
 
         return response()->json(['data' => self::resource($archive->execute($database))]);
+    }
+
+    public function delete(Request $request, Database $database, DeleteDatabase $delete): JsonResponse
+    {
+        $this->assertTeam($request, $database);
+        $delete->execute($database);
+
+        return response()->json(status: 204);
     }
 
     public function show(Request $request, string $id): JsonResponse

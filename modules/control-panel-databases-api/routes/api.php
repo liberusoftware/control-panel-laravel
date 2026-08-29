@@ -17,5 +17,6 @@ Route::prefix('api/v1/control-panel/databases')->middleware(['api', 'auth:sanctu
     Route::post('{database}/remote-access', [DatabaseController::class, 'remoteAccess'])->name('control-panel.databases.remote-access.store');
     Route::post('{database}/suspend', [DatabaseController::class, 'suspend'])->name('control-panel.databases.suspend');
     Route::post('{database}/archive', [DatabaseController::class, 'archive'])->name('control-panel.databases.archive');
+    Route::delete('{database}', [DatabaseController::class, 'delete'])->name('control-panel.databases.delete');
     Route::get('{database}', [DatabaseController::class, 'show'])->name('control-panel.databases.show');
 });

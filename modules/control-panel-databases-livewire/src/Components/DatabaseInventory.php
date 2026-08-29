@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\DatabasesLivewire\Components;
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
 use Liberu\ControlPanel\Databases\Actions\ArchiveDatabase;
+use Liberu\ControlPanel\Databases\Actions\DeleteDatabase;
 use Liberu\ControlPanel\Databases\Actions\SuspendDatabase;
 use Liberu\ControlPanel\Databases\Actions\UpdateDatabase;
 use Liberu\ControlPanel\Databases\Models\Database;
@@ -50,6 +51,12 @@ final class DatabaseInventory extends Component
     {
         $database = Database::query()->whereKey($databaseId)->where('team_id', $this->teamId())->firstOrFail();
         $archive->execute($database);
+    }
+
+    public function delete(string $databaseId, DeleteDatabase $delete): void
+    {
+        $database = Database::query()->whereKey($databaseId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($database);
     }
 
     /** @param array<string, mixed>|null $attributes */

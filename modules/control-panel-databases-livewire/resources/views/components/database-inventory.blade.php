@@ -21,6 +21,7 @@
                 @if ($database->status->value !== 'archived')
                     <button type="button" wire:click="archive('{{ $database->getKey() }}')">{{ __('Archive') }}</button>
                 @endif
+                <button type="button" wire:click="delete('{{ $database->getKey() }}')" wire:confirm="{{ __('Delete this database permanently?') }}">{{ __('Delete') }}</button>
             </li>
         @empty
             <li>{{ __('No databases found.') }}</li>
