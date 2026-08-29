@@ -15,8 +15,11 @@ final class CreateDkimKey extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
         return app(RotateDkimKey::class)->execute(
-            (string) auth()->user()?->current_team_id,
+            (string) $teamId,
             (string) $data['domain'],
             (string) ($data['selector'] ?? 'default'),
         );
