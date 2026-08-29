@@ -9,7 +9,7 @@
     <h3>{{ __('Redirects') }}</h3>
     <ul>@forelse($redirects as $redirect)<li wire:key="redirect-{{ $redirect->getKey() }}">{{ $redirect->source }} → {{ $redirect->destination }}</li>@empty<li>{{ __('No redirects found.') }}</li>@endforelse</ul>
     <h3>{{ __('Applications') }}</h3>
-    <ul>@forelse($applications as $application)<li wire:key="application-{{ $application->getKey() }}">{{ $application->name }} — {{ $application->status }} <button type="button" wire:click="checkApplication('{{ $application->getKey() }}')">{{ __('Check health') }}</button></li>@empty<li>{{ __('No applications found.') }}</li>@endforelse</ul>
+    <ul>@forelse($applications as $application)<li wire:key="application-{{ $application->getKey() }}">{{ $application->name }} — {{ $application->status }} <form wire:submit="updateApplication('{{ $application->getKey() }}', null)"><input aria-label="{{ __('Application name') }}" wire:model="applicationEdits.{{ $application->getKey() }}.name" value="{{ $application->name }}"><input aria-label="{{ __('Document root') }}" wire:model="applicationEdits.{{ $application->getKey() }}.document_root" value="{{ $application->document_root }}"><button type="submit">{{ __('Save') }}</button></form> <button type="button" wire:click="checkApplication('{{ $application->getKey() }}')">{{ __('Check health') }}</button></li>@empty<li>{{ __('No applications found.') }}</li>@endforelse</ul>
     <h3>{{ __('Hosting logs') }}</h3>
     <ul>@forelse($logs as $log)<li wire:key="hosting-log-{{ $log->getKey() }}">{{ $log->level }} — {{ $log->message }}</li>@empty<li>{{ __('No hosting logs found.') }}</li>@endforelse</ul>
     {{ $logs->links() }}

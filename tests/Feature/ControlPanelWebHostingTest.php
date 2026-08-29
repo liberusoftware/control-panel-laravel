@@ -20,6 +20,7 @@ use Liberu\ControlPanel\WebHosting\Actions\RequestGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
 use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateDomain;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateHostedApplication;
 use Liberu\ControlPanel\WebHosting\Enums\DomainStatus;
 use Liberu\ControlPanel\WebHosting\Events\DomainCreated;
 use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
@@ -93,6 +94,15 @@ it('updates only a domain in the current team through the API', function (): voi
         ->patchJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey(), ['hostname' => 'changed.test'])
         ->assertOk()
         ->assertJsonPath('data.attributes.hostname', 'changed.test');
+});
+
+it('updates a hosted application through the domain action', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'application.test']);
+    $application = HostedApplication::query()->create(['team_id' => 'team-1', 'domain_id' => $domain->getKey(), 'name' => 'Old app', 'type' => 'laravel', 'document_root' => '/srv/old', 'status' => 'installed']);
+
+    $updated = app(UpdateHostedApplication::class)->execute($application, ['name' => 'New app', 'document_root' => '/srv/new']);
+
+    expect($updated->name)->toBe('New app')->and($updated->document_root)->toBe('/srv/new')->and($updated->status)->toBe('installed');
 });
 
 it('requires a current team before mutating a domain through the API', function (): void {

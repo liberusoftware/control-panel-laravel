@@ -22,6 +22,7 @@ use Liberu\ControlPanel\WebHosting\Actions\RequestGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
 use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateDomain;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateHostedApplication;
 use Liberu\ControlPanel\WebHosting\Models\Domain;
 use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
@@ -188,6 +189,22 @@ final class DomainController
         $application = $register->execute([...$data, 'kind' => 'application', 'team_id' => $teamId, 'domain_id' => $domain->getKey()]);
 
         return response()->json(['data' => self::applicationResource($application)], 201);
+    }
+
+    public function updateApplication(Request $request, string $id, UpdateHostedApplication $update): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $application = HostedApplication::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate([
+            'domain_id' => ['sometimes', 'uuid'],
+            'name' => ['sometimes', 'string', 'max:160'],
+            'type' => ['sometimes', 'in:wordpress,laravel,static,nodejs,custom'],
+            'version' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'document_root' => ['sometimes', 'string', 'starts_with:/', 'max:2048'],
+            'config' => ['sometimes', 'nullable', 'array'],
+        ]);
+
+        return response()->json(['data' => self::applicationResource($update->execute($application, $data))]);
     }
 
     public function applicationPerformance(Request $request, HostedApplication $application): JsonResponse

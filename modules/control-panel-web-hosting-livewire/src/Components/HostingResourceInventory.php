@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\WebHostingLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\WebHosting\Actions\CheckApplicationHealth;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateHostedApplication;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
 use Liberu\ControlPanel\WebHosting\Models\HostingLog;
 use Liberu\ControlPanel\WebHosting\Models\Redirect;
@@ -18,6 +19,9 @@ final class HostingResourceInventory extends Component
 {
     public int $perPage = 25;
 
+    /** @var array<string, array<string, mixed>> */
+    public array $applicationEdits = [];
+
     public function checkApplication(string $applicationId, CheckApplicationHealth $check): void
     {
         $teamId = auth()->user()?->current_team_id;
@@ -25,6 +29,25 @@ final class HostingResourceInventory extends Component
 
         $application = HostedApplication::query()->whereKey($applicationId)->where('team_id', $teamId)->firstOrFail();
         $check->execute($application);
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function updateApplication(string $applicationId, ?array $attributes, UpdateHostedApplication $update): void
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $application = HostedApplication::query()->whereKey($applicationId)->where('team_id', $teamId)->firstOrFail();
+        $attributes ??= $this->applicationEdits[$applicationId] ?? [];
+        validator($attributes, [
+            'domain_id' => ['required', 'uuid'],
+            'name' => ['required', 'string', 'max:160'],
+            'type' => ['required', 'in:wordpress,laravel,static,nodejs,custom'],
+            'version' => ['nullable', 'string', 'max:80'],
+            'document_root' => ['required', 'string', 'starts_with:/', 'max:2048'],
+            'config' => ['nullable', 'array'],
+        ])->validate();
+        $update->execute($application, $attributes);
+        unset($this->applicationEdits[$applicationId]);
     }
 
     public function render(): View

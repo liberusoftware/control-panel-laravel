@@ -26,6 +26,7 @@ Route::prefix('api/v1/control-panel/web-hosting')
         Route::get('/applications', [DomainController::class, 'applications'])->name('control-panel.web-hosting.applications.index');
         Route::get('/applications/statistics', [DomainController::class, 'applicationStatistics'])->name('control-panel.web-hosting.applications.statistics');
         Route::post('/applications', [DomainController::class, 'application'])->name('control-panel.web-hosting.applications.store');
+        Route::patch('/applications/{application}', [DomainController::class, 'updateApplication'])->name('control-panel.web-hosting.applications.update');
         Route::get('/applications/{application}/performance', [DomainController::class, 'applicationPerformance'])->name('control-panel.web-hosting.applications.performance');
         Route::post('/applications/{application}/health-checks', [DomainController::class, 'applicationHealth'])->name('control-panel.web-hosting.applications.health');
         Route::post('/applications/{application}/wordpress-update-checks', [DomainController::class, 'wordpressUpdate'])->name('control-panel.web-hosting.applications.wordpress-update-check');

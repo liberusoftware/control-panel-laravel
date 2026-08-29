@@ -102,6 +102,12 @@ paths:
       operationId: control.panel.web.hosting.applications.create
       security: [{sanctum: []}]
       responses: {'201': {description: Hosted application registered.}}
+  /api/v1/control-panel/web-hosting/applications/{application}:
+    patch:
+      operationId: control.panel.web.hosting.applications.update
+      security: [{sanctum: []}]
+      parameters: [{name: application, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Hosted application updated.}, '404': {description: Application is outside the current team.}}
   /api/v1/control-panel/web-hosting/applications/statistics:
     get:
       operationId: control.panel.web.hosting.applications.statistics
