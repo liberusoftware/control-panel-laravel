@@ -95,6 +95,16 @@ it('decommissions a node through the tenant-scoped API', function (): void {
         ->assertJsonPath('data.attributes.status', 'decommissioned');
 });
 
+it('requires a current team before reading a node through the API', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $user = User::factory()->create();
+    $node = app(RegisterNode::class)->execute(['name' => 'Unscoped node', 'hostname' => 'unscoped.test']);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey())
+        ->assertForbidden();
+});
+
 it('expires a past-dated credential and rejects invalid repeats', function (): void {
     $node = app(RegisterNode::class)->execute(['team_id' => 'team-1', 'name' => 'Credential node', 'hostname' => 'credential.test']);
     $credential = app(RegisterNodeCredential::class)->execute([

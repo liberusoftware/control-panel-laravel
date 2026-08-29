@@ -24,6 +24,7 @@ final class NodeController
     public function show(Request $request, string $node): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->with('capabilities')->firstOrFail();
 
         return response()->json(['data' => $this->resource($item)]);
@@ -68,6 +69,7 @@ final class NodeController
     public function updateDesiredState(Request $request, string $node, UpdateDesiredState $update): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
         $data = $request->validate(['desired_state' => ['required', 'array']]);
 
@@ -77,6 +79,7 @@ final class NodeController
     public function updateStatus(Request $request, string $node, ChangeNodeStatus $change): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
         $data = $request->validate(['status' => ['required', 'string', 'in:pending,active,draining,decommissioned']]);
 
@@ -86,6 +89,7 @@ final class NodeController
     public function decommission(Request $request, string $node, DecommissionNode $decommission): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => $this->resource($decommission->execute($item))]);
@@ -94,6 +98,7 @@ final class NodeController
     public function capabilities(Request $request, string $node, SyncNodeCapabilities $sync): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
         $data = $request->validate(['capabilities' => ['required', 'array'], 'capabilities.*.name' => ['required', 'string', 'max:120'], 'capabilities.*.version' => ['nullable', 'string', 'max:80'], 'capabilities.*.metadata' => ['nullable', 'array']]);
 
@@ -103,6 +108,7 @@ final class NodeController
     public function credential(Request $request, string $node, RegisterNodeCredential $register): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -120,6 +126,7 @@ final class NodeController
     public function revokeCredential(Request $request, string $credential, RevokeNodeCredential $revoke): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = NodeCredential::query()->whereKey($credential)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => $this->credentialResource($revoke->execute($item))]);
@@ -128,6 +135,7 @@ final class NodeController
     public function expireCredential(Request $request, string $credential, ExpireNodeCredential $expire): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = NodeCredential::query()->whereKey($credential)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => $this->credentialResource($expire->execute($item))]);
