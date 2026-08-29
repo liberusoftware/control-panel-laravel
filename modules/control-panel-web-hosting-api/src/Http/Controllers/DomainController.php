@@ -23,6 +23,7 @@ use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
 use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateHostedApplication;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateVirtualHost;
 use Liberu\ControlPanel\WebHosting\Models\Domain;
 use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
@@ -107,6 +108,23 @@ final class DomainController
         $host = $create->execute($domain, $data);
 
         return response()->json(['data' => ['id' => $host->getKey(), 'type' => 'control-panel-virtual-host', 'attributes' => $host->only(['domain_id', 'node_id', 'server', 'runtime', 'document_root', 'desired_state', 'active'])]], 201);
+    }
+
+    public function updateVirtualHost(Request $request, string $id, UpdateVirtualHost $update): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $host = VirtualHost::query()->whereKey($id)->whereHas('domain', fn (Builder $query) => $query->where('team_id', $teamId))->with('domain')->firstOrFail();
+        $data = $request->validate([
+            'domain_id' => ['sometimes', 'uuid'],
+            'node_id' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'server' => ['sometimes', 'in:nginx,apache'],
+            'runtime' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'document_root' => ['sometimes', 'string', 'starts_with:/', 'max:2048'],
+            'desired_state' => ['sometimes', 'nullable', 'array'],
+            'active' => ['sometimes', 'boolean'],
+        ]);
+
+        return response()->json(['data' => ['id' => $id, 'type' => 'control-panel-virtual-host', 'attributes' => $update->execute($host, $data)->only(['domain_id', 'node_id', 'server', 'runtime', 'document_root', 'desired_state', 'active'])]]);
     }
 
     public function redirect(Request $request, Domain $domain, CreateRedirect $create): JsonResponse

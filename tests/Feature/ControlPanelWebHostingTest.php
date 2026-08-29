@@ -21,6 +21,7 @@ use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
 use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateHostedApplication;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateVirtualHost;
 use Liberu\ControlPanel\WebHosting\Enums\DomainStatus;
 use Liberu\ControlPanel\WebHosting\Events\DomainCreated;
 use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
@@ -103,6 +104,15 @@ it('updates a hosted application through the domain action', function (): void {
     $updated = app(UpdateHostedApplication::class)->execute($application, ['name' => 'New app', 'document_root' => '/srv/new']);
 
     expect($updated->name)->toBe('New app')->and($updated->document_root)->toBe('/srv/new')->and($updated->status)->toBe('installed');
+});
+
+it('updates a virtual host through the domain action while preserving active state', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'virtual.test']);
+    $host = app(CreateVirtualHost::class)->execute($domain, ['node_id' => 'node-1', 'server' => 'nginx', 'document_root' => '/srv/old']);
+
+    $updated = app(UpdateVirtualHost::class)->execute($host, ['document_root' => '/srv/new', 'runtime' => 'php-8.5']);
+
+    expect($updated->document_root)->toBe('/srv/new')->and($updated->runtime)->toBe('php-8.5')->and($updated->active)->toBeTrue();
 });
 
 it('requires a current team before mutating a domain through the API', function (): void {

@@ -64,6 +64,12 @@ paths:
       summary: Create or update a virtual host desired state
       security: [{sanctum: []}]
       responses: {'201': {description: Virtual host registered.}}
+  /api/v1/control-panel/web-hosting/virtual-hosts/{virtualHost}:
+    patch:
+      operationId: control.panel.web.hosting.virtual.hosts.update
+      security: [{sanctum: []}]
+      parameters: [{name: virtualHost, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Virtual host updated.}, '404': {description: Virtual host is outside the current team.}}
   /api/v1/control-panel/web-hosting/deployments:
     get:
       operationId: control.panel.web.hosting.deployments.list

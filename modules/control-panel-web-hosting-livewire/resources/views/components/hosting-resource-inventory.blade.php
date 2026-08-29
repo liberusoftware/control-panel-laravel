@@ -4,6 +4,8 @@
     <ul>@forelse($runtimes as $runtime)<li wire:key="runtime-{{ $runtime->getKey() }}">{{ $runtime->runtime }} {{ $runtime->version }}</li>@empty<li>{{ __('No runtimes found.') }}</li>@endforelse</ul>
     <h3>{{ __('Web servers') }}</h3>
     <ul>@forelse($servers as $server)<li wire:key="server-{{ $server->getKey() }}">{{ $server->server }} {{ $server->version }} — {{ $server->status }}</li>@empty<li>{{ __('No web servers found.') }}</li>@endforelse</ul>
+    <h3>{{ __('Virtual hosts') }}</h3>
+    <ul>@forelse($virtualHosts as $virtualHost)<li wire:key="virtual-host-{{ $virtualHost->getKey() }}">{{ $virtualHost->domain->hostname }} — {{ $virtualHost->server }} <form wire:submit="updateVirtualHost('{{ $virtualHost->getKey() }}', null)"><input aria-label="{{ __('Virtual host document root') }}" wire:model="virtualHostEdits.{{ $virtualHost->getKey() }}.document_root" value="{{ $virtualHost->document_root }}"><button type="submit">{{ __('Save') }}</button></form></li>@empty<li>{{ __('No virtual hosts found.') }}</li>@endforelse</ul>
     <h3>{{ __('SSL certificates') }}</h3>
     <ul>@forelse($certificates as $certificate)<li wire:key="certificate-{{ $certificate->getKey() }}">{{ $certificate->issuer }} — {{ $certificate->status }}</li>@empty<li>{{ __('No certificates found.') }}</li>@endforelse</ul>
     <h3>{{ __('Redirects') }}</h3>
