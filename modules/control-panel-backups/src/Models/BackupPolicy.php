@@ -16,6 +16,8 @@ final class BackupPolicy extends Model
 
     protected $fillable = ['team_id', 'name', 'schedule', 'retention_days', 'storage_driver', 'storage_config', 'encrypted', 'active'];
 
+    protected $hidden = ['storage_config'];
+
     protected function casts(): array
     {
         return ['schedule' => 'array', 'storage_config' => 'encrypted:array', 'retention_days' => 'integer', 'encrypted' => 'bool', 'active' => 'bool'];

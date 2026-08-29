@@ -118,6 +118,7 @@ it('preserves hosted application lifecycle helpers and encrypts configuration', 
 
     expect($application->isInstalled())->toBeTrue()
         ->and($application->getFullPathAttribute())->toBe('/srv/app')
+        ->and($application->toArray())->not->toHaveKey('config')
         ->and(DB::table('control_panel_hosted_applications')->whereKey($application->getKey())->value('config'))->not->toBe('{"admin_password":"not-plain-text"}');
 });
 

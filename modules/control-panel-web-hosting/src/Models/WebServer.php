@@ -15,6 +15,8 @@ final class WebServer extends Model
 
     protected $fillable = ['team_id', 'node_id', 'server', 'version', 'status', 'config', 'metadata'];
 
+    protected $hidden = ['config'];
+
     protected function casts(): array
     {
         return ['config' => 'array', 'metadata' => 'array'];
