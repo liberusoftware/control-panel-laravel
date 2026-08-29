@@ -15,6 +15,7 @@ final class CreateHomeDirectory extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
+        abort_if(auth()->user()?->current_team_id === null, 403, 'A current team is required.');
         $data['team_id'] = auth()->user()?->current_team_id;
 
         return app(CreateHomeDirectoryAction::class)->execute($data);
