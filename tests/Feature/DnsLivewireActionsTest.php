@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
+use Liberu\ControlPanel\Dns\Actions\DeleteRecord;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
 use Liberu\ControlPanel\Dns\Actions\UpdateZone;
@@ -99,6 +100,23 @@ it('updates only a current-team DNS zone from Livewire', function (): void {
     $inventory->update($zone->getKey(), ['domain' => 'Updated.TEST', 'provider' => 'cloud'], app(UpdateZone::class));
 
     expect($zone->refresh()->domain)->toBe('updated.test');
+});
+
+it('deletes only a current-team DNS record from Livewire', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $zone = app(CreateZone::class)->execute(['team_id' => $team->getKey(), 'domain' => 'owned-delete.test']);
+    $foreignZone = app(CreateZone::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'foreign-delete.test']);
+    $record = app(CreateRecord::class)->execute(['team_id' => $team->getKey(), 'zone_id' => $zone->getKey(), 'type' => 'A', 'content' => '192.0.2.1']);
+    $foreign = app(CreateRecord::class)->execute(['team_id' => $otherTeam->getKey(), 'zone_id' => $foreignZone->getKey(), 'type' => 'A', 'content' => '192.0.2.2']);
+    $inventory = app(RecordInventory::class);
+    $this->actingAs($user);
+
+    expect(fn () => $inventory->delete($foreign->getKey(), app(DeleteRecord::class)))->toThrow(ModelNotFoundException::class);
+    $inventory->delete($record->getKey(), app(DeleteRecord::class));
+
+    expect($zone->records()->whereKey($record->getKey())->exists())->toBeFalse();
 });
 
 it('renders named DNS feature inventories only for the current team', function (): void {

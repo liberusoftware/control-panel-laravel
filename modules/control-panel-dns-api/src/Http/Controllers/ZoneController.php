@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
+use Liberu\ControlPanel\Dns\Actions\DeleteRecord;
 use Liberu\ControlPanel\Dns\Actions\RecordDnsCheck;
 use Liberu\ControlPanel\Dns\Actions\RegisterDnsFeature;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
@@ -87,6 +88,16 @@ final class ZoneController
         ]);
 
         return response()->json(['data' => self::recordResource($update->execute($record, $data))]);
+    }
+
+    public function deleteRecord(Request $request, string $id, DeleteRecord $delete): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $record = Record::query()->whereKey($id)->whereHas('zone', fn ($query) => $query->where('team_id', $teamId))->firstOrFail();
+        $delete->execute($record);
+
+        return response()->json(status: 204);
     }
 
     public function bulkRecords(Request $request, CreateRecord $create): JsonResponse

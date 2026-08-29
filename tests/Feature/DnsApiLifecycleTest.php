@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\DnsApi\DnsApiServiceProvider;
@@ -61,6 +62,20 @@ it('updates only a current-team DNS zone through the API', function (): void {
 
     $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/dns/zones/'.$otherZone->getKey(), ['domain' => 'stolen.test'])->assertNotFound();
     $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/dns/zones/'.$zone->getKey(), ['domain' => 'Updated.TEST', 'provider' => 'cloud'])->assertOk()->assertJsonPath('data.attributes.domain', 'updated.test');
+});
+
+it('deletes only a current-team DNS record through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $zone = app(CreateZone::class)->execute(['team_id' => $team->getKey(), 'domain' => 'owned-delete.test']);
+    $foreignZone = app(CreateZone::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'foreign-delete.test']);
+    $record = app(CreateRecord::class)->execute(['team_id' => $team->getKey(), 'zone_id' => $zone->getKey(), 'type' => 'A', 'content' => '192.0.2.1']);
+    $foreign = app(CreateRecord::class)->execute(['team_id' => $otherTeam->getKey(), 'zone_id' => $foreignZone->getKey(), 'type' => 'A', 'content' => '192.0.2.2']);
+
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/dns/records/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/dns/records/'.$record->getKey())->assertNoContent();
+    expect($zone->records()->whereKey($record->getKey())->exists())->toBeFalse();
 });
 
 it('bulk creates tenant DNS records with bounded partial results', function (): void {

@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\DnsLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
+use Liberu\ControlPanel\Dns\Actions\DeleteRecord;
 use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
 use Liberu\ControlPanel\Dns\Models\Record;
 use Livewire\Component;
@@ -56,6 +57,13 @@ final class RecordInventory extends Component
             'ttl' => ['required', 'integer', 'between:60,86400'], 'priority' => ['nullable', 'integer', 'between:0,65535'],
         ])->validate();
         $update->execute($record, $attributes);
+        unset($this->edits[$recordId]);
+    }
+
+    public function delete(string $recordId, DeleteRecord $delete): void
+    {
+        $record = Record::query()->whereKey($recordId)->whereHas('zone', fn ($query) => $query->where('team_id', $this->teamId()))->firstOrFail();
+        $delete->execute($record);
         unset($this->edits[$recordId]);
     }
 

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\DnsFilament\Resources;
 
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\Dns\Actions\DeleteRecord;
 use Liberu\ControlPanel\Dns\Models\Record;
 use Liberu\ControlPanel\DnsFilament\Resources\RecordResource\Pages\CreateRecord;
 use Liberu\ControlPanel\DnsFilament\Resources\RecordResource\Pages\EditRecord;
@@ -35,7 +37,9 @@ final class RecordResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('zone.domain')->label('Zone')->sortable(), TextColumn::make('name')->searchable(), TextColumn::make('type')->badge(), TextColumn::make('content')->searchable(), TextColumn::make('ttl')->sortable()])->defaultSort('created_at', 'desc');
+        return $table->columns([TextColumn::make('zone.domain')->label('Zone')->sortable(), TextColumn::make('name')->searchable(), TextColumn::make('type')->badge(), TextColumn::make('content')->searchable(), TextColumn::make('ttl')->sortable()])->recordActions([
+            DeleteAction::make()->action(fn (Record $record): void => app(DeleteRecord::class)->execute($record)),
+        ])->defaultSort('created_at', 'desc');
     }
 
     public static function getEloquentQuery(): Builder
