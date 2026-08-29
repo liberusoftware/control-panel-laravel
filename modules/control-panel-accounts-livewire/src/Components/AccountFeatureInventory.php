@@ -16,7 +16,7 @@ final class AccountFeatureInventory extends Component
     {
         $delegation = AccountDelegation::query()
             ->whereKey($delegationId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
         $revoke->execute($delegation);
     }
@@ -27,5 +27,13 @@ final class AccountFeatureInventory extends Component
         abort_if($teamId === null, 403, 'A current team is required.');
 
         return view('control-panel-accounts-livewire::components.feature-inventory', ['packages' => HostingPackage::where('team_id', $teamId)->latest()->limit(25)->get(), 'delegations' => AccountDelegation::where('team_id', $teamId)->latest()->limit(25)->get()]);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }

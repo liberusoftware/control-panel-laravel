@@ -17,13 +17,13 @@ final class ClusterInventory extends Component
 
     public function suspend(string $clusterId, SuspendCluster $suspend): void
     {
-        $cluster = Cluster::query()->whereKey($clusterId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $cluster = Cluster::query()->whereKey($clusterId)->where('team_id', $this->teamId())->firstOrFail();
         $suspend->execute($cluster);
     }
 
     public function archive(string $clusterId, ArchiveCluster $archive): void
     {
-        $cluster = Cluster::query()->whereKey($clusterId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $cluster = Cluster::query()->whereKey($clusterId)->where('team_id', $this->teamId())->firstOrFail();
         $archive->execute($cluster);
     }
 
@@ -33,5 +33,13 @@ final class ClusterInventory extends Component
         abort_if($teamId === null, 403, 'A current team is required.');
 
         return view('control-panel-kubernetes-livewire::components.cluster-inventory', ['items' => $list->execute($teamId, min(max($this->perPage, 1), 100))]);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }

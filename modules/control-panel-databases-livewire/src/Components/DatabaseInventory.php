@@ -30,7 +30,7 @@ final class DatabaseInventory extends Component
     {
         $database = Database::query()
             ->whereKey($databaseId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
 
         $activate->execute($database);
@@ -38,22 +38,28 @@ final class DatabaseInventory extends Component
 
     public function suspend(string $databaseId, SuspendDatabase $suspend): void
     {
-        $database = Database::query()->whereKey($databaseId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $database = Database::query()->whereKey($databaseId)->where('team_id', $this->teamId())->firstOrFail();
         $suspend->execute($database);
     }
 
     public function archive(string $databaseId, ArchiveDatabase $archive): void
     {
-        $database = Database::query()->whereKey($databaseId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $database = Database::query()->whereKey($databaseId)->where('team_id', $this->teamId())->firstOrFail();
         $archive->execute($database);
     }
 
     public function render(ListDatabases $list): View
     {
-        $teamId = auth()->user()?->current_team_id;
-        abort_if($teamId === null, 403, 'A current team is required.');
-        $databases = $list->execute($teamId, min(max($this->perPage, 1), 100), $this->search);
+        $databases = $list->execute($this->teamId(), min(max($this->perPage, 1), 100), $this->search);
 
         return view('control-panel-databases-livewire::components.database-inventory', ['databases' => $databases]);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }
