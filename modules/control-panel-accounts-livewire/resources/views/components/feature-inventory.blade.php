@@ -2,6 +2,23 @@
     <h2 id="control-panel-account-feature-inventory">Account features</h2>
     <p>{{ $packages->count() }} packages and {{ $delegations->count() }} delegations.</p>
     <ul>
+        @foreach ($packages as $package)
+            <li wire:key="package-{{ $package->getKey() }}">
+                <form wire:submit="updatePackage('{{ $package->getKey() }}', null)" class="inline-flex gap-2">
+                    <label>
+                        <span class="sr-only">Package name</span>
+                        <input type="text" wire:model="packageEdits.{{ $package->getKey() }}.name" value="{{ $package->name }}" maxlength="160" required>
+                    </label>
+                    <label>
+                        <span>Active</span>
+                        <input type="checkbox" wire:model="packageEdits.{{ $package->getKey() }}.active" @checked($package->active)>
+                    </label>
+                    <button type="submit">Save package</button>
+                </form>
+            </li>
+        @endforeach
+    </ul>
+    <ul>
         @foreach ($delegations as $delegation)
             <li wire:key="delegation-{{ $delegation->getKey() }}">
                 {{ $delegation->delegate_id }} — {{ $delegation->active ? 'active' : 'revoked' }}

@@ -10,12 +10,15 @@ use Illuminate\Support\Str;
 use Liberu\ControlPanel\Accounts\AccountsServiceProvider;
 use Liberu\ControlPanel\Accounts\Actions\ArchiveAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
+use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateDelegation;
+use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
 use Liberu\ControlPanel\Accounts\Models\Account;
 use Liberu\ControlPanel\Accounts\Models\AccountDelegation;
+use Liberu\ControlPanel\Accounts\Models\HostingPackage;
 use Liberu\ControlPanel\AccountsLivewire\AccountsLivewireServiceProvider;
 use Liberu\ControlPanel\AccountsLivewire\Components\AccountFeatureInventory;
 use Liberu\ControlPanel\AccountsLivewire\Components\AccountInventory;
@@ -81,6 +84,23 @@ it('releases only a current-team operation lock owned by the supplied owner', fu
     $component->releaseLock($lock->getKey(), app(ReleaseOperationLock::class));
 
     expect(OperationLock::query()->find($lock->getKey()))->toBeNull();
+});
+
+it('updates only a current-team hosting package from the Livewire inventory', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $package = app(CreateHostingPackage::class)->execute(['team_id' => $team->getKey(), 'name' => 'Starter']);
+    $otherPackage = app(CreateHostingPackage::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Other']);
+
+    $this->actingAs($user);
+    $inventory = app(AccountFeatureInventory::class);
+    $inventory->updatePackage($package->getKey(), ['name' => 'Pro', 'active' => false], app(UpdateHostingPackage::class));
+
+    expect(HostingPackage::query()->find($package->getKey())->name)->toBe('Pro')
+        ->and(HostingPackage::query()->find($package->getKey())->active)->toBeFalse();
+    expect(fn () => $inventory->updatePackage($otherPackage->getKey(), ['name' => 'Nope'], app(UpdateHostingPackage::class)))
+        ->toThrow(ModelNotFoundException::class);
 });
 
 it('checks application health from the tenant-scoped hosting inventory', function (): void {
