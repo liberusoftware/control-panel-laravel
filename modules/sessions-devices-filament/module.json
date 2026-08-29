@@ -10,7 +10,8 @@
     "php": "^8.5",
     "laravel": "^13.0",
     "packages": {
-      "liberusoftware/sessions-devices": "^1.0"
+      "liberusoftware/sessions-devices": "^1.0",
+      "liberusoftware/api-access": "^1.0"
     }
   },
   "suggests": [],
