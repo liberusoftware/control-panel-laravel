@@ -22,6 +22,7 @@ paths:
     post: {operationId: control.panel.security.compliance.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/security/{finding}:
     get: {operationId: control.panel.security.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
+    patch: {operationId: control.panel.security.update, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
 components:
   securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
   responses:
