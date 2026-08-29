@@ -87,7 +87,7 @@ final class DomainController
 
     public function virtualHost(Request $request, Domain $domain, CreateVirtualHost $create): JsonResponse
     {
-        abort_unless((string) $domain->team_id === (string) $request->user()?->current_team_id, 404);
+        $this->assertTeam($request, $domain);
         $data = $request->validate(['node_id' => ['required', 'uuid'], 'server' => ['required', 'in:nginx,apache'], 'runtime' => ['required', 'string', 'max:80'], 'document_root' => ['required', 'string', 'max:1024'], 'desired_state' => ['nullable', 'array']]);
         $host = $create->execute($domain, $data);
 
@@ -246,11 +246,13 @@ final class DomainController
 
     private function assertTeam(Request $request, Domain $domain): void
     {
+        abort_if($request->user()?->current_team_id === null, 403, 'A current team is required.');
         abort_unless((string) $domain->team_id === (string) $request->user()?->current_team_id, 404);
     }
 
     private function assertApplicationTeam(Request $request, HostedApplication $application): void
     {
+        abort_if($request->user()?->current_team_id === null, 403, 'A current team is required.');
         abort_unless((string) $application->team_id === (string) $request->user()?->current_team_id, 404);
     }
 

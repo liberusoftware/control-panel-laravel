@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -24,6 +25,7 @@ use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
 use Liberu\ControlPanel\WebHosting\Models\PhpConfiguration;
 use Liberu\ControlPanel\WebHosting\WebHostingServiceProvider;
+use Liberu\ControlPanel\WebHostingApi\WebHostingApiServiceProvider;
 
 uses(RefreshDatabase::class);
 
@@ -63,6 +65,16 @@ it('suspends and archives domains with lifecycle invariants', function (): void 
 it('rejects invalid hostnames', function (): void {
     expect(fn () => app(CreateDomain::class)->execute(['hostname' => 'not a hostname']))
         ->toThrow(ValidationException::class);
+});
+
+it('requires a current team before mutating a domain through the API', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $user = User::factory()->create();
+    $domain = app(CreateDomain::class)->execute(['hostname' => 'unscoped.test']);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey().'/activate')
+        ->assertForbidden();
 });
 
 it('creates a desired virtual host for a domain and node', function (): void {
