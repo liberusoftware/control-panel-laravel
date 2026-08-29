@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\MonitoringFilament;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Liberu\ControlPanel\MonitoringFilament\Resources\MaintenanceWindowResource;
 use Liberu\ControlPanel\MonitoringFilament\Resources\MonitoringEventResource;
 use Liberu\ControlPanel\MonitoringFilament\Resources\MonitorResource;
 
@@ -23,7 +24,7 @@ final class MonitoringFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([MonitorResource::class, MonitoringEventResource::class]);
+        $panel->resources([MonitorResource::class, MonitoringEventResource::class, MaintenanceWindowResource::class]);
     }
 
     public function boot(Panel $panel): void {}

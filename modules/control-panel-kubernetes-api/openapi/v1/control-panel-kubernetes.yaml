@@ -10,6 +10,10 @@ paths:
     post: {operationId: control.panel.kubernetes.assets.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/kubernetes/{cluster}:
     get: {operationId: control.panel.kubernetes.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/kubernetes/{cluster}/suspend:
+    post: {operationId: control.panel.kubernetes.suspend, security: [{sanctum: []}], responses: {'200': {description: Cluster suspended}}}
+  /api/v1/control-panel/kubernetes/{cluster}/archive:
+    post: {operationId: control.panel.kubernetes.archive, security: [{sanctum: []}], responses: {'200': {description: Cluster archived}}}
 components:
   securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
   responses:

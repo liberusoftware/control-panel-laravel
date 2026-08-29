@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -18,12 +19,16 @@ use Liberu\ControlPanel\WebHosting\Actions\RegisterGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\RequestGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
 use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateDomain;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateHostedApplication;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateVirtualHost;
 use Liberu\ControlPanel\WebHosting\Enums\DomainStatus;
 use Liberu\ControlPanel\WebHosting\Events\DomainCreated;
 use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
 use Liberu\ControlPanel\WebHosting\Models\PhpConfiguration;
 use Liberu\ControlPanel\WebHosting\WebHostingServiceProvider;
+use Liberu\ControlPanel\WebHostingApi\WebHostingApiServiceProvider;
 
 uses(RefreshDatabase::class);
 
@@ -63,6 +68,88 @@ it('suspends and archives domains with lifecycle invariants', function (): void 
 it('rejects invalid hostnames', function (): void {
     expect(fn () => app(CreateDomain::class)->execute(['hostname' => 'not a hostname']))
         ->toThrow(ValidationException::class);
+});
+
+it('updates a domain through the action while preserving lifecycle state', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'old.test']);
+    app(ActivateDomain::class)->execute($domain);
+
+    $updated = app(UpdateDomain::class)->execute($domain, ['hostname' => 'New.TEST.', 'account_id' => 'account-1']);
+
+    expect($updated->hostname)->toBe('new.test')
+        ->and($updated->account_id)->toBe('account-1')
+        ->and($updated->status)->toBe(DomainStatus::Active);
+});
+
+it('updates only a domain in the current team through the API', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $user = User::factory()->create(['current_team_id' => 'team-1']);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-2', 'hostname' => 'foreign.test']);
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey(), ['hostname' => 'changed.test'])
+        ->assertNotFound();
+
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'owned.test']);
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey(), ['hostname' => 'changed.test'])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.hostname', 'changed.test');
+});
+
+it('updates a hosted application through the domain action', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'application.test']);
+    $application = HostedApplication::query()->create(['team_id' => 'team-1', 'domain_id' => $domain->getKey(), 'name' => 'Old app', 'type' => 'laravel', 'document_root' => '/srv/old', 'status' => 'installed']);
+
+    $updated = app(UpdateHostedApplication::class)->execute($application, ['name' => 'New app', 'document_root' => '/srv/new']);
+
+    expect($updated->name)->toBe('New app')->and($updated->document_root)->toBe('/srv/new')->and($updated->status)->toBe('installed');
+});
+
+it('updates a virtual host through the domain action while preserving active state', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'virtual.test']);
+    $host = app(CreateVirtualHost::class)->execute($domain, ['node_id' => 'node-1', 'server' => 'nginx', 'document_root' => '/srv/old']);
+
+    $updated = app(UpdateVirtualHost::class)->execute($host, ['document_root' => '/srv/new', 'runtime' => 'php-8.5']);
+
+    expect($updated->document_root)->toBe('/srv/new')->and($updated->runtime)->toBe('php-8.5')->and($updated->active)->toBeTrue();
+});
+
+it('requires a current team before mutating a domain through the API', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $user = User::factory()->create();
+    $domain = app(CreateDomain::class)->execute(['hostname' => 'unscoped.test']);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey().'/activate')
+        ->assertForbidden();
+});
+
+it('returns tenant-scoped hosted application statistics through the API', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $user = User::factory()->create(['current_team_id' => 'team-1']);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'statistics.test']);
+    $application = HostedApplication::query()->create([
+        'team_id' => 'team-1', 'domain_id' => $domain->getKey(), 'name' => 'Statistics app', 'type' => 'laravel',
+        'document_root' => '/srv/statistics', 'status' => 'installed',
+    ]);
+    app(RecordApplicationMetric::class)->execute($application, ['healthy' => true, 'response_time_ms' => 40]);
+    app(RecordApplicationMetric::class)->execute($application, ['healthy' => false, 'response_time_ms' => 80]);
+    HostedApplication::query()->create([
+        'team_id' => 'team-2', 'domain_id' => $domain->getKey(), 'name' => 'Other app', 'type' => 'static',
+        'document_root' => '/srv/other', 'status' => 'installed',
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/web-hosting/applications/statistics?days=30')
+        ->assertOk()
+        ->assertJsonPath('data.type', 'control-panel-hosted-application-statistics')
+        ->assertJsonPath('data.attributes.total_applications', 1)
+        ->assertJsonPath('data.attributes.installed_applications', 1)
+        ->assertJsonPath('data.attributes.total_checks', 2)
+        ->assertJsonPath('data.attributes.healthy_checks', 1)
+        ->assertJsonPath('data.attributes.uptime_percentage', 50)
+        ->assertJsonPath('data.attributes.average_response_time', 60);
 });
 
 it('creates a desired virtual host for a domain and node', function (): void {
@@ -106,6 +193,7 @@ it('preserves hosted application lifecycle helpers and encrypts configuration', 
 
     expect($application->isInstalled())->toBeTrue()
         ->and($application->getFullPathAttribute())->toBe('/srv/app')
+        ->and($application->toArray())->not->toHaveKey('config')
         ->and(DB::table('control_panel_hosted_applications')->whereKey($application->getKey())->value('config'))->not->toBe('{"admin_password":"not-plain-text"}');
 });
 
@@ -173,4 +261,23 @@ it('queues a Git deployment without executing untrusted remote commands', functi
     $queued = app(RequestGitDeployment::class)->execute($deployment);
 
     expect($queued->status)->toBe('queued')->and($queued->isDeploying())->toBeTrue();
+});
+
+it('accepts only a valid matching GitHub webhook for auto-deploy', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'webhook.test']);
+    $deployment = app(RegisterGitDeployment::class)->execute($domain, [
+        'repository_url' => 'https://github.com/example/project.git', 'branch' => 'main', 'deploy_path' => '/srv/webhook',
+        'webhook_secret' => 'webhook-secret', 'auto_deploy' => true,
+    ]);
+    $payload = ['ref' => 'refs/heads/main'];
+    $rawPayload = json_encode($payload, JSON_THROW_ON_ERROR);
+    $signature = 'sha256='.hash_hmac('sha256', $rawPayload, 'webhook-secret');
+
+    $this->call('POST', '/webhooks/github/'.$deployment->getKey(), [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_X_HUB_SIGNATURE_256' => $signature], $rawPayload)
+        ->assertAccepted();
+    expect($deployment->refresh()->status)->toBe('queued');
+
+    $this->call('POST', '/webhooks/github/'.$deployment->getKey(), [], [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_X_HUB_SIGNATURE_256' => 'sha256=invalid'], $rawPayload)
+        ->assertUnauthorized();
 });

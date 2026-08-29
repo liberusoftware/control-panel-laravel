@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\Kubernetes\Actions;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\Kubernetes\Models\Cluster;
 use Liberu\ControlPanel\Kubernetes\Models\HelmRelease;
 use Liberu\ControlPanel\Kubernetes\Models\KubernetesAutoscaler;
 use Liberu\ControlPanel\Kubernetes\Models\KubernetesClusterView;
@@ -22,12 +23,26 @@ final class RegisterKubernetesAsset
 {
     public function execute(array $a): Model
     {
+        $teamId = trim((string) ($a['team_id'] ?? ''));
+        if ($teamId === '') {
+            throw ValidationException::withMessages(['team_id' => 'A team is required.']);
+        }
+
         $kind = (string) ($a['kind'] ?? '');
         $map = ['node' => KubernetesNode::class, 'namespace' => KubernetesNamespace::class, 'rbac' => KubernetesRbacBinding::class, 'workload' => KubernetesWorkload::class, 'ingress' => KubernetesIngress::class, 'helm' => HelmRelease::class, 'storage' => KubernetesStorageClaim::class, 'autoscaling' => KubernetesAutoscaler::class, 'upgrade' => KubernetesUpgrade::class, 'cluster-view' => KubernetesClusterView::class];
         if (! isset($map[$kind])) {
             throw ValidationException::withMessages(['kind' => 'Unsupported Kubernetes asset.']);
         } $a['id'] = $a['id'] ?? (string) Str::uuid();
-        $a['team_id'] = $a['team_id'] ?? null;
+        $a['team_id'] = $teamId;
+        if (isset($a['cluster_id']) && ! Cluster::query()->whereKey($a['cluster_id'])->where('team_id', $teamId)->exists()) {
+            abort(404);
+        }
+        if ($kind === 'cluster-view' && isset($a['cluster_ids'])) {
+            $clusterIds = array_values(array_filter((array) $a['cluster_ids']));
+            if (count($clusterIds) !== Cluster::query()->whereIn('id', $clusterIds)->where('team_id', $teamId)->count()) {
+                abort(404);
+            }
+        }
         if ($kind === 'workload') {
             $a['kind'] = $a['workload_kind'] ?? 'Deployment';
         } else {

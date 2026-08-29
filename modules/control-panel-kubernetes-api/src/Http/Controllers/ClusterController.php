@@ -6,9 +6,11 @@ namespace Liberu\ControlPanel\KubernetesApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Liberu\ControlPanel\Kubernetes\Actions\ArchiveCluster;
 use Liberu\ControlPanel\Kubernetes\Actions\RecordKubernetesResource;
 use Liberu\ControlPanel\Kubernetes\Actions\RegisterCluster;
 use Liberu\ControlPanel\Kubernetes\Actions\RegisterKubernetesAsset;
+use Liberu\ControlPanel\Kubernetes\Actions\SuspendCluster;
 use Liberu\ControlPanel\Kubernetes\Models\Cluster;
 use Liberu\ControlPanel\Kubernetes\Queries\ListClusters;
 
@@ -42,6 +44,20 @@ final class ClusterController
         return response()->json(['data' => self::resource($item)], 201);
     }
 
+    public function suspend(Request $request, Cluster $cluster, SuspendCluster $suspend): JsonResponse
+    {
+        $this->assertTeam($request, $cluster);
+
+        return response()->json(['data' => self::resource($suspend->execute($cluster))]);
+    }
+
+    public function archive(Request $request, Cluster $cluster, ArchiveCluster $archive): JsonResponse
+    {
+        $this->assertTeam($request, $cluster);
+
+        return response()->json(['data' => self::resource($archive->execute($cluster))]);
+    }
+
     public function resourceRecord(Request $request, RecordKubernetesResource $record): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
@@ -65,5 +81,11 @@ final class ClusterController
     private static function resource(Cluster $item): array
     {
         return ['id' => $item->getKey(), 'type' => 'control-panel-kubernetes-cluster', 'attributes' => $item->only(['name', 'endpoint', 'status'])];
+    }
+
+    private function assertTeam(Request $request, Cluster $cluster): void
+    {
+        abort_if($request->user()?->current_team_id === null, 403, 'A current team is required.');
+        abort_unless((string) $cluster->team_id === (string) $request->user()?->current_team_id, 404);
     }
 }

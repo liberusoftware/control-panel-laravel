@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\DatabasesFilament\Resources;
 
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -15,6 +16,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
 use Liberu\ControlPanel\Databases\Actions\ArchiveDatabase;
+use Liberu\ControlPanel\Databases\Actions\DeleteDatabase;
 use Liberu\ControlPanel\Databases\Actions\SuspendDatabase;
 use Liberu\ControlPanel\Databases\Enums\DatabaseStatus;
 use Liberu\ControlPanel\Databases\Models\Database;
@@ -65,6 +67,11 @@ final class DatabaseResource extends Resource
                 ->requiresConfirmation()
                 ->visible(fn (Database $record): bool => $record->status !== DatabaseStatus::Archived)
                 ->action(fn (Database $record): Database => app(ArchiveDatabase::class)->execute($record)),
+            DeleteAction::make()->action(function (Database $record): void {
+                abort_if(auth()->user()?->current_team_id === null, 403, 'A current team is required.');
+                abort_unless((string) $record->team_id === (string) auth()->user()?->current_team_id, 404);
+                app(DeleteDatabase::class)->execute($record);
+            }),
         ])->defaultSort('created_at', 'desc');
     }
 

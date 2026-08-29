@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\MailFilament\Resources;
 
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -11,6 +12,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
 use Liberu\ControlPanel\MailFilament\Resources\MailAccountResource\Pages\CreateMailAccount;
 use Liberu\ControlPanel\MailFilament\Resources\MailAccountResource\Pages\EditMailAccount;
@@ -37,7 +39,9 @@ final class MailAccountResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('address')->searchable()->sortable(), TextColumn::make('domain')->searchable(), TextColumn::make('status')->badge(), TextColumn::make('quota_bytes')->numeric(), TextColumn::make('created_at')->dateTime()])->defaultSort('created_at', 'desc');
+        return $table->columns([TextColumn::make('address')->searchable()->sortable(), TextColumn::make('domain')->searchable(), TextColumn::make('status')->badge(), TextColumn::make('quota_bytes')->numeric(), TextColumn::make('created_at')->dateTime()])->recordActions([
+            DeleteAction::make()->action(fn (MailAccount $record): void => app(DeleteMailAccount::class)->execute($record)),
+        ])->defaultSort('created_at', 'desc');
     }
 
     public static function getEloquentQuery(): Builder

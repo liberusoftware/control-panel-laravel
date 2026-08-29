@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Backups\Actions\CreateDestination;
 use Liberu\ControlPanel\Backups\Actions\CreatePolicy;
@@ -13,6 +14,7 @@ use Liberu\ControlPanel\Backups\Actions\VerifySnapshot;
 use Liberu\ControlPanel\Backups\BackupsServiceProvider;
 use Liberu\ControlPanel\Backups\Enums\RestoreStatus;
 use Liberu\ControlPanel\Backups\Enums\SnapshotStatus;
+use Liberu\ControlPanel\Backups\Models\BackupEncryption;
 
 uses(RefreshDatabase::class);
 
@@ -28,9 +30,12 @@ it('owns encrypted destinations, policies, schedules, snapshots, verification, a
     $snapshot = app(CreateSnapshot::class)->execute($policy, ['location' => 's3://bucket/nightly']);
     $verified = app(VerifySnapshot::class)->execute($snapshot, 'sha256:abc');
     $restore = app(RequestRestore::class)->execute($verified, 'team-1', 'node-1');
+    $encryption = BackupEncryption::query()->create(['id' => (string) Str::uuid(), 'team_id' => 'team-1', 'policy_id' => $policy->getKey(), 'algorithm' => 'aes-256-gcm', 'key_reference' => 'secret-key-reference', 'active' => true]);
 
     expect($destination->toArray())->not->toHaveKey('config')
         ->and($destination->config)->toMatchArray(['secret' => 'hidden'])
+        ->and($encryption->toArray())->not->toHaveKey('key_reference')
+        ->and($encryption->key_reference)->toBe('secret-key-reference')
         ->and($schedule->cron)->toBe('0 2 * * *')
         ->and($verified->status)->toBe(SnapshotStatus::Verified)
         ->and($restore->status)->toBe(RestoreStatus::Queued);

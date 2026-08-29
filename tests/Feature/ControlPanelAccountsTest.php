@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Accounts\AccountsServiceProvider;
 use Liberu\ControlPanel\Accounts\Actions\ArchiveAccount;
@@ -14,7 +15,9 @@ use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
+use Liberu\ControlPanel\Accounts\Actions\UpdateAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
+use Liberu\ControlPanel\Accounts\Actions\UpdateDelegation;
 use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
 use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
 use Liberu\ControlPanel\Accounts\Enums\AccountType;
@@ -107,6 +110,21 @@ it('supports packages, delegation, and validated branding', function (): void {
     $package = app(UpdateHostingPackage::class)->execute($package, ['active' => false]);
     $delegation = app(RevokeDelegation::class)->execute($delegation);
     expect($package->active)->toBeFalse()->and($delegation->active)->toBeFalse();
+
+    $delegation = app(DelegateAccount::class)->execute($account, ['delegate_id' => 'user-3']);
+    expect(app(UpdateDelegation::class)->execute($delegation, ['permissions' => ['manage' => true]])->permissions)
+        ->toMatchArray(['manage' => true]);
+});
+
+it('updates accounts through the domain action while preserving hierarchy invariants', function (): void {
+    $parent = app(CreateAccount::class)->execute(['team_id' => 'team-1', 'owner_id' => 'owner-parent', 'type' => 'reseller', 'name' => 'Parent']);
+    $account = app(CreateAccount::class)->execute(['team_id' => 'team-1', 'owner_id' => 'owner-child', 'type' => 'customer', 'name' => 'Child', 'parent_id' => $parent->getKey()]);
+
+    $updated = app(UpdateAccount::class)->execute($account, ['name' => 'Renamed child', 'brand' => ['name' => 'Brand']]);
+
+    expect($updated->name)->toBe('Renamed child')->and($updated->brand)->toMatchArray(['name' => 'Brand']);
+    expect(fn () => app(UpdateAccount::class)->execute($account, ['parent_id' => $account->getKey()]))
+        ->toThrow(ValidationException::class);
 });
 
 it('exposes the quota guard through the authenticated tenant-scoped API', function (): void {
@@ -128,6 +146,18 @@ it('exposes the quota guard through the authenticated tenant-scoped API', functi
         ->assertUnprocessable();
 });
 
+it('bounds hosting package pagination for the authenticated tenant API', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    app(CreateHostingPackage::class)->execute(['team_id' => $team->getKey(), 'name' => 'Starter']);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/accounts/packages?per_page=1000')
+        ->assertOk()
+        ->assertJsonPath('meta.per_page', 100);
+});
+
 it('exposes individual accounts only to their current team', function (): void {
     app()->register(AccountsApiServiceProvider::class);
     $team = Team::factory()->create();
@@ -147,6 +177,25 @@ it('exposes individual accounts only to their current team', function (): void {
         ->assertNotFound();
 });
 
+it('updates only a current-team account through the API', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute(['team_id' => $team->getKey(), 'owner_id' => 'owner-1', 'name' => 'Editable account']);
+    $otherAccount = app(CreateAccount::class)->execute(['team_id' => $otherTeam->getKey(), 'owner_id' => 'owner-2', 'name' => 'Other account']);
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/accounts/'.$account->getKey(), ['name' => 'Updated account', 'owner_id' => 'owner-updated'])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.name', 'Updated account')
+        ->assertJsonPath('data.attributes.owner_id', 'owner-updated');
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/accounts/'.$otherAccount->getKey(), ['name' => 'Should not update'])
+        ->assertNotFound();
+});
+
 it('archives an account through the tenant-scoped API', function (): void {
     app()->register(AccountsApiServiceProvider::class);
     $team = Team::factory()->create();
@@ -159,4 +208,33 @@ it('archives an account through the tenant-scoped API', function (): void {
         ->postJson('/api/v1/control-panel/accounts/'.$account->getKey().'/archive')
         ->assertOk()
         ->assertJsonPath('data.attributes.status', 'archived');
+});
+
+it('updates only a current-team delegation through the API', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute(['team_id' => $team->getKey(), 'owner_id' => 'owner-1', 'name' => 'Delegated account']);
+    $delegation = app(DelegateAccount::class)->execute($account, ['delegate_id' => 'delegate-1']);
+    $otherAccount = app(CreateAccount::class)->execute(['team_id' => $otherTeam->getKey(), 'owner_id' => 'owner-2', 'name' => 'Other account']);
+    $otherDelegation = app(DelegateAccount::class)->execute($otherAccount, ['delegate_id' => 'delegate-2']);
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/accounts/delegations/'.$delegation->getKey(), ['permissions' => ['manage' => true]])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.permissions.manage', true);
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/accounts/delegations/'.$otherDelegation->getKey(), ['permissions' => ['manage' => true]])
+        ->assertNotFound();
+});
+
+it('rejects delegation revocation without a current team', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $user = User::factory()->create(['current_team_id' => null]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/accounts/delegations/'.Str::uuid().'/revoke')
+        ->assertForbidden();
 });

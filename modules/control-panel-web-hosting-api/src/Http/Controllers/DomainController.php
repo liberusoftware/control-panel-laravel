@@ -15,12 +15,17 @@ use Liberu\ControlPanel\WebHosting\Actions\CheckWordPressUpdates;
 use Liberu\ControlPanel\WebHosting\Actions\CreateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\CreateRedirect;
 use Liberu\ControlPanel\WebHosting\Actions\CreateVirtualHost;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteHostedApplication;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteVirtualHost;
 use Liberu\ControlPanel\WebHosting\Actions\RegisterGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\RegisterHostingResource;
 use Liberu\ControlPanel\WebHosting\Actions\RequestCertificate;
 use Liberu\ControlPanel\WebHosting\Actions\RequestGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
 use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateDomain;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateHostedApplication;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateVirtualHost;
 use Liberu\ControlPanel\WebHosting\Models\Domain;
 use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
@@ -31,6 +36,7 @@ use Liberu\ControlPanel\WebHosting\Models\RuntimeVersion;
 use Liberu\ControlPanel\WebHosting\Models\SslCertificate;
 use Liberu\ControlPanel\WebHosting\Models\VirtualHost;
 use Liberu\ControlPanel\WebHosting\Models\WebServer;
+use Liberu\ControlPanel\WebHosting\Queries\ApplicationStatistics;
 use Liberu\ControlPanel\WebHosting\Queries\ListDomains;
 use Liberu\ControlPanel\WebHosting\Queries\ListGitDeployments;
 
@@ -63,6 +69,18 @@ final class DomainController
         return response()->json(['data' => self::resource($domain)], 201);
     }
 
+    public function update(Request $request, Domain $domain, UpdateDomain $update): JsonResponse
+    {
+        $this->assertTeam($request, $domain);
+        $data = $request->validate([
+            'hostname' => ['sometimes', 'string', 'max:253'],
+            'account_id' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'metadata' => ['sometimes', 'nullable', 'array'],
+        ]);
+
+        return response()->json(['data' => self::resource($update->execute($domain, $data))]);
+    }
+
     public function activate(Request $request, Domain $domain, ActivateDomain $activate): JsonResponse
     {
         $this->assertTeam($request, $domain);
@@ -87,11 +105,37 @@ final class DomainController
 
     public function virtualHost(Request $request, Domain $domain, CreateVirtualHost $create): JsonResponse
     {
-        abort_unless((string) $domain->team_id === (string) $request->user()?->current_team_id, 404);
+        $this->assertTeam($request, $domain);
         $data = $request->validate(['node_id' => ['required', 'uuid'], 'server' => ['required', 'in:nginx,apache'], 'runtime' => ['required', 'string', 'max:80'], 'document_root' => ['required', 'string', 'max:1024'], 'desired_state' => ['nullable', 'array']]);
         $host = $create->execute($domain, $data);
 
         return response()->json(['data' => ['id' => $host->getKey(), 'type' => 'control-panel-virtual-host', 'attributes' => $host->only(['domain_id', 'node_id', 'server', 'runtime', 'document_root', 'desired_state', 'active'])]], 201);
+    }
+
+    public function updateVirtualHost(Request $request, string $id, UpdateVirtualHost $update): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $host = VirtualHost::query()->whereKey($id)->whereHas('domain', fn (Builder $query) => $query->where('team_id', $teamId))->with('domain')->firstOrFail();
+        $data = $request->validate([
+            'domain_id' => ['sometimes', 'uuid'],
+            'node_id' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'server' => ['sometimes', 'in:nginx,apache'],
+            'runtime' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'document_root' => ['sometimes', 'string', 'starts_with:/', 'max:2048'],
+            'desired_state' => ['sometimes', 'nullable', 'array'],
+            'active' => ['sometimes', 'boolean'],
+        ]);
+
+        return response()->json(['data' => ['id' => $id, 'type' => 'control-panel-virtual-host', 'attributes' => $update->execute($host, $data)->only(['domain_id', 'node_id', 'server', 'runtime', 'document_root', 'desired_state', 'active'])]]);
+    }
+
+    public function deleteVirtualHost(Request $request, string $id, DeleteVirtualHost $delete): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $host = VirtualHost::query()->whereKey($id)->whereHas('domain', fn (Builder $query) => $query->where('team_id', $teamId))->firstOrFail();
+        $delete->execute($host);
+
+        return response()->json(status: 204);
     }
 
     public function redirect(Request $request, Domain $domain, CreateRedirect $create): JsonResponse
@@ -151,6 +195,17 @@ final class DomainController
         return response()->json(['data' => $page->through(fn (HostedApplication $application): array => self::applicationResource($application)), 'meta' => ['current_page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()]]);
     }
 
+    public function applicationStatistics(Request $request, ApplicationStatistics $statistics): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $days = min(max($request->integer('days', 30), 1), 365);
+
+        return response()->json(['data' => [
+            'type' => 'control-panel-hosted-application-statistics',
+            'attributes' => $statistics->execute($teamId, $days),
+        ]]);
+    }
+
     public function application(Request $request, RegisterHostingResource $register): JsonResponse
     {
         $teamId = $this->teamId($request);
@@ -163,6 +218,31 @@ final class DomainController
         $application = $register->execute([...$data, 'kind' => 'application', 'team_id' => $teamId, 'domain_id' => $domain->getKey()]);
 
         return response()->json(['data' => self::applicationResource($application)], 201);
+    }
+
+    public function updateApplication(Request $request, string $id, UpdateHostedApplication $update): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $application = HostedApplication::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate([
+            'domain_id' => ['sometimes', 'uuid'],
+            'name' => ['sometimes', 'string', 'max:160'],
+            'type' => ['sometimes', 'in:wordpress,laravel,static,nodejs,custom'],
+            'version' => ['sometimes', 'nullable', 'string', 'max:80'],
+            'document_root' => ['sometimes', 'string', 'starts_with:/', 'max:2048'],
+            'config' => ['sometimes', 'nullable', 'array'],
+        ]);
+
+        return response()->json(['data' => self::applicationResource($update->execute($application, $data))]);
+    }
+
+    public function deleteApplication(Request $request, string $id, DeleteHostedApplication $delete): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $application = HostedApplication::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($application);
+
+        return response()->json(status: 204);
     }
 
     public function applicationPerformance(Request $request, HostedApplication $application): JsonResponse
@@ -222,6 +302,48 @@ final class DomainController
         return response()->json(['data' => self::deploymentResource($requestDeployment->execute($item))], 202);
     }
 
+    public function githubWebhook(Request $request, string $deployment, RequestGitDeployment $requestDeployment): JsonResponse
+    {
+        $item = GitDeployment::query()->whereKey($deployment)->where('repository_type', 'github')->firstOrFail();
+        $signature = (string) $request->header('X-Hub-Signature-256');
+
+        abort_unless($signature !== '' && GitDeployment::validateGitHubWebhook($request->getContent(), $signature, (string) $item->webhook_secret), 401, 'Invalid webhook signature.');
+
+        return $this->triggerWebhook($request, $item, $requestDeployment);
+    }
+
+    public function gitlabWebhook(Request $request, string $deployment, RequestGitDeployment $requestDeployment): JsonResponse
+    {
+        $item = GitDeployment::query()->whereKey($deployment)->where('repository_type', 'gitlab')->firstOrFail();
+        $token = (string) $request->header('X-Gitlab-Token');
+
+        abort_unless($token !== '' && GitDeployment::validateGitLabWebhook($token, (string) $item->webhook_secret), 401, 'Invalid webhook token.');
+
+        return $this->triggerWebhook($request, $item, $requestDeployment);
+    }
+
+    public function genericWebhook(Request $request, string $deployment, RequestGitDeployment $requestDeployment): JsonResponse
+    {
+        $item = GitDeployment::query()->whereKey($deployment)->firstOrFail();
+        $secret = (string) ($request->header('X-Webhook-Secret') ?: $request->query('secret', ''));
+
+        abort_unless($secret !== '' && hash_equals((string) $item->webhook_secret, $secret), 401, 'Invalid webhook secret.');
+
+        return $this->triggerWebhook($request, $item, $requestDeployment);
+    }
+
+    private function triggerWebhook(Request $request, GitDeployment $deployment, RequestGitDeployment $requestDeployment): JsonResponse
+    {
+        $payload = $request->json()->all();
+        $branch = str_replace('refs/heads/', '', (string) ($payload['ref'] ?? ''));
+
+        if (! $deployment->auto_deploy || $branch !== $deployment->branch) {
+            return response()->json(['message' => 'Deployment not triggered.']);
+        }
+
+        return response()->json(['data' => self::deploymentResource($requestDeployment->execute($deployment))], 202);
+    }
+
     public function phpConfiguration(Request $request, Domain $domain, SavePhpConfiguration $save): JsonResponse
     {
         $this->assertTeam($request, $domain);
@@ -246,11 +368,13 @@ final class DomainController
 
     private function assertTeam(Request $request, Domain $domain): void
     {
+        abort_if($request->user()?->current_team_id === null, 403, 'A current team is required.');
         abort_unless((string) $domain->team_id === (string) $request->user()?->current_team_id, 404);
     }
 
     private function assertApplicationTeam(Request $request, HostedApplication $application): void
     {
+        abort_if($request->user()?->current_team_id === null, 403, 'A current team is required.');
         abort_unless((string) $application->team_id === (string) $request->user()?->current_team_id, 404);
     }
 

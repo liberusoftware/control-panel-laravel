@@ -13,9 +13,11 @@
   },
   "capabilities": ["control-panel.accounts"],
   "features": [
-    "Customer and reseller hierarchy",
-    "Hosting packages and quotas",
-    "Delegation and branding",
+    "Admin, reseller, and customer hierarchy",
+    "Hosting packages",
+    "Quota management",
+    "Account delegation",
+    "Account branding",
     "Account suspension and recovery"
   ],
   "default_enabled": false

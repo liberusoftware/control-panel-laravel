@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\AccountsLivewire\\AccountsLivewireServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-accounts": "^1.0"}},
   "capabilities": ["control-panel.accounts.livewire"],
-  "features": ["Interactive account inventory"],
+  "features": ["Account hierarchy inventory", "Hosting package inventory", "Quota state", "Delegation state", "Branding state", "Suspension and recovery state"],
   "default_enabled": false
 }

@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\ApiAutomationLivewire\Components;
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\ApiAutomation\Actions\PauseWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\ResumeWebhook;
+use Liberu\ControlPanel\ApiAutomation\Actions\UpdateWebhook;
 use Liberu\ControlPanel\ApiAutomation\Models\WebhookEndpoint;
 use Liberu\ControlPanel\ApiAutomation\Queries\ListWebhooks;
 use Livewire\Component;
@@ -19,6 +20,9 @@ final class WebhookInventory extends Component
     public int $perPage = 25;
 
     public string $search = '';
+
+    /** @var array<string, array<string, mixed>> */
+    public array $edits = [];
 
     public function updatedSearch(): void
     {
@@ -41,6 +45,24 @@ final class WebhookInventory extends Component
             ->where('team_id', auth()->user()?->current_team_id)
             ->firstOrFail();
         $resume->execute($webhook);
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function update(string $webhookId, ?array $attributes, UpdateWebhook $update): void
+    {
+        $webhook = WebhookEndpoint::query()
+            ->whereKey($webhookId)
+            ->where('team_id', auth()->user()?->current_team_id)
+            ->firstOrFail();
+        $attributes ??= $this->edits[$webhookId] ?? [];
+        validator($attributes, [
+            'name' => ['required', 'string', 'max:120'],
+            'url' => ['required', 'url', 'starts_with:https://', 'max:2048'],
+            'events' => ['nullable', 'array'],
+            'retry_limit' => ['required', 'integer', 'between:0,20'],
+        ])->validate();
+        $update->execute($webhook, $attributes);
+        unset($this->edits[$webhookId]);
     }
 
     public function render(ListWebhooks $list): View

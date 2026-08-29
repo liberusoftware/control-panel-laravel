@@ -3,6 +3,21 @@ info:
   title: Control Panel Web Hosting API
   version: 1.0.0
 paths:
+  /webhooks/github/{deployment}:
+    post:
+      operationId: control.panel.web.hosting.webhooks.github
+      parameters: [{name: deployment, in: path, required: true, schema: {type: string, format: uuid}}, {name: X-Hub-Signature-256, in: header, required: true, schema: {type: string}}]
+      responses: {'202': {description: Deployment queued.}, '401': {description: Invalid signature.}, '200': {description: Deployment not triggered.}}
+  /webhooks/gitlab/{deployment}:
+    post:
+      operationId: control.panel.web.hosting.webhooks.gitlab
+      parameters: [{name: deployment, in: path, required: true, schema: {type: string, format: uuid}}, {name: X-Gitlab-Token, in: header, required: true, schema: {type: string}}]
+      responses: {'202': {description: Deployment queued.}, '401': {description: Invalid token.}, '200': {description: Deployment not triggered.}}
+  /webhooks/generic/{deployment}:
+    post:
+      operationId: control.panel.web.hosting.webhooks.generic
+      parameters: [{name: deployment, in: path, required: true, schema: {type: string, format: uuid}}, {name: X-Webhook-Secret, in: header, required: true, schema: {type: string}}]
+      responses: {'202': {description: Deployment queued.}, '401': {description: Invalid secret.}, '200': {description: Deployment not triggered.}}
   /api/v1/control-panel/web-hosting/domains:
     get:
       summary: List domains
@@ -12,6 +27,15 @@ paths:
       summary: Register a domain
       security: [{sanctum: []}]
       responses: {'201': {description: Created}}
+    patch:
+      operationId: control.panel.web.hosting.domains.update
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        content:
+          application/json:
+            schema: {type: object, properties: {hostname: {type: string, maxLength: 253}, account_id: {type: string, nullable: true, maxLength: 255}, metadata: {type: object, nullable: true}}}
+      responses: {'200': {description: Domain updated.}, '404': {description: Domain is outside the current team.}}
   /api/v1/control-panel/web-hosting/domains/{domain}/activate:
     post:
       operationId: control.panel.web.hosting.domains.activate
@@ -40,6 +64,16 @@ paths:
       summary: Create or update a virtual host desired state
       security: [{sanctum: []}]
       responses: {'201': {description: Virtual host registered.}}
+  /api/v1/control-panel/web-hosting/virtual-hosts/{virtualHost}:
+    patch:
+      operationId: control.panel.web.hosting.virtual.hosts.update
+      security: [{sanctum: []}]
+      parameters: [{name: virtualHost, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Virtual host updated.}, '404': {description: Virtual host is outside the current team.}}
+    delete:
+      operationId: control.panel.web.hosting.virtual.hosts.delete
+      security: [{sanctum: []}]
+      responses: {'204': {description: Virtual host deleted.}, '404': {description: Virtual host is outside the current team.}}
   /api/v1/control-panel/web-hosting/deployments:
     get:
       operationId: control.panel.web.hosting.deployments.list
@@ -78,6 +112,22 @@ paths:
       operationId: control.panel.web.hosting.applications.create
       security: [{sanctum: []}]
       responses: {'201': {description: Hosted application registered.}}
+  /api/v1/control-panel/web-hosting/applications/{application}:
+    patch:
+      operationId: control.panel.web.hosting.applications.update
+      security: [{sanctum: []}]
+      parameters: [{name: application, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Hosted application updated.}, '404': {description: Application is outside the current team.}}
+    delete:
+      operationId: control.panel.web.hosting.applications.delete
+      security: [{sanctum: []}]
+      responses: {'204': {description: Hosted application deleted.}, '404': {description: Application is outside the current team.}}
+  /api/v1/control-panel/web-hosting/applications/statistics:
+    get:
+      operationId: control.panel.web.hosting.applications.statistics
+      security: [{sanctum: []}]
+      parameters: [{name: days, in: query, schema: {type: integer, minimum: 1, maximum: 365, default: 30}}]
+      responses: {'200': {description: Tenant-scoped hosted application statistics.}}
   /api/v1/control-panel/web-hosting/applications/{application}/performance:
     get:
       operationId: control.panel.web.hosting.applications.performance

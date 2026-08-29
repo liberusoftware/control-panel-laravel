@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\AccountsApi\\AccountsApiServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-accounts": "^1.0"}},
   "capabilities": ["control-panel.accounts.api"],
-  "features": ["Account listing", "Account registration"],
+  "features": ["Account hierarchy", "Hosting packages", "Quota checks", "Delegation", "Branding", "Suspension and recovery"],
   "default_enabled": false
 }

@@ -45,12 +45,6 @@ final class AccountResource extends Resource
                 ->getOptionLabelFromRecordUsing(fn (Account $record): string => $record->name),
             KeyValue::make('quota_overrides')->label('Quota limits')->keyLabel('Resource')->valueLabel('Limit'),
             KeyValue::make('brand')->label('Branding')->keyLabel('Property')->valueLabel('Value'),
-            Select::make('status')->options([
-                'active' => 'Active',
-                'suspended' => 'Suspended',
-                'archived' => 'Archived',
-            ])->required()->default('active'),
-            Textarea::make('suspended_reason')->visible(fn (callable $get): bool => $get('status') === 'suspended')->maxLength(1000),
         ]);
     }
 

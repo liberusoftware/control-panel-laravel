@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
@@ -10,12 +11,16 @@ use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
 use Liberu\ControlPanel\Databases\Actions\ArchiveDatabase;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabase;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabaseUser;
+use Liberu\ControlPanel\Databases\Actions\DeleteDatabase;
 use Liberu\ControlPanel\Databases\Actions\GrantDatabasePrivilege;
 use Liberu\ControlPanel\Databases\Actions\SuspendDatabase;
+use Liberu\ControlPanel\Databases\Actions\UpdateDatabase;
 use Liberu\ControlPanel\Databases\DatabasesServiceProvider;
 use Liberu\ControlPanel\Databases\Enums\DatabaseStatus;
 use Liberu\ControlPanel\Databases\Events\DatabaseCreated;
 use Liberu\ControlPanel\Databases\Models\DatabaseEngine;
+use Liberu\ControlPanel\DatabasesApi\DatabasesApiServiceProvider;
+use Liberu\Foundation\Organizations\Models\Team;
 
 uses(RefreshDatabase::class);
 
@@ -72,4 +77,42 @@ it('stores encrypted database credentials and allow-listed privileges', function
         ->and($privilege->privilege)->toBe('select');
     expect(fn () => app(GrantDatabasePrivilege::class)->execute($user, 'drop', '*'))
         ->toThrow(ValidationException::class);
+});
+
+it('updates database settings while preserving lifecycle state', function (): void {
+    $engine = DatabaseEngine::query()->firstOrFail();
+    $database = app(CreateDatabase::class)->execute(['team_id' => 'team-1', 'engine_id' => $engine->getKey(), 'name' => 'customer_app']);
+    app(ActivateDatabase::class)->execute($database);
+
+    $updated = app(UpdateDatabase::class)->execute($database, ['name' => 'renamed_app', 'charset' => 'utf8mb4']);
+
+    expect($updated->name)->toBe('renamed_app')->and($updated->charset)->toBe('utf8mb4')->and($updated->status)->toBe(DatabaseStatus::Active);
+});
+
+it('deletes a database through the domain action', function (): void {
+    $engine = DatabaseEngine::query()->firstOrFail();
+    $database = app(CreateDatabase::class)->execute(['team_id' => 'team-1', 'engine_id' => $engine->getKey(), 'name' => 'disposable_app']);
+    $id = $database->getKey();
+
+    app(DeleteDatabase::class)->execute($database);
+
+    expect(DB::table('control_panel_databases')->where('id', $id)->exists())->toBeFalse();
+});
+
+it('deletes only current-team databases through the API', function (): void {
+    app()->register(DatabasesApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $engine = DatabaseEngine::query()->firstOrFail();
+    $database = app(CreateDatabase::class)->execute(['team_id' => $team->getKey(), 'engine_id' => $engine->getKey(), 'name' => 'api_disposable']);
+    $otherDatabase = app(CreateDatabase::class)->execute(['team_id' => $otherTeam->getKey(), 'engine_id' => $engine->getKey(), 'name' => 'api_protected']);
+
+    $this->actingAs($user, 'sanctum')
+        ->deleteJson('/api/v1/control-panel/databases/'.$otherDatabase->getKey())
+        ->assertNotFound();
+
+    $this->actingAs($user, 'sanctum')
+        ->deleteJson('/api/v1/control-panel/databases/'.$database->getKey())
+        ->assertNoContent();
 });

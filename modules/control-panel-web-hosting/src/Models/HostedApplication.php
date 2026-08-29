@@ -17,6 +17,8 @@ final class HostedApplication extends Model
 
     protected $fillable = ['team_id', 'domain_id', 'name', 'type', 'version', 'document_root', 'status', 'config'];
 
+    protected $hidden = ['config'];
+
     protected function casts(): array
     {
         return ['config' => 'encrypted:array'];

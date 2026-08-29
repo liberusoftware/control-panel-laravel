@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\FilesLivewire\\FilesLivewireServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-files": "^1.0"}},
   "capabilities": ["control-panel.files.livewire"],
-  "features": ["File inventory", "SFTP inventory", "Permission and retention state"],
+  "features": ["Home directory inventory", "Permission state", "SFTP inventory", "File operation state", "Quota state", "Scanning state", "Retention state"],
   "default_enabled": false
 }

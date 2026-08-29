@@ -7,10 +7,13 @@ use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\WebHosting\Actions\CreateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\CreateRedirect;
 use Liberu\ControlPanel\WebHosting\Actions\CreateVirtualHost;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteHostedApplication;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteVirtualHost;
 use Liberu\ControlPanel\WebHosting\Actions\RequestCertificate;
 use Liberu\ControlPanel\WebHosting\Enums\CertificateStatus;
 use Liberu\ControlPanel\WebHosting\Enums\DomainStatus;
 use Liberu\ControlPanel\WebHosting\Models\Domain;
+use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
 use Liberu\ControlPanel\WebHosting\WebHostingServiceProvider;
 
 uses(RefreshDatabase::class);
@@ -40,4 +43,15 @@ it('rejects invalid redirects and malformed domains', function (): void {
     $domain = Domain::query()->create(['team_id' => 'team-1', 'hostname' => 'example.test', 'status' => DomainStatus::Pending]);
     expect(fn () => app(CreateRedirect::class)->execute($domain, ['source' => '/old', 'destination' => '/new', 'status_code' => 200]))
         ->toThrow(ValidationException::class);
+});
+
+it('deletes hosting resources through domain actions', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'delete.example.test']);
+    $virtualHost = app(CreateVirtualHost::class)->execute($domain, ['node_id' => 'node-1', 'server' => 'nginx', 'runtime' => 'php-8.5', 'document_root' => '/srv/delete']);
+    $application = HostedApplication::query()->create(['team_id' => 'team-1', 'domain_id' => $domain->getKey(), 'name' => 'Delete me', 'type' => 'static', 'document_root' => '/srv/delete', 'status' => 'installed']);
+
+    app(DeleteVirtualHost::class)->execute($virtualHost);
+    app(DeleteHostedApplication::class)->execute($application);
+
+    expect($virtualHost->fresh())->toBeNull()->and($application->fresh())->toBeNull();
 });

@@ -9,6 +9,7 @@ use Liberu\ControlPanel\ApiAutomation\Actions\RegisterApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\ResumeWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
+use Liberu\ControlPanel\ApiAutomation\Actions\UpdateWebhook;
 use Liberu\ControlPanel\ApiAutomation\ApiAutomationServiceProvider;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
 
@@ -38,6 +39,17 @@ it('rejects insecure webhook endpoints and makes orchestration idempotent', func
     $second = app(StartOrchestration::class)->execute($template, ['hostname' => 'node.test'], 'team-1', 'run-1');
 
     expect($second->getKey())->toBe($first->getKey());
+});
+
+it('updates webhook delivery settings without changing lifecycle state', function (): void {
+    $webhook = app(RegisterWebhook::class)->execute(['team_id' => 'team-1', 'name' => 'Events', 'url' => 'https://example.test/hooks']);
+
+    $updated = app(UpdateWebhook::class)->execute($webhook, ['name' => 'Updated events', 'url' => 'https://hooks.test/events', 'retry_limit' => 10]);
+
+    expect($updated->name)->toBe('Updated events')
+        ->and($updated->url)->toBe('https://hooks.test/events')
+        ->and($updated->retry_limit)->toBe(10)
+        ->and($updated->status)->toBe('active');
 });
 
 it('pauses and recovers failed webhooks while resetting delivery failures', function (): void {

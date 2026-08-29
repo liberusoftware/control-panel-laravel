@@ -18,10 +18,12 @@ class SearchService
     public function searchUsers(array $filters): LengthAwarePaginator
     {
         $query = config('search.models.user')::query();
+        $searchTerm = null;
 
         // Search by name or email
         if (! empty($filters['query'])) {
-            $query->search($this->toString($filters['query']));
+            $searchTerm = $this->toString($filters['query']);
+            $query->search($searchTerm);
         }
 
         // Filter by role. `role()` is Spatie's HasRoles scope, which this package
@@ -51,6 +53,11 @@ class SearchService
         // Order by
         $orderBy = $this->toString($filters['order_by'] ?? 'created_at');
         $orderDirection = ($filters['order_direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
+        if ($searchTerm !== null && ! array_key_exists('order_by', $filters)) {
+            $query->orderByRaw('CASE WHEN name = ? THEN 0 WHEN name LIKE ? THEN 1 WHEN email = ? THEN 2 ELSE 3 END', [$searchTerm, $searchTerm.'%', $searchTerm]);
+        }
+
         $query->orderBy($orderBy, $orderDirection);
 
         return $query->paginate($this->toInt($filters['per_page'] ?? 15));

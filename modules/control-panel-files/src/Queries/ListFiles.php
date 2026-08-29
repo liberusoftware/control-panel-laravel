@@ -9,7 +9,7 @@ use Liberu\ControlPanel\Files\Models\FileEntry;
 
 final class ListFiles
 {
-    public function execute(?string $teamId, int $perPage = 25, string $search = ''): LengthAwarePaginator
+    public function execute(string $teamId, int $perPage = 25, string $search = ''): LengthAwarePaginator
     {
         return FileEntry::query()
             ->where('team_id', $teamId)

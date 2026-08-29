@@ -30,6 +30,11 @@ it('rejects unknown monitoring resources', function (): void {
     expect(fn () => app(RecordMonitoringResource::class)->execute(['team_id' => 'team-1', 'kind' => 'unknown']))->toThrow(ValidationException::class);
 });
 
+it('rejects monitoring resources without a tenant', function (): void {
+    expect(fn () => app(RecordMonitoringResource::class)->execute(['kind' => 'metric', 'name' => 'cpu', 'value' => 42]))
+        ->toThrow(ValidationException::class);
+});
+
 it('resolves only open incident events', function (): void {
     $event = MonitoringEvent::query()->create(['id' => (string) Str::uuid(), 'team_id' => 'team-1', 'kind' => 'incident', 'status' => 'open', 'payload' => []]);
 

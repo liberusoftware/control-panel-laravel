@@ -42,3 +42,47 @@ it('pauses and resumes only a current-team webhook through the API', function ()
         ->postJson('/api/v1/control-panel/api-and-automation/webhooks/'.$otherWebhook->getKey().'/pause')
         ->assertNotFound();
 });
+
+it('rejects webhook state changes without a current team', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => null]);
+    $webhook = app(RegisterWebhook::class)->execute([
+        'team_id' => $team->getKey(), 'name' => 'Events', 'url' => 'https://example.test/hooks',
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/api-and-automation/webhooks/'.$webhook->getKey().'/pause')
+        ->assertForbidden();
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/api-and-automation/webhooks/'.$webhook->getKey().'/resume')
+        ->assertForbidden();
+});
+
+it('updates only a current-team webhook through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $webhook = app(RegisterWebhook::class)->execute(['team_id' => $team->getKey(), 'name' => 'Events', 'url' => 'https://example.test/hooks']);
+    $otherWebhook = app(RegisterWebhook::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Other', 'url' => 'https://other.test/hooks']);
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/api-and-automation/webhooks/'.$otherWebhook->getKey(), ['name' => 'Nope'])
+        ->assertNotFound();
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/api-and-automation/webhooks/'.$webhook->getKey(), ['name' => 'Updated', 'retry_limit' => 8])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.name', 'Updated')
+        ->assertJsonPath('data.attributes.retry_limit', 8);
+});
+
+it('bounds automation pagination', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/api-and-automation?per_page=1000')
+        ->assertOk()
+        ->assertJsonPath('meta.per_page', 100);
+});

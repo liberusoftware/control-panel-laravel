@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\DnsLivewire\Components;
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
+use Liberu\ControlPanel\Dns\Actions\UpdateZone;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -19,6 +20,9 @@ final class ZoneInventory extends Component
 
     public string $search = '';
 
+    /** @var array<string, array<string, mixed>> */
+    public array $edits = [];
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -26,22 +30,45 @@ final class ZoneInventory extends Component
 
     public function suspend(string $zoneId, SuspendZone $suspend): void
     {
-        $zone = Zone::query()->whereKey($zoneId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $zone = Zone::query()->whereKey($zoneId)->where('team_id', $this->teamId())->firstOrFail();
         $suspend->execute($zone);
     }
 
     public function archive(string $zoneId, ArchiveZone $archive): void
     {
-        $zone = Zone::query()->whereKey($zoneId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $zone = Zone::query()->whereKey($zoneId)->where('team_id', $this->teamId())->firstOrFail();
         $archive->execute($zone);
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function update(string $zoneId, ?array $attributes, UpdateZone $update): void
+    {
+        $zone = Zone::query()->whereKey($zoneId)->where('team_id', $this->teamId())->firstOrFail();
+        $attributes ??= $this->edits[$zoneId] ?? [];
+        validator($attributes, [
+            'domain' => ['required', 'string', 'max:253'],
+            'provider' => ['nullable', 'string', 'max:100'],
+            'dnssec_enabled' => ['sometimes', 'boolean'],
+            'metadata' => ['nullable', 'array'],
+        ])->validate();
+        $update->execute($zone, $attributes);
+        unset($this->edits[$zoneId]);
     }
 
     public function render(): View
     {
         $teamId = auth()->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
-        $zones = Zone::query()->with('records')->where('team_id', $teamId)->when(trim($this->search) !== '', fn ($query) => $query->where('name', 'like', '%'.trim($this->search).'%'))->latest()->paginate(min(max($this->perPage, 1), 100));
+        $zones = Zone::query()->with('records')->where('team_id', $teamId)->when(trim($this->search) !== '', fn ($query) => $query->where('domain', 'like', '%'.trim($this->search).'%'))->latest()->paginate(min(max($this->perPage, 1), 100));
 
         return view('control-panel-dns-livewire::components.zone-inventory', ['zones' => $zones]);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }

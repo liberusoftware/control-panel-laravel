@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Files\Actions\CreateHomeDirectory;
@@ -11,6 +12,9 @@ use Liberu\ControlPanel\Files\Actions\RegisterFile;
 use Liberu\ControlPanel\Files\Actions\SetFileRetention;
 use Liberu\ControlPanel\Files\FilesServiceProvider;
 use Liberu\ControlPanel\Files\Queries\ListFiles;
+use Liberu\ControlPanel\FilesLivewire\Components\FileInventory;
+use Liberu\ControlPanel\FilesLivewire\FilesLivewireServiceProvider;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
 
@@ -42,4 +46,14 @@ it('searches files within the current team only', function (): void {
 
     expect($files->total())->toBe(1)
         ->and($files->first()->path)->toBe('home/report.pdf');
+});
+
+it('requires a current team before rendering the files inventory', function (): void {
+    app()->register(FilesLivewireServiceProvider::class);
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    expect(fn () => app(FileInventory::class)->render(app(ListFiles::class)))
+        ->toThrow(HttpException::class);
 });

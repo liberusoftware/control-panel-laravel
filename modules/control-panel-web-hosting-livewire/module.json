@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\WebHostingLivewire\\WebHostingLivewireServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-web-hosting": "^1.0"}},
   "capabilities": ["control-panel.web-hosting.livewire"],
-  "features": ["Domain inventory", "Virtual-host inventory", "Certificate and redirect workflows"],
+  "features": ["Domain inventory", "Virtual-host inventory", "Runtime inventory", "Web server inventory", "SSL certificate inventory", "Hosting log inventory", "Redirect inventory", "Application inventory", "Git deployment inventory"],
   "default_enabled": false
 }

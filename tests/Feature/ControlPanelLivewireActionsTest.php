@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -12,6 +13,7 @@ use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
+use Liberu\ControlPanel\Accounts\Actions\UpdateDelegation;
 use Liberu\ControlPanel\Accounts\Models\Account;
 use Liberu\ControlPanel\Accounts\Models\AccountDelegation;
 use Liberu\ControlPanel\AccountsLivewire\AccountsLivewireServiceProvider;
@@ -52,6 +54,7 @@ use Liberu\ControlPanel\WebHosting\WebHostingServiceProvider;
 use Liberu\ControlPanel\WebHostingLivewire\Components\HostingResourceInventory;
 use Liberu\ControlPanel\WebHostingLivewire\WebHostingLivewireServiceProvider;
 use Liberu\Foundation\Organizations\Models\Team;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
 
@@ -110,6 +113,28 @@ it('revokes only a current-team credential from the Livewire inventory', functio
     expect($credential->fresh()->status->value)->toBe('revoked');
 });
 
+it('registers a tenant-scoped SSH public key from the Livewire inventory', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute([
+        'team_id' => $team->getKey(), 'name' => 'SSH node', 'hostname' => 'ssh.test',
+    ]);
+
+    $this->actingAs($user);
+    $component = app(CredentialInventory::class);
+    $component->nodeId = $node->getKey();
+    $component->name = 'Deploy key';
+    $component->username = 'deploy';
+    $component->publicKey = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIexample';
+    $component->createCredential(app(RegisterNodeCredential::class));
+
+    $credential = NodeCredential::query()->where('team_id', $team->getKey())->sole();
+    expect($credential->node_id)->toBe($node->getKey())
+        ->and($credential->type)->toBe('ssh')
+        ->and($credential->public_key)->toContain('ssh-ed25519')
+        ->and($credential->secret)->toBeNull();
+});
+
 it('transitions only a current-team operation task from the Livewire inventory', function (): void {
     $team = Team::factory()->create();
     $user = User::factory()->create(['current_team_id' => $team->getKey()]);
@@ -153,6 +178,15 @@ it('expires only a current-team credential from Livewire', function (): void {
     app(CredentialInventory::class)->expire($credential->getKey(), app(ExpireNodeCredential::class));
 
     expect(NodeCredential::query()->find($credential->getKey())->status->value)->toBe('expired');
+});
+
+it('fails closed when a credential inventory has no current team', function (): void {
+    $user = User::factory()->create(['current_team_id' => null]);
+
+    $this->actingAs($user);
+
+    expect(fn () => app(CredentialInventory::class)->render())
+        ->toThrow(HttpException::class);
 });
 
 it('activates only a current-team database from the Livewire inventory', function (): void {
@@ -210,6 +244,29 @@ it('suspends and revokes only current-team account records from Livewire', funct
         ->and(AccountDelegation::query()->find($delegation->getKey())->active)->toBeFalse();
 });
 
+it('updates only a current-team delegation from the Livewire inventory', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute([
+        'team_id' => $team->getKey(), 'owner_id' => $user->getKey(), 'name' => 'Delegation account',
+    ]);
+    $delegation = app(DelegateAccount::class)->execute($account, ['delegate_id' => 'delegate-1']);
+    $otherAccount = app(CreateAccount::class)->execute([
+        'team_id' => $otherTeam->getKey(), 'owner_id' => 'other-owner', 'name' => 'Other account',
+    ]);
+    $otherDelegation = app(DelegateAccount::class)->execute($otherAccount, ['delegate_id' => 'delegate-2']);
+
+    $this->actingAs($user);
+    $inventory = app(AccountFeatureInventory::class);
+    $inventory->delegationEdits[$delegation->getKey()] = ['permissions' => ['manage' => true]];
+    $inventory->updateDelegation($delegation->getKey(), null, app(UpdateDelegation::class));
+
+    expect($delegation->fresh()->permissions)->toMatchArray(['manage' => true]);
+    expect(fn () => $inventory->updateDelegation($otherDelegation->getKey(), [], app(UpdateDelegation::class)))
+        ->toThrow(ModelNotFoundException::class);
+});
+
 it('archives only a current-team account from Livewire', function (): void {
     $team = Team::factory()->create();
     $user = User::factory()->create(['current_team_id' => $team->getKey()]);
@@ -221,4 +278,13 @@ it('archives only a current-team account from Livewire', function (): void {
     app(AccountInventory::class)->archive($account->getKey(), app(ArchiveAccount::class));
 
     expect(Account::query()->find($account->getKey())->status->value)->toBe('archived');
+});
+
+it('requires a current team before rendering the account inventory', function (): void {
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    expect(fn () => app(AccountInventory::class)->render())
+        ->toThrow(HttpException::class);
 });

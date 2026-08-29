@@ -10,6 +10,10 @@ paths:
     post: {operationId: control.panel.containers.assets.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/containers/{workload}:
     get: {operationId: control.panel.containers.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/containers/{workload}/start:
+    post: {operationId: control.panel.containers.start, security: [{sanctum: []}], responses: {'200': {description: Workload started}}}
+  /api/v1/control-panel/containers/{workload}/stop:
+    post: {operationId: control.panel.containers.stop, security: [{sanctum: []}], responses: {'200': {description: Workload stopped}}}
 components:
   securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
   responses:

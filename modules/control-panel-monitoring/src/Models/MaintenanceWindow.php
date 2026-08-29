@@ -10,6 +10,10 @@ final class MaintenanceWindow extends Model
 {
     protected $table = 'control_panel_monitoring_maintenance';
 
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
     protected $fillable = ['id', 'team_id', 'name', 'starts_at', 'ends_at', 'scope', 'status', 'details'];
 
     protected function casts(): array

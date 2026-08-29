@@ -24,7 +24,9 @@ final class FileInventory extends Component
 
     public function render(ListFiles $list): View
     {
-        $files = $list->execute(auth()->user()?->current_team_id, $this->perPage, $this->search);
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $files = $list->execute((string) $teamId, $this->perPage, $this->search);
 
         return view('control-panel-files-livewire::components.file-inventory', ['files' => $files]);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\WebHostingFilament\Resources;
 
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -11,6 +12,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteHostedApplication;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
 use Liberu\ControlPanel\WebHostingFilament\Resources\HostedApplicationResource\Pages\CreateHostedApplication;
 use Liberu\ControlPanel\WebHostingFilament\Resources\HostedApplicationResource\Pages\EditHostedApplication;
@@ -39,7 +41,9 @@ final class HostedApplicationResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('name')->searchable(), TextColumn::make('type')->badge(), TextColumn::make('version'), TextColumn::make('document_root'), TextColumn::make('status')->badge()])->defaultSort('created_at', 'desc');
+        return $table->columns([TextColumn::make('name')->searchable(), TextColumn::make('type')->badge(), TextColumn::make('version'), TextColumn::make('document_root'), TextColumn::make('status')->badge()])->recordActions([
+            DeleteAction::make()->action(fn (HostedApplication $record): void => app(DeleteHostedApplication::class)->execute($record)),
+        ])->defaultSort('created_at', 'desc');
     }
 
     public static function getEloquentQuery(): Builder

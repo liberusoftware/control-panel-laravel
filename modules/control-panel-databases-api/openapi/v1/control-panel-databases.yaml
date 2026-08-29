@@ -32,6 +32,8 @@ paths:
     post: {operationId: control.panel.databases.remote.access.configure, security: [{sanctum: []}], responses: {'201': {description: Remote database access configured}}}
   /api/v1/control-panel/databases/{database}:
     get: {operationId: control.panel.databases.show, security: [{sanctum: []}], responses: {'200': {description: Authorized database resource}}}
+    patch: {operationId: control.panel.databases.update, security: [{sanctum: []}], responses: {'200': {description: Database updated.}, '404': {description: Database is outside the current team.}}}
+    delete: {operationId: control.panel.databases.delete, security: [{sanctum: []}], responses: {'204': {description: Database deleted.}, '404': {description: Database is outside the current team.}}}
   /api/v1/control-panel/databases/{database}/suspend:
     post: {operationId: control.panel.databases.suspend, security: [{sanctum: []}], responses: {'200': {description: Database suspended.}, '422': {description: Database cannot be suspended.}}}
   /api/v1/control-panel/databases/{database}/archive:

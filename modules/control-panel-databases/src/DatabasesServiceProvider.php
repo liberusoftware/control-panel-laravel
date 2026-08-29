@@ -9,6 +9,7 @@ use Liberu\ControlPanel\Databases\Actions\ArchiveDatabase;
 use Liberu\ControlPanel\Databases\Actions\ConfigureRemoteAccess;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabaseBackup;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabaseUser;
+use Liberu\ControlPanel\Databases\Actions\DeleteDatabase;
 use Liberu\ControlPanel\Databases\Actions\GrantDatabasePrivilege;
 use Liberu\ControlPanel\Databases\Actions\RecordDatabaseHealth;
 use Liberu\ControlPanel\Databases\Actions\RequestDatabaseUpgrade;
@@ -29,6 +30,7 @@ final class DatabasesServiceProvider extends ServiceProvider
         $this->app->scoped(CreateDatabaseUser::class);
         $this->app->scoped(GrantDatabasePrivilege::class);
         $this->app->scoped(CreateDatabaseBackup::class);
+        $this->app->scoped(DeleteDatabase::class);
         $this->app->scoped(RecordDatabaseHealth::class);
         $this->app->scoped(RequestDatabaseUpgrade::class);
         $this->app->scoped(ConfigureRemoteAccess::class);

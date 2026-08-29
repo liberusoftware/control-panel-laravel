@@ -12,6 +12,8 @@ final class BackupEncryption extends Model
 
     protected $fillable = ['id', 'team_id', 'policy_id', 'algorithm', 'key_reference', 'active', 'rotated_at'];
 
+    protected $hidden = ['key_reference'];
+
     protected function casts(): array
     {
         return ['key_reference' => 'encrypted', 'active' => 'boolean', 'rotated_at' => 'datetime'];

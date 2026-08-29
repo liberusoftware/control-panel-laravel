@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\CertificatesLivewire\\CertificatesLivewireServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-certificates": "^1.0"}},
   "capabilities": ["control-panel.certificates.livewire"],
-  "features": ["Certificate inventory", "Certificate operation state"],
+  "features": ["ACME account inventory", "Certificate inventory", "Issuance state", "Deployment state", "Renewal state", "Revocation state", "Expiry monitoring"],
   "default_enabled": false
 }

@@ -56,3 +56,10 @@ it('resolves only open security findings through the lifecycle action', function
         ->toThrow(ValidationException::class);
     expect(SecurityFinding::query()->find($finding->getKey())->status)->toBe('resolved');
 });
+
+it('requires tenant context when recording security findings', function (): void {
+    expect(fn () => app(RecordFinding::class)->execute([
+        'subject_type' => 'node', 'subject_id' => 'node-1',
+        'code' => 'weak-ssh', 'severity' => 'high', 'summary' => 'SSH hardening is required',
+    ]))->toThrow(ValidationException::class);
+});

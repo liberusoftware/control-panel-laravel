@@ -16,6 +16,7 @@ final class DnsFeatureInventory extends Component
     public function render(): View
     {
         $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
 
         return view('control-panel-dns-livewire::components.dns-feature-inventory', ['templates' => DnsTemplate::query()->where('team_id', $teamId)->latest()->limit(10)->get(), 'checks' => DnsCheck::query()->where('team_id', $teamId)->latest()->paginate(min(max($this->perPage, 1), 100))]);
     }

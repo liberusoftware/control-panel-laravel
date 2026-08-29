@@ -10,6 +10,8 @@ use Liberu\ControlPanel\WebHosting\Actions\ArchiveDomain;
 use Liberu\ControlPanel\WebHosting\Actions\CreateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\CreateRedirect;
 use Liberu\ControlPanel\WebHosting\Actions\CreateVirtualHost;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteHostedApplication;
+use Liberu\ControlPanel\WebHosting\Actions\DeleteVirtualHost;
 use Liberu\ControlPanel\WebHosting\Actions\RegisterGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\RegisterHostingResource;
 use Liberu\ControlPanel\WebHosting\Actions\RequestCertificate;
@@ -26,6 +28,8 @@ final class WebHostingServiceProvider extends ServiceProvider
         $this->app->scoped(ArchiveDomain::class);
         $this->app->scoped(CreateDomain::class);
         $this->app->scoped(CreateVirtualHost::class);
+        $this->app->scoped(DeleteHostedApplication::class);
+        $this->app->scoped(DeleteVirtualHost::class);
         $this->app->scoped(ListDomains::class);
         $this->app->scoped(CreateRedirect::class);
         $this->app->scoped(RequestCertificate::class);
