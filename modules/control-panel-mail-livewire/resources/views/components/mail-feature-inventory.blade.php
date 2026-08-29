@@ -10,7 +10,7 @@
     <h2>{{ __('Mail routes') }}</h2>
     <ul>
         @forelse ($routes as $route)
-            <li wire:key="route-{{ $route->getKey() }}">{{ $route->domain }} — {{ $route->source_pattern }} → {{ $route->destination }}</li>
+            <li wire:key="route-{{ $route->getKey() }}">{{ $route->domain }} — <form wire:submit="updateRoute('{{ $route->getKey() }}', null)" class="inline"><input aria-label="{{ __('Route source pattern') }}" wire:model="routeEdits.{{ $route->getKey() }}.source_pattern" value="{{ $route->source_pattern }}"><input aria-label="{{ __('Route destination') }}" wire:model="routeEdits.{{ $route->getKey() }}.destination" value="{{ $route->destination }}"><button type="submit">{{ __('Save') }}</button></form> <button type="button" wire:click="deleteRoute('{{ $route->getKey() }}')">{{ __('Delete') }}</button></li>
         @empty
             <li>{{ __('No mail routes found.') }}</li>
         @endforelse

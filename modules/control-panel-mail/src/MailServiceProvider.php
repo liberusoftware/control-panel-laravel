@@ -11,11 +11,13 @@ use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
 use Liberu\ControlPanel\Mail\Actions\CreateMailRoute;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailRoute;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\Actions\RegisterMailDomain;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAlias;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailRoute;
 use Liberu\ControlPanel\Mail\Queries\ListMailAccounts;
 
 final class MailServiceProvider extends ServiceProvider
@@ -28,6 +30,8 @@ final class MailServiceProvider extends ServiceProvider
         $this->app->scoped(DeleteMailAlias::class);
         $this->app->scoped(UpdateMailAlias::class);
         $this->app->scoped(CreateMailRoute::class);
+        $this->app->scoped(DeleteMailRoute::class);
+        $this->app->scoped(UpdateMailRoute::class);
         $this->app->scoped(ConfigureMailControls::class);
         $this->app->scoped(RecordDeliveryDiagnostic::class);
         $this->app->scoped(ListMailAccounts::class);

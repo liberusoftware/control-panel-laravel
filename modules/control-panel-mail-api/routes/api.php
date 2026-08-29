@@ -13,6 +13,8 @@ Route::prefix('api/v1/control-panel/mail')->middleware(['api', 'auth:sanctum', '
     Route::patch('/aliases/{alias}', [MailAccountController::class, 'updateAlias'])->name('control-panel.mail.aliases.update');
     Route::delete('/aliases/{alias}', [MailAccountController::class, 'deleteAlias'])->name('control-panel.mail.aliases.delete');
     Route::post('/routes', [MailAccountController::class, 'route'])->name('control-panel.mail.routes.store');
+    Route::patch('/routes/{route}', [MailAccountController::class, 'updateRoute'])->name('control-panel.mail.routes.update');
+    Route::delete('/routes/{route}', [MailAccountController::class, 'deleteRoute'])->name('control-panel.mail.routes.delete');
     Route::post('/controls', [MailAccountController::class, 'controls'])->name('control-panel.mail.controls.store');
     Route::post('/delivery-diagnostics', [MailAccountController::class, 'diagnostic'])->name('control-panel.mail.delivery-diagnostics.store');
     Route::post('/dkim/rotate', [MailAccountController::class, 'rotateDkim'])->name('control-panel.mail.dkim.rotate');

@@ -12,12 +12,14 @@ use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
 use Liberu\ControlPanel\Mail\Actions\CreateMailRoute;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailRoute;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\Actions\RegisterMailDomain;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAlias;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailRoute;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
 use Liberu\ControlPanel\Mail\Models\MailAlias;
 use Liberu\ControlPanel\Mail\Models\MailDomain;
@@ -116,6 +118,26 @@ final class MailAccountController
         abort_if($teamId === null, 403, 'A current team is required.');
         $alias = MailAlias::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
         $delete->execute($alias);
+
+        return response()->json(status: 204);
+    }
+
+    public function updateRoute(Request $request, string $id, UpdateMailRoute $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $route = MailRoute::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['domain' => ['sometimes', 'string', 'max:253'], 'source_pattern' => ['sometimes', 'string', 'max:255'], 'destination' => ['sometimes', 'email', 'max:320'], 'priority' => ['sometimes', 'integer', 'min:0'], 'active' => ['sometimes', 'boolean']]);
+
+        return response()->json(['data' => self::routeResource($update->execute($route, $data))]);
+    }
+
+    public function deleteRoute(Request $request, string $id, DeleteMailRoute $delete): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $route = MailRoute::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($route);
 
         return response()->json(status: 204);
     }

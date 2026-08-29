@@ -7,13 +7,17 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
+use Liberu\ControlPanel\Mail\Actions\CreateMailRoute;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailRoute;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAlias;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailRoute;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
 use Liberu\ControlPanel\Mail\Models\MailAlias;
+use Liberu\ControlPanel\Mail\Models\MailRoute;
 use Liberu\ControlPanel\MailApi\MailApiServiceProvider;
 use Liberu\ControlPanel\MailLivewire\Components\MailFeatureInventory;
 use Liberu\ControlPanel\MailLivewire\Components\MailInventory;
@@ -136,4 +140,28 @@ it('rejects mail operations targeting another team account', function (): void {
 
     $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/mail/operations', ['mail_account_id' => $foreign->getKey(), 'operation' => 'deliver'])->assertNotFound();
     $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/mail/controls', ['mail_account_id' => $foreign->getKey(), 'spam_threshold' => 5])->assertNotFound();
+});
+
+it('updates and deletes only a current-team route through API and Livewire', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreign = app(CreateMailRoute::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'other-route.test', 'source_pattern' => 'support', 'destination' => 'other@example.test']);
+    $owned = app(CreateMailRoute::class)->execute(['team_id' => $team->getKey(), 'domain' => 'owned-route.test', 'source_pattern' => 'support', 'destination' => 'ops@example.test']);
+
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/mail/routes/'.$foreign->getKey(), ['destination' => 'blocked@example.test'])->assertNotFound();
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/mail/routes/'.$owned->getKey(), ['source_pattern' => 'helpdesk', 'destination' => 'team@example.test', 'priority' => 10])->assertOk()->assertJsonPath('data.attributes.source_pattern', 'helpdesk');
+
+    $inventory = app(MailFeatureInventory::class);
+    $this->actingAs($user);
+    expect(fn () => $inventory->updateRoute($foreign->getKey(), ['domain' => 'other-route.test', 'source_pattern' => 'support', 'destination' => 'other@example.test', 'priority' => 100], app(UpdateMailRoute::class)))->toThrow(ModelNotFoundException::class);
+
+    $livewireRoute = app(CreateMailRoute::class)->execute(['team_id' => $team->getKey(), 'domain' => 'livewire-route.test', 'source_pattern' => 'support', 'destination' => 'ops@example.test']);
+    $inventory->deleteRoute($livewireRoute->getKey(), app(DeleteMailRoute::class));
+
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/mail/routes/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/mail/routes/'.$owned->getKey())->assertNoContent();
+
+    expect(MailRoute::query()->whereKey($owned->getKey())->exists())->toBeFalse()
+        ->and(MailRoute::query()->whereKey($livewireRoute->getKey())->exists())->toBeFalse();
 });

@@ -6,8 +6,10 @@ namespace Liberu\ControlPanel\MailLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailRoute;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAlias;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailRoute;
 use Liberu\ControlPanel\Mail\Models\DeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Models\DkimKey;
 use Liberu\ControlPanel\Mail\Models\MailAlias;
@@ -21,6 +23,9 @@ final class MailFeatureInventory extends Component
 
     /** @var array<string, array<string, mixed>> */
     public array $aliasEdits = [];
+
+    /** @var array<string, array<string, mixed>> */
+    public array $routeEdits = [];
 
     public function rotateDkim(string $domain, RotateDkimKey $rotate): void
     {
@@ -42,6 +47,23 @@ final class MailFeatureInventory extends Component
         $alias = MailAlias::query()->whereKey($aliasId)->where('team_id', $this->teamId())->firstOrFail();
         $delete->execute($alias);
         unset($this->aliasEdits[$aliasId]);
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function updateRoute(string $routeId, ?array $attributes, UpdateMailRoute $update): void
+    {
+        $route = MailRoute::query()->whereKey($routeId)->where('team_id', $this->teamId())->firstOrFail();
+        $attributes ??= $this->routeEdits[$routeId] ?? [];
+        validator($attributes, ['domain' => ['required', 'string', 'max:253'], 'source_pattern' => ['required', 'string', 'max:255'], 'destination' => ['required', 'email', 'max:320'], 'priority' => ['required', 'integer', 'min:0'], 'active' => ['sometimes', 'boolean']])->validate();
+        $update->execute($route, $attributes);
+        unset($this->routeEdits[$routeId]);
+    }
+
+    public function deleteRoute(string $routeId, DeleteMailRoute $delete): void
+    {
+        $route = MailRoute::query()->whereKey($routeId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($route);
+        unset($this->routeEdits[$routeId]);
     }
 
     public function render(): View

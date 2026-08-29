@@ -6,13 +6,16 @@ use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Mail\Actions\ConfigureMailControls;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
+use Liberu\ControlPanel\Mail\Actions\CreateMailRoute;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailRoute;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAlias;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailRoute;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
 use Liberu\ControlPanel\Mail\Models\DkimKey;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
@@ -70,6 +73,33 @@ it('rejects alias updates without valid destinations', function (): void {
 
     expect(fn () => app(UpdateMailAlias::class)->execute($alias, ['destinations' => ['not-an-email']]))
         ->toThrow(ValidationException::class);
+});
+
+it('updates and deletes mail routes through domain actions', function (): void {
+    $route = app(CreateMailRoute::class)->execute([
+        'team_id' => 'team-1',
+        'domain' => 'example.test',
+        'source_pattern' => 'support',
+        'destination' => 'ops@example.test',
+    ]);
+
+    $updated = app(UpdateMailRoute::class)->execute($route, [
+        'domain' => 'mail.test',
+        'source_pattern' => 'helpdesk',
+        'destination' => 'team@example.test',
+        'priority' => 20,
+        'active' => false,
+    ]);
+
+    expect($updated->domain)->toBe('mail.test')
+        ->and($updated->source_pattern)->toBe('helpdesk')
+        ->and($updated->destination)->toBe('team@example.test')
+        ->and($updated->priority)->toBe(20)
+        ->and($updated->active)->toBeFalse();
+
+    app(DeleteMailRoute::class)->execute($updated);
+
+    expect($route->newQuery()->whereKey($route->getKey())->exists())->toBeFalse();
 });
 
 it('rotates DKIM keys without writing provider-specific mail configuration', function (): void {
