@@ -41,7 +41,7 @@ it('rotates DKIM keys without writing provider-specific mail configuration', fun
 it('updates mailbox settings while preserving lifecycle state', function (): void {
     $account = app(CreateMailAccount::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test', 'address' => 'support', 'quota_bytes' => 100]);
 
-    $updated = app(UpdateMailAccount::class)->execute($account, ['domain' => 'mail.test', 'address' => 'helpdesk', 'quota_bytes' => 200]);
+    $updated = app(UpdateMailAccount::class)->execute($account, ['domain' => 'mail.test', 'address' => 'helpdesk@mail.test', 'quota_bytes' => 200]);
 
-    expect($updated->domain)->toBe('mail.test')->and($updated->address)->toBe('helpdesk')->and($updated->quota_bytes)->toBe(200)->and($updated->status)->toBe('active');
+    expect($updated->domain)->toBe('mail.test')->and($updated->address)->toBe('helpdesk@mail.test')->and($updated->quota_bytes)->toBe(200)->and($updated->status)->toBe('active');
 });

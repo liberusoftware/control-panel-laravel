@@ -20,7 +20,8 @@ final class UpdateMailAccount
             throw ValidationException::withMessages(['domain' => 'A valid mail domain is required.']);
         }
 
-        if (! filter_var($address.'@'.$domain, FILTER_VALIDATE_EMAIL)) {
+        $mailbox = str_contains($address, '@') ? $address : $address.'@'.$domain;
+        if (! filter_var($mailbox, FILTER_VALIDATE_EMAIL)) {
             throw ValidationException::withMessages(['address' => 'A valid mailbox address is required.']);
         }
 
@@ -28,7 +29,7 @@ final class UpdateMailAccount
             throw ValidationException::withMessages(['quota_bytes' => 'The mailbox quota cannot be negative.']);
         }
 
-        $account->forceFill(['domain' => $domain, 'address' => $address, 'quota_bytes' => $quota])->save();
+        $account->forceFill(['domain' => $domain, 'address' => $mailbox, 'quota_bytes' => $quota])->save();
 
         return $account->refresh();
     }

@@ -44,7 +44,7 @@ it('updates only a current-team mailbox from Livewire', function (): void {
     $this->actingAs($user);
 
     expect(fn () => $inventory->update($foreign->getKey(), ['domain' => 'other.test', 'address' => 'support', 'quota_bytes' => 5], app(UpdateMailAccount::class)))->toThrow(ModelNotFoundException::class);
-    $inventory->update($owned->getKey(), ['domain' => 'owned.test', 'address' => 'helpdesk', 'quota_bytes' => 5], app(UpdateMailAccount::class));
+    $inventory->update($owned->getKey(), ['domain' => 'owned.test', 'address' => 'helpdesk@owned.test', 'quota_bytes' => 5], app(UpdateMailAccount::class));
 
-    expect(MailAccount::query()->findOrFail($owned->getKey())->address)->toBe('helpdesk');
+    expect(MailAccount::query()->findOrFail($owned->getKey())->address)->toBe('helpdesk@owned.test');
 });
