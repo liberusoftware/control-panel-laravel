@@ -15,6 +15,7 @@ use Liberu\ControlPanel\Certificates\Actions\RegisterCertificateLifecycle;
 use Liberu\ControlPanel\Certificates\Actions\RequestCertificateDeployment;
 use Liberu\ControlPanel\Certificates\Actions\RequestCertificateRenewal;
 use Liberu\ControlPanel\Certificates\Actions\RevokeCertificate;
+use Liberu\ControlPanel\Certificates\Actions\UpdateCertificate;
 use Liberu\ControlPanel\Certificates\Models\Certificate;
 use Liberu\ControlPanel\Certificates\Queries\ListCertificates;
 
@@ -36,6 +37,14 @@ final class CertificateController
         $item = Certificate::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-certificate', 'attributes' => $item->toArray()]]);
+    }
+
+    public function update(Request $request, string $id, UpdateCertificate $update): JsonResponse
+    {
+        $certificate = $this->findForTeam($request, $id);
+        $data = $request->validate(['domains' => ['sometimes', 'array', 'min:1'], 'domains.*' => ['string', 'max:253'], 'issuer' => ['sometimes', 'string', 'max:160'], 'expires_at' => ['sometimes', 'date', 'after:now'], 'metadata' => ['sometimes', 'array']]);
+
+        return response()->json(['data' => self::resource($update->execute($certificate, $data))]);
     }
 
     public function store(Request $request, IssueCertificate $issue): JsonResponse

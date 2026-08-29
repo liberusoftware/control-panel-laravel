@@ -17,4 +17,5 @@ Route::prefix('api/v1/control-panel/certificates')->middleware(['api', 'auth:san
     Route::post('/{certificate}/expire', [CertificateController::class, 'expire'])->name('control-panel.certificates.expire');
     Route::post('/{certificate}/revoke', [CertificateController::class, 'revoke'])->name('control-panel.certificates.revoke');
     Route::get('/{certificate}', [CertificateController::class, 'show'])->name('control-panel.certificates.show');
+    Route::patch('/{certificate}', [CertificateController::class, 'update'])->name('control-panel.certificates.update');
 });

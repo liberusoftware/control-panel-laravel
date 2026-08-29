@@ -5,12 +5,20 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\CertificatesLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Certificates\Actions\UpdateCertificate;
 use Liberu\ControlPanel\Certificates\Models\Certificate;
 use Livewire\Component;
 
 final class CertificateInventory extends Component
 {
     public int $perPage = 25;
+
+    /** @param array<string, mixed> $attributes */
+    public function update(string $certificateId, array $attributes, UpdateCertificate $update): void
+    {
+        $certificate = Certificate::query()->whereKey($certificateId)->where('team_id', $this->teamId())->firstOrFail();
+        $update->execute($certificate, $attributes);
+    }
 
     public function render(): View
     {
