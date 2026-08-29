@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\ContainersLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Containers\Actions\DeleteWorkload;
 use Liberu\ControlPanel\Containers\Actions\StartWorkload;
 use Liberu\ControlPanel\Containers\Actions\StopWorkload;
 use Liberu\ControlPanel\Containers\Models\Workload;
@@ -25,6 +26,12 @@ final class WorkloadInventory extends Component
     {
         $workload = Workload::query()->whereKey($workloadId)->where('team_id', $this->teamId())->firstOrFail();
         $stop->execute($workload);
+    }
+
+    public function delete(string $workloadId, DeleteWorkload $delete): void
+    {
+        $workload = Workload::query()->whereKey($workloadId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($workload);
     }
 
     public function render(ListWorkloads $list): View

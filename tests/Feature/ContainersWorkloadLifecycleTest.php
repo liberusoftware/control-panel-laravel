@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\Containers\Actions\DeleteWorkload;
 use Liberu\ControlPanel\Containers\Actions\RegisterWorkload;
 use Liberu\ControlPanel\Containers\Actions\StartWorkload;
 use Liberu\ControlPanel\Containers\Actions\StopWorkload;
@@ -32,6 +33,9 @@ it('starts and stops a workload and rejects duplicate transitions', function ():
     expect(fn () => app(StartWorkload::class)->execute($running))->toThrow(ValidationException::class);
     $stopped = app(StopWorkload::class)->execute($running);
     expect($stopped->status)->toBe('stopped');
+
+    app(DeleteWorkload::class)->execute($stopped);
+    expect(Workload::query()->whereKey($workload->getKey())->exists())->toBeFalse();
 });
 
 it('enforces tenant ownership through API and Livewire workload controls', function (): void {
@@ -48,4 +52,19 @@ it('enforces tenant ownership through API and Livewire workload controls', funct
     $this->actingAs($user);
     app(WorkloadInventory::class)->start($livewireWorkload->getKey(), app(StartWorkload::class));
     expect(Workload::query()->findOrFail($livewireWorkload->getKey())->status)->toBe('running');
+});
+
+it('deletes only stopped workloads through API and Livewire', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreign = app(RegisterWorkload::class)->execute(['team_id' => $otherTeam->getKey(), 'node_id' => (string) Str::uuid(), 'name' => 'foreign', 'image' => 'nginx']);
+    $owned = app(RegisterWorkload::class)->execute(['team_id' => $team->getKey(), 'node_id' => (string) Str::uuid(), 'name' => 'owned', 'image' => 'nginx']);
+
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/containers/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/containers/'.$owned->getKey())->assertNoContent();
+
+    $running = app(RegisterWorkload::class)->execute(['team_id' => $team->getKey(), 'node_id' => (string) Str::uuid(), 'name' => 'running', 'image' => 'nginx']);
+    app(StartWorkload::class)->execute($running);
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/containers/'.$running->getKey())->assertUnprocessable();
 });

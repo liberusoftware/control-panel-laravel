@@ -12,5 +12,6 @@ Route::prefix('api/v1/control-panel/containers')->middleware(['api', 'auth:sanct
     Route::post('/assets', [WorkloadController::class, 'asset'])->name('control-panel.containers.assets.store');
     Route::post('{workload}/start', [WorkloadController::class, 'start'])->name('control-panel.containers.start');
     Route::post('{workload}/stop', [WorkloadController::class, 'stop'])->name('control-panel.containers.stop');
+    Route::delete('{workload}', [WorkloadController::class, 'delete'])->name('control-panel.containers.delete');
     Route::get('{workload}', [WorkloadController::class, 'show'])->name('control-panel.containers.show');
 });
