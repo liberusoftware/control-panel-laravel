@@ -156,6 +156,15 @@ it('expires only a current-team credential from Livewire', function (): void {
     expect(NodeCredential::query()->find($credential->getKey())->status->value)->toBe('expired');
 });
 
+it('fails closed when a credential inventory has no current team', function (): void {
+    $user = User::factory()->create(['current_team_id' => null]);
+
+    $this->actingAs($user);
+
+    expect(fn () => app(CredentialInventory::class)->render())
+        ->toThrow(HttpException::class);
+});
+
 it('activates only a current-team database from the Livewire inventory', function (): void {
     $team = Team::factory()->create();
     $user = User::factory()->create(['current_team_id' => $team->getKey()]);

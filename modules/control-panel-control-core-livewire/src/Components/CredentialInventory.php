@@ -19,7 +19,7 @@ final class CredentialInventory extends Component
     {
         $credential = NodeCredential::query()
             ->whereKey($credentialId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
 
         $revoke->execute($credential);
@@ -29,7 +29,7 @@ final class CredentialInventory extends Component
     {
         $credential = NodeCredential::query()
             ->whereKey($credentialId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
 
         $expire->execute($credential);
@@ -37,8 +37,16 @@ final class CredentialInventory extends Component
 
     public function render(): View
     {
-        $credentials = NodeCredential::query()->where('team_id', auth()->user()?->current_team_id)->latest()->paginate(25);
+        $credentials = NodeCredential::query()->where('team_id', $this->teamId())->latest()->paginate(25);
 
         return view('control-panel-control-core-livewire::components.credential-inventory', ['credentials' => $credentials]);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }

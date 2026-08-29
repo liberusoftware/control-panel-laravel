@@ -24,7 +24,7 @@ final class CertificateOperationInventory extends Component
     {
         $certificate = Certificate::query()
             ->whereKey($certificateId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
 
         $renew->execute($certificate);
@@ -35,7 +35,7 @@ final class CertificateOperationInventory extends Component
     {
         $certificate = Certificate::query()
             ->whereKey($certificateId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
 
         $check->execute($certificate);
@@ -45,7 +45,7 @@ final class CertificateOperationInventory extends Component
     {
         $certificate = Certificate::query()
             ->whereKey($certificateId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
 
         $revoke->execute($certificate);
@@ -55,7 +55,7 @@ final class CertificateOperationInventory extends Component
     {
         $certificate = Certificate::query()
             ->whereKey($certificateId)
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->firstOrFail();
 
         $expire->execute($certificate);
@@ -64,11 +64,19 @@ final class CertificateOperationInventory extends Component
     public function render(): View
     {
         $certificates = Certificate::query()
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $this->teamId())
             ->latest()
             ->get();
-        $operations = CertificateOperation::query()->where('team_id', auth()->user()?->current_team_id)->latest()->paginate(min(max($this->perPage, 1), 100));
+        $operations = CertificateOperation::query()->where('team_id', $this->teamId())->latest()->paginate(min(max($this->perPage, 1), 100));
 
         return view('control-panel-certificates-livewire::components.certificate-operation-inventory', compact('certificates', 'operations'));
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }

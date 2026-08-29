@@ -17,22 +17,30 @@ final class MonitoringFeatureInventory extends Component
 
     public function cancelMaintenance(string $windowId, CancelMaintenanceWindow $cancel): void
     {
-        $window = MaintenanceWindow::query()->whereKey($windowId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $window = MaintenanceWindow::query()->whereKey($windowId)->where('team_id', $this->teamId())->firstOrFail();
         $cancel->execute($window);
     }
 
     public function resolveEvent(string $eventId, ResolveMonitoringEvent $resolve): void
     {
-        $event = MonitoringEvent::query()->whereKey($eventId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $event = MonitoringEvent::query()->whereKey($eventId)->where('team_id', $this->teamId())->firstOrFail();
         $resolve->execute($event);
     }
 
     public function render(): View
     {
-        $events = MonitoringEvent::query()->where('team_id', auth()->user()?->current_team_id)->latest()->paginate(min(max($this->perPage, 1), 100));
+        $events = MonitoringEvent::query()->where('team_id', $this->teamId())->latest()->paginate(min(max($this->perPage, 1), 100));
 
-        $maintenance = MaintenanceWindow::query()->where('team_id', auth()->user()?->current_team_id)->latest('starts_at')->limit(10)->get();
+        $maintenance = MaintenanceWindow::query()->where('team_id', $this->teamId())->latest('starts_at')->limit(10)->get();
 
         return view('control-panel-monitoring-livewire::components.monitoring-feature-inventory', ['events' => $events, 'maintenance' => $maintenance]);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }

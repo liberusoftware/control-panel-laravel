@@ -24,8 +24,9 @@ final class SftpInventory extends Component
 
     public function render(): View
     {
+        $teamId = $this->teamId();
         $accounts = SftpAccount::query()
-            ->where('team_id', auth()->user()?->current_team_id)
+            ->where('team_id', $teamId)
             ->when(trim($this->search) !== '', fn ($query) => $query->where(function ($query): void {
                 $query->where('username', 'like', '%'.trim($this->search).'%')
                     ->orWhere('home_directory', 'like', '%'.trim($this->search).'%');
@@ -34,5 +35,13 @@ final class SftpInventory extends Component
             ->paginate(min(max($this->perPage, 1), 100));
 
         return view('control-panel-files-livewire::components.sftp-inventory', ['accounts' => $accounts]);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }

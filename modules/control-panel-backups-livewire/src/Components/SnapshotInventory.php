@@ -20,7 +20,7 @@ final class SnapshotInventory extends Component
 
     public function verify(string $snapshotId, VerifySnapshot $verify): void
     {
-        $snapshot = BackupSnapshot::query()->whereKey($snapshotId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $snapshot = BackupSnapshot::query()->whereKey($snapshotId)->where('team_id', $this->teamId())->firstOrFail();
         $this->validate(['checksum' => ['required', 'string', 'max:255']]);
         $verify->execute($snapshot, $this->checksum);
         $this->reset('checksum');
@@ -28,16 +28,25 @@ final class SnapshotInventory extends Component
 
     public function restore(string $snapshotId, RequestRestore $restore): void
     {
-        $snapshot = BackupSnapshot::query()->whereKey($snapshotId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $teamId = $this->teamId();
+        $snapshot = BackupSnapshot::query()->whereKey($snapshotId)->where('team_id', $teamId)->firstOrFail();
         $this->validate(['restoreTarget' => ['required', 'string', 'max:1024']]);
-        $restore->execute($snapshot, (string) auth()->user()?->current_team_id, $this->restoreTarget);
+        $restore->execute($snapshot, $teamId, $this->restoreTarget);
         $this->reset('restoreTarget');
     }
 
     public function render(): View
     {
-        $snapshots = BackupSnapshot::query()->with('policy')->where('team_id', auth()->user()?->current_team_id)->latest()->paginate(min(max($this->perPage, 1), 100));
+        $snapshots = BackupSnapshot::query()->with('policy')->where('team_id', $this->teamId())->latest()->paginate(min(max($this->perPage, 1), 100));
 
         return view('control-panel-backups-livewire::components.snapshot-inventory', ['snapshots' => $snapshots]);
+    }
+
+    private function teamId(): string
+    {
+        $teamId = auth()->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return (string) $teamId;
     }
 }
