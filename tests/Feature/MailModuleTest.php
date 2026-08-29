@@ -7,10 +7,12 @@ use Liberu\ControlPanel\Mail\Actions\ConfigureMailControls;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailAlias;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
 use Liberu\ControlPanel\Mail\Models\DkimKey;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
@@ -31,6 +33,43 @@ it('supports aliases, mailbox controls, spam and virus settings, and diagnostics
 it('rejects aliases without destinations and unsafe spam thresholds', function (): void {
     expect(fn () => app(CreateMailAlias::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test', 'address' => 'support', 'destinations' => []]))->toThrow(ValidationException::class);
     expect(fn () => app(ConfigureMailControls::class)->execute(['team_id' => 'team-1', 'mail_account_id' => 'account-1', 'spam_threshold' => 99]))->toThrow(ValidationException::class);
+});
+
+it('updates and deletes aliases through domain actions', function (): void {
+    $alias = app(CreateMailAlias::class)->execute([
+        'team_id' => 'team-1',
+        'domain' => 'example.test',
+        'address' => 'support',
+        'destinations' => ['ops@example.test'],
+    ]);
+
+    $updated = app(UpdateMailAlias::class)->execute($alias, [
+        'domain' => 'mail.test',
+        'address' => 'helpdesk',
+        'destinations' => ['team@example.test', 'backup@example.test'],
+        'active' => false,
+    ]);
+
+    expect($updated->domain)->toBe('mail.test')
+        ->and($updated->address)->toBe('helpdesk')
+        ->and($updated->destinations)->toBe(['team@example.test', 'backup@example.test'])
+        ->and($updated->active)->toBeFalse();
+
+    app(DeleteMailAlias::class)->execute($updated);
+
+    expect($alias->newQuery()->whereKey($alias->getKey())->exists())->toBeFalse();
+});
+
+it('rejects alias updates without valid destinations', function (): void {
+    $alias = app(CreateMailAlias::class)->execute([
+        'team_id' => 'team-1',
+        'domain' => 'example.test',
+        'address' => 'support',
+        'destinations' => ['ops@example.test'],
+    ]);
+
+    expect(fn () => app(UpdateMailAlias::class)->execute($alias, ['destinations' => ['not-an-email']]))
+        ->toThrow(ValidationException::class);
 });
 
 it('rotates DKIM keys without writing provider-specific mail configuration', function (): void {

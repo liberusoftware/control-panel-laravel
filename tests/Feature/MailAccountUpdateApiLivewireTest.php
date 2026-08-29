@@ -6,11 +6,16 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
+use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailAlias;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
+use Liberu\ControlPanel\Mail\Models\MailAlias;
 use Liberu\ControlPanel\MailApi\MailApiServiceProvider;
+use Liberu\ControlPanel\MailLivewire\Components\MailFeatureInventory;
 use Liberu\ControlPanel\MailLivewire\Components\MailInventory;
 use Liberu\ControlPanel\MailLivewire\MailLivewireServiceProvider;
 use Liberu\Foundation\Organizations\Models\Team;
@@ -67,6 +72,60 @@ it('deletes only a current-team mailbox through API and Livewire', function (): 
 
     expect(MailAccount::query()->whereKey($owned->getKey())->exists())->toBeFalse()
         ->and(MailAccount::query()->whereKey($livewireAccount->getKey())->exists())->toBeFalse();
+});
+
+it('updates and deletes only a current-team alias through API and Livewire', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreign = app(CreateMailAlias::class)->execute([
+        'team_id' => $otherTeam->getKey(),
+        'domain' => 'other-alias.test',
+        'address' => 'support',
+        'destinations' => ['other@example.test'],
+    ]);
+    $owned = app(CreateMailAlias::class)->execute([
+        'team_id' => $team->getKey(),
+        'domain' => 'owned-alias.test',
+        'address' => 'support',
+        'destinations' => ['ops@example.test'],
+    ]);
+
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/mail/aliases/'.$foreign->getKey(), [
+        'domain' => 'blocked.test',
+        'address' => 'blocked',
+        'destinations' => ['blocked@example.test'],
+    ])->assertNotFound();
+
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/mail/aliases/'.$owned->getKey(), [
+        'domain' => 'updated-alias.test',
+        'address' => 'helpdesk',
+        'destinations' => ['team@example.test'],
+        'active' => false,
+    ])->assertOk()->assertJsonPath('data.attributes.domain', 'updated-alias.test');
+
+    $inventory = app(MailFeatureInventory::class);
+    $this->actingAs($user);
+
+    expect(fn () => $inventory->updateAlias($foreign->getKey(), [
+        'domain' => 'blocked.test',
+        'address' => 'blocked',
+        'destinations' => ['blocked@example.test'],
+    ], app(UpdateMailAlias::class)))->toThrow(ModelNotFoundException::class);
+
+    $livewireAlias = app(CreateMailAlias::class)->execute([
+        'team_id' => $team->getKey(),
+        'domain' => 'livewire-alias.test',
+        'address' => 'support',
+        'destinations' => ['ops@example.test'],
+    ]);
+    $inventory->deleteAlias($livewireAlias->getKey(), app(DeleteMailAlias::class));
+
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/mail/aliases/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/mail/aliases/'.$owned->getKey())->assertNoContent();
+
+    expect(MailAlias::query()->whereKey($owned->getKey())->exists())->toBeFalse()
+        ->and(MailAlias::query()->whereKey($livewireAlias->getKey())->exists())->toBeFalse();
 });
 
 it('rejects mail operations targeting another team account', function (): void {

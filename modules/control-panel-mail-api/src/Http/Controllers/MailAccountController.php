@@ -11,12 +11,15 @@ use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
 use Liberu\ControlPanel\Mail\Actions\CreateMailRoute;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\Actions\RegisterMailDomain;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailAlias;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
+use Liberu\ControlPanel\Mail\Models\MailAlias;
 use Liberu\ControlPanel\Mail\Models\MailDomain;
 use Liberu\ControlPanel\Mail\Models\MailRoute;
 use Liberu\ControlPanel\Mail\Queries\ListMailAccounts;
@@ -93,6 +96,28 @@ final class MailAccountController
         $item = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-mail-alias', 'attributes' => $item->only(['domain', 'address', 'destinations', 'active'])]], 201);
+    }
+
+    public function updateAlias(Request $request, string $id, UpdateMailAlias $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $alias = MailAlias::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['domain' => ['sometimes', 'string', 'max:253'], 'address' => ['sometimes', 'string', 'max:320'], 'destinations' => ['sometimes', 'array', 'min:1'], 'destinations.*' => ['email'], 'active' => ['sometimes', 'boolean']]);
+
+        $item = $update->execute($alias, $data);
+
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-mail-alias', 'attributes' => $item->only(['domain', 'address', 'destinations', 'active'])]]);
+    }
+
+    public function deleteAlias(Request $request, string $id, DeleteMailAlias $delete): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $alias = MailAlias::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($alias);
+
+        return response()->json(status: 204);
     }
 
     public function route(Request $request, CreateMailRoute $create): JsonResponse

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\MailLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailAlias;
 use Liberu\ControlPanel\Mail\Models\DeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Models\DkimKey;
 use Liberu\ControlPanel\Mail\Models\MailAlias;
@@ -17,9 +19,29 @@ final class MailFeatureInventory extends Component
 {
     public int $perPage = 25;
 
+    /** @var array<string, array<string, mixed>> */
+    public array $aliasEdits = [];
+
     public function rotateDkim(string $domain, RotateDkimKey $rotate): void
     {
         $rotate->execute($this->teamId(), $domain);
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function updateAlias(string $aliasId, ?array $attributes, UpdateMailAlias $update): void
+    {
+        $alias = MailAlias::query()->whereKey($aliasId)->where('team_id', $this->teamId())->firstOrFail();
+        $attributes ??= $this->aliasEdits[$aliasId] ?? [];
+        validator($attributes, ['domain' => ['required', 'string', 'max:253'], 'address' => ['required', 'string', 'max:320'], 'destinations' => ['required', 'array', 'min:1'], 'destinations.*' => ['email'], 'active' => ['sometimes', 'boolean']])->validate();
+        $update->execute($alias, $attributes);
+        unset($this->aliasEdits[$aliasId]);
+    }
+
+    public function deleteAlias(string $aliasId, DeleteMailAlias $delete): void
+    {
+        $alias = MailAlias::query()->whereKey($aliasId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($alias);
+        unset($this->aliasEdits[$aliasId]);
     }
 
     public function render(): View

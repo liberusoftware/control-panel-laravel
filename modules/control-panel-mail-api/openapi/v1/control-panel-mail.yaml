@@ -8,6 +8,9 @@ paths:
     post: {operationId: control.panel.mail.operations.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/mail/aliases:
     post: {operationId: control.panel.mail.aliases.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/mail/aliases/{alias}:
+    patch: {operationId: control.panel.mail.aliases.update, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
+    delete: {operationId: control.panel.mail.aliases.delete, security: [{sanctum: []}], responses: {'204': {description: Mail alias deleted.}}}
   /api/v1/control-panel/mail/routes:
     post: {operationId: control.panel.mail.routes.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/mail/controls:
