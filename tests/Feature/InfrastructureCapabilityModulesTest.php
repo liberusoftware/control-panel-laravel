@@ -2,21 +2,25 @@
 
 declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Certificates\Actions\RegisterAcmeAccount;
 use Liberu\ControlPanel\Certificates\CertificatesServiceProvider;
 use Liberu\ControlPanel\Containers\Actions\RecordContainerResource;
+use Liberu\ControlPanel\Containers\Actions\RegisterWorkload;
 use Liberu\ControlPanel\Containers\ContainersServiceProvider;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\Files\Actions\RecordFileOperation;
 use Liberu\ControlPanel\Files\FilesServiceProvider;
 use Liberu\ControlPanel\Kubernetes\Actions\RecordKubernetesResource;
+use Liberu\ControlPanel\Kubernetes\Actions\RegisterCluster;
 use Liberu\ControlPanel\Kubernetes\KubernetesServiceProvider;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringEvent;
 use Liberu\ControlPanel\Monitoring\MonitoringServiceProvider;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
 beforeEach(function (): void {
@@ -38,4 +42,16 @@ it('rejects unsupported infrastructure operations', function (): void {
     expect(fn () => app(RecordContainerResource::class)->execute(['team_id' => 'team-1', 'kind' => 'unknown', 'name' => 'x']))->toThrow(ValidationException::class);
     expect(fn () => app(RecordKubernetesResource::class)->execute(['team_id' => 'team-1', 'kind' => 'unknown', 'name' => 'x']))->toThrow(ValidationException::class);
     expect(fn () => app(CreateRecord::class)->execute(['team_id' => 'team-1', 'zone_id' => 'zone-1', 'type' => 'BAD', 'content' => 'x']))->toThrow(ValidationException::class);
+});
+it('requires tenant-owned infrastructure references', function (): void {
+    $workload = app(RegisterWorkload::class)->execute(['team_id' => 'team-1', 'node_id' => (string) Str::uuid(), 'name' => 'web', 'image' => 'nginx']);
+    $cluster = app(RegisterCluster::class)->execute(['team_id' => 'team-1', 'name' => 'Primary', 'endpoint' => 'https://k8s.example.test']);
+
+    expect(fn () => app(RecordContainerResource::class)->execute(['kind' => 'image', 'name' => 'missing-team']))->toThrow(ValidationException::class);
+    expect(fn () => app(RecordKubernetesResource::class)->execute(['kind' => 'namespace', 'name' => 'missing-team']))->toThrow(ValidationException::class);
+    expect(fn () => app(RecordContainerResource::class)->execute(['team_id' => 'team-2', 'workload_id' => $workload->getKey(), 'kind' => 'image', 'name' => 'foreign']))->toThrow(HttpException::class);
+    expect(fn () => app(RecordKubernetesResource::class)->execute(['team_id' => 'team-2', 'cluster_id' => $cluster->getKey(), 'kind' => 'namespace', 'name' => 'foreign']))->toThrow(HttpException::class);
+
+    expect(app(RecordContainerResource::class)->execute(['team_id' => 'team-1', 'workload_id' => $workload->getKey(), 'kind' => 'image', 'name' => 'owned'])->workload_id)->toBe($workload->getKey())
+        ->and(app(RecordKubernetesResource::class)->execute(['team_id' => 'team-1', 'cluster_id' => $cluster->getKey(), 'kind' => 'namespace', 'name' => 'owned'])->cluster_id)->toBe($cluster->getKey());
 });
