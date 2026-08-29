@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\BackupsFilament\Resources;
 
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -13,6 +14,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\Backups\Actions\DeleteSnapshot;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\VerifySnapshot;
 use Liberu\ControlPanel\Backups\Models\BackupRestore;
@@ -52,6 +54,9 @@ final class BackupSnapshotResource extends Resource
                 ->form([TextInput::make('target')->required()->maxLength(1024)])
                 ->visible(fn (BackupSnapshot $record): bool => $record->status->value === 'verified')
                 ->action(fn (BackupSnapshot $record, array $data): BackupRestore => app(RequestRestore::class)->execute($record, (string) auth()->user()?->current_team_id, $data['target'])),
+            DeleteAction::make()
+                ->visible(fn (BackupSnapshot $record): bool => $record->team_id === auth()->user()?->current_team_id && $record->status->value !== 'running')
+                ->action(fn (BackupSnapshot $record): void => app(DeleteSnapshot::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

@@ -9,6 +9,7 @@ use Liberu\ControlPanel\Backups\Actions\CreatePolicy;
 use Liberu\ControlPanel\Backups\Actions\CreateSchedule;
 use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
 use Liberu\ControlPanel\Backups\BackupsServiceProvider;
+use Liberu\ControlPanel\Backups\Enums\SnapshotStatus;
 use Liberu\ControlPanel\BackupsApi\BackupsApiServiceProvider;
 use Liberu\Foundation\Organizations\Models\Team;
 
@@ -83,4 +84,23 @@ it('updates and deletes only a current-team backup schedule through the API', fu
     $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/backups/schedules/'.$owned->getKey(), ['cron' => '0 4 * * *', 'timezone' => 'UTC'])->assertOk()->assertJsonPath('data.attributes.cron', '0 4 * * *');
     $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/schedules/'.$foreign->getKey())->assertNotFound();
     $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/schedules/'.$owned->getKey())->assertNoContent();
+});
+
+it('deletes only a current-team snapshot through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreignPolicy = app(CreatePolicy::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Foreign', 'storage_driver' => 'local']);
+    $ownedPolicy = app(CreatePolicy::class)->execute(['team_id' => $team->getKey(), 'name' => 'Owned', 'storage_driver' => 'local']);
+    $foreign = app(CreateSnapshot::class)->execute($foreignPolicy);
+    $owned = app(CreateSnapshot::class)->execute($ownedPolicy);
+
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/snapshots/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/snapshots/'.$owned->getKey())->assertNoContent();
+
+    expect($owned->newQuery()->whereKey($owned->getKey())->exists())->toBeFalse();
+
+    $running = app(CreateSnapshot::class)->execute($ownedPolicy);
+    $running->update(['status' => SnapshotStatus::Running]);
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/snapshots/'.$running->getKey())->assertUnprocessable();
 });

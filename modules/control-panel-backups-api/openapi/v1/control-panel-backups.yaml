@@ -33,6 +33,7 @@ paths:
     post: {operationId: control.panel.backups.features.record, security: [{sanctum: []}], responses: {'201': {description: Backup feature recorded}}}
   /api/v1/control-panel/backups/snapshots/{snapshot}:
     get: {operationId: control.panel.backups.snapshots.show, security: [{sanctum: []}], responses: {'200': {description: Authorized backup snapshot}}}
+    delete: {operationId: control.panel.backups.snapshots.delete, security: [{sanctum: []}], responses: {'204': {description: Backup snapshot deleted}}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}
