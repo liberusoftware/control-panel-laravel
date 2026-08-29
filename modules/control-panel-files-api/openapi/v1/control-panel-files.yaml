@@ -26,6 +26,7 @@ paths:
     post: {operationId: control.panel.files.quotas.create, security: [{sanctum: []}], responses: {'201': {description: File quota configured}}}
   /api/v1/control-panel/files/{file}:
     get: {operationId: control.panel.files.show, security: [{sanctum: []}], responses: {'200': {description: Authorized file record}}}
+    delete: {operationId: control.panel.files.delete, security: [{sanctum: []}], responses: {'200': {description: File marked deleted}}}
 components:
   securitySchemes:
     sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}

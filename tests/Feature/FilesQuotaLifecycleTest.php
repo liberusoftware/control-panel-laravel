@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\Files\Actions\RegisterFile;
 use Liberu\ControlPanel\Files\Actions\SetFileQuota;
+use Liberu\ControlPanel\Files\Enums\FileStatus;
 use Liberu\ControlPanel\Files\FilesServiceProvider;
 use Liberu\ControlPanel\Files\Models\FileQuota;
 use Liberu\ControlPanel\FilesApi\FilesApiServiceProvider;
@@ -54,4 +56,17 @@ it('exposes quotas through the tenant-scoped API and Livewire component', functi
     $component->save(app(SetFileQuota::class));
 
     expect(FileQuota::query()->where('owner_id', 'owner-2')->where('team_id', $team->getKey())->exists())->toBeTrue();
+});
+
+it('deletes only a current-team file through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreign = app(RegisterFile::class)->execute(['team_id' => $otherTeam->getKey(), 'path' => 'foreign.txt', 'disk' => 'local']);
+    $owned = app(RegisterFile::class)->execute(['team_id' => $team->getKey(), 'path' => 'owned.txt', 'disk' => 'local']);
+
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/files/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/files/'.$owned->getKey())->assertOk()->assertJsonPath('data.attributes.status', 'deleted');
+
+    expect($owned->refresh()->status)->toBe(FileStatus::Deleted);
 });
