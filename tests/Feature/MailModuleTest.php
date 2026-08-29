@@ -4,9 +4,11 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Mail\Actions\ConfigureMailControls;
+use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
 use Liberu\ControlPanel\Mail\Models\DkimKey;
 
@@ -34,4 +36,12 @@ it('rotates DKIM keys without writing provider-specific mail configuration', fun
         ->and($second->active)->toBeTrue()
         ->and($second->private_key)->toContain('BEGIN PRIVATE KEY')
         ->and(DkimKey::query()->where('team_id', 'team-2')->count())->toBe(0);
+});
+
+it('updates mailbox settings while preserving lifecycle state', function (): void {
+    $account = app(CreateMailAccount::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test', 'address' => 'support', 'quota_bytes' => 100]);
+
+    $updated = app(UpdateMailAccount::class)->execute($account, ['domain' => 'mail.test', 'address' => 'helpdesk', 'quota_bytes' => 200]);
+
+    expect($updated->domain)->toBe('mail.test')->and($updated->address)->toBe('helpdesk')->and($updated->quota_bytes)->toBe(200)->and($updated->status)->toBe('active');
 });

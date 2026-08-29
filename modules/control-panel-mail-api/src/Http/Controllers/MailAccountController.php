@@ -14,6 +14,7 @@ use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\Actions\RegisterMailDomain;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
 use Liberu\ControlPanel\Mail\Models\MailDomain;
 use Liberu\ControlPanel\Mail\Models\MailRoute;
@@ -47,6 +48,20 @@ final class MailAccountController
         $item = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($item)], 201);
+    }
+
+    public function update(Request $request, string $id, UpdateMailAccount $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $account = MailAccount::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate([
+            'domain' => ['sometimes', 'string', 'max:253'],
+            'address' => ['sometimes', 'string', 'max:255'],
+            'quota_bytes' => ['sometimes', 'integer', 'min:0'],
+        ]);
+
+        return response()->json(['data' => self::resource($update->execute($account, $data))]);
     }
 
     public function operation(Request $request, RecordMailOperation $record): JsonResponse
