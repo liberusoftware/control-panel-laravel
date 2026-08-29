@@ -9,6 +9,7 @@ use Liberu\ControlPanel\Dns\Actions\ActivateZone;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
+use Liberu\ControlPanel\Dns\Actions\UpdateZone;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\Dns\Enums\ZoneStatus;
 use Liberu\ControlPanel\Dns\Events\ZoneCreated;
@@ -49,4 +50,12 @@ it('updates a DNS record through the domain action', function (): void {
     $updated = app(UpdateRecord::class)->execute($record, ['content' => '192.0.2.2', 'ttl' => 7200]);
 
     expect($updated->content)->toBe('192.0.2.2')->and($updated->ttl)->toBe(7200);
+});
+
+it('updates a DNS zone through the domain action', function (): void {
+    $zone = app(CreateZone::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test']);
+
+    $updated = app(UpdateZone::class)->execute($zone, ['domain' => 'updated.test', 'provider' => 'cloud', 'dnssec_enabled' => true]);
+
+    expect($updated->domain)->toBe('updated.test')->and($updated->provider)->toBe('cloud')->and($updated->dnssec_enabled)->toBeTrue();
 });

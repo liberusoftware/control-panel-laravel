@@ -52,6 +52,17 @@ it('rejects DNS records for a zone outside the current team', function (): void 
         ->assertNotFound();
 });
 
+it('updates only a current-team DNS zone through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $zone = app(CreateZone::class)->execute(['team_id' => $team->getKey(), 'domain' => 'owned.test']);
+    $otherZone = app(CreateZone::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'foreign.test']);
+
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/dns/zones/'.$otherZone->getKey(), ['domain' => 'stolen.test'])->assertNotFound();
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/dns/zones/'.$zone->getKey(), ['domain' => 'Updated.TEST', 'provider' => 'cloud'])->assertOk()->assertJsonPath('data.attributes.domain', 'updated.test');
+});
+
 it('bulk creates tenant DNS records with bounded partial results', function (): void {
     $team = Team::factory()->create();
     $user = User::factory()->create(['current_team_id' => $team->getKey()]);

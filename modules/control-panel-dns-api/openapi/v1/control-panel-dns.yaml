@@ -26,6 +26,7 @@ paths:
     post: {operationId: control.panel.dns.features.record, security: [{sanctum: []}], responses: {'201': {description: DNS feature recorded}}}
   /api/v1/control-panel/dns/zones/{zone}:
     get: {operationId: control.panel.dns.zones.show, security: [{sanctum: []}], responses: {'200': {description: Authorized DNS zone}}}
+    patch: {operationId: control.panel.dns.zones.update, security: [{sanctum: []}], responses: {'200': {description: DNS zone updated.}, '422': {description: Invalid DNS zone data.}}}
   /api/v1/control-panel/dns/zones/{zone}/suspend:
     post: {operationId: control.panel.dns.zones.suspend, security: [{sanctum: []}], responses: {'200': {description: DNS zone suspended.}, '422': {description: DNS zone cannot be suspended.}}}
   /api/v1/control-panel/dns/zones/{zone}/archive:

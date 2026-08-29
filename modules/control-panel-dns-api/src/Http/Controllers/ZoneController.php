@@ -14,6 +14,7 @@ use Liberu\ControlPanel\Dns\Actions\RecordDnsCheck;
 use Liberu\ControlPanel\Dns\Actions\RegisterDnsFeature;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
+use Liberu\ControlPanel\Dns\Actions\UpdateZone;
 use Liberu\ControlPanel\Dns\Models\Record;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Liberu\ControlPanel\Dns\Queries\ListZones;
@@ -46,6 +47,21 @@ final class ZoneController
         $zone = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($zone)], 201);
+    }
+
+    public function update(Request $request, string $id, UpdateZone $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $zone = Zone::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate([
+            'domain' => ['sometimes', 'string', 'max:253'],
+            'provider' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'dnssec_enabled' => ['sometimes', 'boolean'],
+            'metadata' => ['sometimes', 'nullable', 'array'],
+        ]);
+
+        return response()->json(['data' => self::resource($update->execute($zone, $data))]);
     }
 
     public function record(Request $request, CreateRecord $create): JsonResponse

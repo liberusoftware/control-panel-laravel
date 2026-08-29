@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\DnsLivewire\Components;
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
+use Liberu\ControlPanel\Dns\Actions\UpdateZone;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -18,6 +19,9 @@ final class ZoneInventory extends Component
     public int $perPage = 25;
 
     public string $search = '';
+
+    /** @var array<string, array<string, mixed>> */
+    public array $edits = [];
 
     public function updatedSearch(): void
     {
@@ -34,6 +38,21 @@ final class ZoneInventory extends Component
     {
         $zone = Zone::query()->whereKey($zoneId)->where('team_id', $this->teamId())->firstOrFail();
         $archive->execute($zone);
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function update(string $zoneId, ?array $attributes, UpdateZone $update): void
+    {
+        $zone = Zone::query()->whereKey($zoneId)->where('team_id', $this->teamId())->firstOrFail();
+        $attributes ??= $this->edits[$zoneId] ?? [];
+        validator($attributes, [
+            'domain' => ['required', 'string', 'max:253'],
+            'provider' => ['nullable', 'string', 'max:100'],
+            'dnssec_enabled' => ['sometimes', 'boolean'],
+            'metadata' => ['nullable', 'array'],
+        ])->validate();
+        $update->execute($zone, $attributes);
+        unset($this->edits[$zoneId]);
     }
 
     public function render(): View

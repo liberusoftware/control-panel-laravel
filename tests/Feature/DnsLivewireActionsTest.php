@@ -11,6 +11,7 @@ use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
+use Liberu\ControlPanel\Dns\Actions\UpdateZone;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\Dns\Models\DnsTemplate;
 use Liberu\ControlPanel\DnsLivewire\Components\DnsTemplateInventory;
@@ -83,6 +84,21 @@ it('updates only a current-team DNS record from Livewire', function (): void {
     $inventory->update($owned->getKey(), ['zone_id' => $ownedZone->getKey(), 'name' => '@', 'type' => 'A', 'content' => '192.0.2.3', 'ttl' => 3600], app(UpdateRecord::class));
 
     expect($owned->refresh()->content)->toBe('192.0.2.3');
+});
+
+it('updates only a current-team DNS zone from Livewire', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $zone = app(CreateZone::class)->execute(['team_id' => $team->getKey(), 'domain' => 'owned.test']);
+    $foreign = app(CreateZone::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'foreign.test']);
+    $inventory = app(ZoneInventory::class);
+    $this->actingAs($user);
+
+    expect(fn () => $inventory->update($foreign->getKey(), ['domain' => 'stolen.test'], app(UpdateZone::class)))->toThrow(ModelNotFoundException::class);
+    $inventory->update($zone->getKey(), ['domain' => 'Updated.TEST', 'provider' => 'cloud'], app(UpdateZone::class));
+
+    expect($zone->refresh()->domain)->toBe('updated.test');
 });
 
 it('renders named DNS feature inventories only for the current team', function (): void {
