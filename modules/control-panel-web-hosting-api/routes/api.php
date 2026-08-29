@@ -10,6 +10,7 @@ Route::prefix('api/v1/control-panel/web-hosting')
     ->group(function (): void {
         Route::get('/domains', [DomainController::class, 'index'])->name('control-panel.web-hosting.domains.index');
         Route::post('/domains', [DomainController::class, 'store'])->name('control-panel.web-hosting.domains.store');
+        Route::patch('/domains/{domain}', [DomainController::class, 'update'])->name('control-panel.web-hosting.domains.update');
         Route::post('/domains/{domain}/activate', [DomainController::class, 'activate'])->name('control-panel.web-hosting.domains.activate');
         Route::post('/domains/{domain}/suspend', [DomainController::class, 'suspend'])->name('control-panel.web-hosting.domains.suspend');
         Route::post('/domains/{domain}/archive', [DomainController::class, 'archive'])->name('control-panel.web-hosting.domains.archive');

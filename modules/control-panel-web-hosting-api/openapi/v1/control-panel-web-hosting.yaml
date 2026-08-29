@@ -27,6 +27,15 @@ paths:
       summary: Register a domain
       security: [{sanctum: []}]
       responses: {'201': {description: Created}}
+    patch:
+      operationId: control.panel.web.hosting.domains.update
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        content:
+          application/json:
+            schema: {type: object, properties: {hostname: {type: string, maxLength: 253}, account_id: {type: string, nullable: true, maxLength: 255}, metadata: {type: object, nullable: true}}}
+      responses: {'200': {description: Domain updated.}, '404': {description: Domain is outside the current team.}}
   /api/v1/control-panel/web-hosting/domains/{domain}/activate:
     post:
       operationId: control.panel.web.hosting.domains.activate

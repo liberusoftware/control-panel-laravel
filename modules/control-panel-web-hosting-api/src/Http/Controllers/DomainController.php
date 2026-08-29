@@ -21,6 +21,7 @@ use Liberu\ControlPanel\WebHosting\Actions\RequestCertificate;
 use Liberu\ControlPanel\WebHosting\Actions\RequestGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
 use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateDomain;
 use Liberu\ControlPanel\WebHosting\Models\Domain;
 use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
@@ -62,6 +63,18 @@ final class DomainController
         $domain = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($domain)], 201);
+    }
+
+    public function update(Request $request, Domain $domain, UpdateDomain $update): JsonResponse
+    {
+        $this->assertTeam($request, $domain);
+        $data = $request->validate([
+            'hostname' => ['sometimes', 'string', 'max:253'],
+            'account_id' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'metadata' => ['sometimes', 'nullable', 'array'],
+        ]);
+
+        return response()->json(['data' => self::resource($update->execute($domain, $data))]);
     }
 
     public function activate(Request $request, Domain $domain, ActivateDomain $activate): JsonResponse

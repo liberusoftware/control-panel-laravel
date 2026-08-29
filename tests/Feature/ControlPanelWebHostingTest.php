@@ -19,6 +19,7 @@ use Liberu\ControlPanel\WebHosting\Actions\RegisterGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\RequestGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
 use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateDomain;
 use Liberu\ControlPanel\WebHosting\Enums\DomainStatus;
 use Liberu\ControlPanel\WebHosting\Events\DomainCreated;
 use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
@@ -65,6 +66,33 @@ it('suspends and archives domains with lifecycle invariants', function (): void 
 it('rejects invalid hostnames', function (): void {
     expect(fn () => app(CreateDomain::class)->execute(['hostname' => 'not a hostname']))
         ->toThrow(ValidationException::class);
+});
+
+it('updates a domain through the action while preserving lifecycle state', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'old.test']);
+    app(ActivateDomain::class)->execute($domain);
+
+    $updated = app(UpdateDomain::class)->execute($domain, ['hostname' => 'New.TEST.', 'account_id' => 'account-1']);
+
+    expect($updated->hostname)->toBe('new.test')
+        ->and($updated->account_id)->toBe('account-1')
+        ->and($updated->status)->toBe(DomainStatus::Active);
+});
+
+it('updates only a domain in the current team through the API', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $user = User::factory()->create(['current_team_id' => 'team-1']);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-2', 'hostname' => 'foreign.test']);
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey(), ['hostname' => 'changed.test'])
+        ->assertNotFound();
+
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'owned.test']);
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey(), ['hostname' => 'changed.test'])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.hostname', 'changed.test');
 });
 
 it('requires a current team before mutating a domain through the API', function (): void {
