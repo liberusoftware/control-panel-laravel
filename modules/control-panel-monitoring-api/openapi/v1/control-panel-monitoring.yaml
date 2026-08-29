@@ -12,6 +12,8 @@ paths:
     post: {operationId: control.panel.monitoring.resources.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/monitoring/maintenance/{window}/cancel:
     post: {operationId: control.panel.monitoring.maintenance.cancel, security: [{sanctum: []}], responses: {'200': {description: Maintenance window cancelled}}}
+  /api/v1/control-panel/monitoring/maintenance/{window}:
+    delete: {operationId: control.panel.monitoring.maintenance.delete, security: [{sanctum: []}], responses: {'204': {description: Maintenance window deleted}}}
   /api/v1/control-panel/monitoring/{monitor}:
     get: {operationId: control.panel.monitoring.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
 components:

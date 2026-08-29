@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\MonitoringApi\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Liberu\ControlPanel\Monitoring\Actions\CancelMaintenanceWindow;
+use Liberu\ControlPanel\Monitoring\Actions\DeleteMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringEvent;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringResource;
 use Liberu\ControlPanel\Monitoring\Actions\RegisterMonitor;
@@ -84,6 +85,16 @@ final class MonitorController
         abort_unless((string) $window->team_id === (string) $teamId, 404);
 
         return response()->json(['data' => ['id' => $window->getKey(), 'type' => 'control-panel-monitoring-maintenance', 'attributes' => $cancel->execute($window)->only(['name', 'starts_at', 'ends_at', 'scope', 'status', 'details'])]]);
+    }
+
+    public function deleteMaintenance(Request $request, string $id, DeleteMaintenanceWindow $delete): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $window = MaintenanceWindow::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($window);
+
+        return response()->json(status: 204);
     }
 
     private static function resource(Monitor $item): array

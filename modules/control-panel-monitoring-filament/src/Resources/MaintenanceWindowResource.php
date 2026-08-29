@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\MonitoringFilament\Resources;
 
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\TextInput;
@@ -14,6 +15,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\Monitoring\Actions\CancelMaintenanceWindow;
+use Liberu\ControlPanel\Monitoring\Actions\DeleteMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Models\MaintenanceWindow;
 use Liberu\ControlPanel\MonitoringFilament\Resources\MaintenanceWindowResource\Pages\CreateMaintenanceWindow;
 use Liberu\ControlPanel\MonitoringFilament\Resources\MaintenanceWindowResource\Pages\EditMaintenanceWindow;
@@ -36,6 +38,7 @@ final class MaintenanceWindowResource extends Resource
     {
         return $table->columns([TextColumn::make('name')->searchable()->sortable(), TextColumn::make('scope'), TextColumn::make('starts_at')->dateTime()->sortable(), TextColumn::make('ends_at')->dateTime(), TextColumn::make('status')->badge()])->recordActions([
             Action::make('cancel')->requiresConfirmation()->visible(fn (MaintenanceWindow $record): bool => ! in_array($record->status, ['cancelled', 'completed'], true))->action(fn (MaintenanceWindow $record): MaintenanceWindow => app(CancelMaintenanceWindow::class)->execute($record)),
+            DeleteAction::make()->visible(fn (MaintenanceWindow $record): bool => $record->team_id === auth()->user()?->current_team_id && ! in_array($record->status, ['active', 'completed'], true))->action(fn (MaintenanceWindow $record): void => app(DeleteMaintenanceWindow::class)->execute($record)),
         ])->defaultSort('starts_at', 'desc');
     }
 

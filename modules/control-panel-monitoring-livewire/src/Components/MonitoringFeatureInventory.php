@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\MonitoringLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Monitoring\Actions\CancelMaintenanceWindow;
+use Liberu\ControlPanel\Monitoring\Actions\DeleteMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Actions\ResolveMonitoringEvent;
 use Liberu\ControlPanel\Monitoring\Models\MaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Models\MonitoringEvent;
@@ -19,6 +20,12 @@ final class MonitoringFeatureInventory extends Component
     {
         $window = MaintenanceWindow::query()->whereKey($windowId)->where('team_id', $this->teamId())->firstOrFail();
         $cancel->execute($window);
+    }
+
+    public function deleteMaintenance(string $windowId, DeleteMaintenanceWindow $delete): void
+    {
+        $window = MaintenanceWindow::query()->whereKey($windowId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($window);
     }
 
     public function resolveEvent(string $eventId, ResolveMonitoringEvent $resolve): void
