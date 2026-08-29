@@ -8,6 +8,10 @@ use Liberu\ControlPanel\OsAdaptersApi\Http\Controllers\OsAdapterController;
 Route::prefix('api/v1/control-panel/os-adapters')->middleware(['api', 'auth:sanctum', 'throttle:60,1'])->group(function (): void {
     Route::get('/', [OsAdapterController::class, 'index'])->name('control-panel.os-adapters.index');
     Route::post('/', [OsAdapterController::class, 'store'])->name('control-panel.os-adapters.store');
+    Route::get('services/status', [OsAdapterController::class, 'serviceStatuses'])->name('control-panel.os-adapters.services.status');
+    Route::get('services/missing', [OsAdapterController::class, 'missingServices'])->name('control-panel.os-adapters.services.missing');
+    Route::get('services/stopped', [OsAdapterController::class, 'stoppedServices'])->name('control-panel.os-adapters.services.stopped');
+    Route::get('services/{service}/check', [OsAdapterController::class, 'checkService'])->name('control-panel.os-adapters.services.check');
     Route::post('packages', [OsAdapterController::class, 'package'])->name('control-panel.os-adapters.packages.store');
     Route::post('services', [OsAdapterController::class, 'service'])->name('control-panel.os-adapters.services.store');
     Route::patch('services/{service}', [OsAdapterController::class, 'updateService'])->name('control-panel.os-adapters.services.update');

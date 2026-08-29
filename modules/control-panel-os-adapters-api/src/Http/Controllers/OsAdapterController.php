@@ -18,6 +18,7 @@ use Liberu\ControlPanel\OsAdapters\Models\OsService;
 use Liberu\ControlPanel\OsAdapters\Models\OsUser;
 use Liberu\ControlPanel\OsAdapters\Models\PackageRepository;
 use Liberu\ControlPanel\OsAdapters\Queries\ListOsAdapters;
+use Liberu\ControlPanel\OsAdapters\Queries\ServiceStatusReport;
 
 final class OsAdapterController
 {
@@ -37,6 +38,42 @@ final class OsAdapterController
         $item = OsAdapter::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-os-adapter', 'attributes' => $item->toArray()]]);
+    }
+
+    public function serviceStatuses(Request $request, ServiceStatusReport $report): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+
+        return response()->json(['services' => $report->all($teamId)->map(fn (OsService $service): array => $this->serviceResource($service))->values()]);
+    }
+
+    public function missingServices(Request $request, ServiceStatusReport $report): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $services = $report->missing($teamId);
+
+        return response()->json(['missing_services' => $services->map(fn (OsService $service): array => $this->serviceResource($service))->values(), 'count' => $services->count()]);
+    }
+
+    public function stoppedServices(Request $request, ServiceStatusReport $report): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $services = $report->stopped($teamId);
+
+        return response()->json(['stopped_services' => $services->map(fn (OsService $service): array => $this->serviceResource($service))->values(), 'count' => $services->count()]);
+    }
+
+    public function checkService(Request $request, string $service, ServiceStatusReport $report): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = $report->find($teamId, $service);
+        abort_if($item === null, 404, 'Service not found.');
+
+        return response()->json(['data' => $this->serviceResource($item)]);
     }
 
     public function store(Request $request, RegisterOsAdapter $register): JsonResponse
@@ -112,5 +149,10 @@ final class OsAdapterController
     private static function resource(OsAdapter $item): array
     {
         return ['id' => $item->getKey(), 'type' => 'control-panel-os-adapter', 'attributes' => $item->only(['node_id', 'operating_system', 'version', 'capabilities', 'status', 'metadata'])];
+    }
+
+    private function serviceResource(OsService $service): array
+    {
+        return ['id' => $service->getKey(), 'type' => 'control-panel-os-service', 'attributes' => $service->only(['node_id', 'name', 'version', 'status', 'enabled', 'metadata'])];
     }
 }

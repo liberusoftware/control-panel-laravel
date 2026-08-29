@@ -10,6 +10,7 @@ use Liberu\ControlPanel\OsAdapters\Actions\RecordSupportMatrix;
 use Liberu\ControlPanel\OsAdapters\Actions\RegisterOsAdapter;
 use Liberu\ControlPanel\OsAdapters\Actions\UpdateOsService;
 use Liberu\ControlPanel\OsAdapters\Queries\ListOsAdapters;
+use Liberu\ControlPanel\OsAdapters\Queries\ServiceStatusReport;
 
 final class OsAdaptersServiceProvider extends ServiceProvider
 {
@@ -20,6 +21,7 @@ final class OsAdaptersServiceProvider extends ServiceProvider
         $this->app->scoped(RecordOsResource::class);
         $this->app->scoped(RecordSupportMatrix::class);
         $this->app->scoped(UpdateOsService::class);
+        $this->app->scoped(ServiceStatusReport::class);
     }
 
     public function boot(): void

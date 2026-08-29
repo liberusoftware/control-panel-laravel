@@ -14,6 +14,8 @@ final class ServiceInventory extends Component
 {
     use WithPagination;
 
+    public string $statusFilter = '';
+
     /** @var array<string, array<string, mixed>> */
     public array $edits = [];
 
@@ -34,6 +36,11 @@ final class ServiceInventory extends Component
         $teamId = auth()->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
 
-        return view('control-panel-os-adapters-livewire::components.service-inventory', ['services' => OsService::query()->where('team_id', $teamId)->latest()->paginate(25)]);
+        $query = OsService::query()->where('team_id', $teamId)->latest();
+        if ($this->statusFilter !== '') {
+            $query->where('status', $this->statusFilter);
+        }
+
+        return view('control-panel-os-adapters-livewire::components.service-inventory', ['services' => $query->paginate(25)]);
     }
 }
