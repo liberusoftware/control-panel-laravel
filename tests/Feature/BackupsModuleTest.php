@@ -9,7 +9,9 @@ use Liberu\ControlPanel\Backups\Actions\CreateDestination;
 use Liberu\ControlPanel\Backups\Actions\CreatePolicy;
 use Liberu\ControlPanel\Backups\Actions\CreateSchedule;
 use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
+use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
+use Liberu\ControlPanel\Backups\Actions\UpdatePolicy;
 use Liberu\ControlPanel\Backups\Actions\VerifySnapshot;
 use Liberu\ControlPanel\Backups\BackupsServiceProvider;
 use Liberu\ControlPanel\Backups\Enums\RestoreStatus;
@@ -47,4 +49,20 @@ it('rejects unsupported destinations and malformed schedules', function (): void
     $policy = app(CreatePolicy::class)->execute(['team_id' => 'team-1', 'name' => 'Policy', 'storage_driver' => 'local']);
     expect(fn () => app(CreateSchedule::class)->execute($policy, 'nightly'))
         ->toThrow(ValidationException::class);
+});
+
+it('updates and deletes backup policies through domain actions', function (): void {
+    $policy = app(CreatePolicy::class)->execute(['team_id' => 'team-1', 'name' => 'Nightly', 'storage_driver' => 'local']);
+
+    $updated = app(UpdatePolicy::class)->execute($policy, ['name' => 'Hourly', 'storage_driver' => 's3', 'retention_days' => 14, 'encrypted' => false, 'active' => false]);
+
+    expect($updated->name)->toBe('Hourly')
+        ->and($updated->storage_driver)->toBe('s3')
+        ->and($updated->retention_days)->toBe(14)
+        ->and($updated->encrypted)->toBeFalse()
+        ->and($updated->active)->toBeFalse();
+
+    app(DeletePolicy::class)->execute($updated);
+
+    expect($policy->newQuery()->whereKey($policy->getKey())->exists())->toBeFalse();
 });
