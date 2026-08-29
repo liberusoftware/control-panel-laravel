@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
+use Liberu\ControlPanel\Dns\Models\DnsTemplate;
+use Liberu\ControlPanel\DnsLivewire\Components\DnsTemplateInventory;
 use Liberu\ControlPanel\DnsLivewire\Components\RecordInventory;
 use Liberu\ControlPanel\DnsLivewire\Components\ZoneInventory;
 use Liberu\ControlPanel\DnsLivewire\DnsLivewireServiceProvider;
 use Liberu\Foundation\Organizations\Models\Team;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
 
@@ -60,4 +64,24 @@ it('creates records through the tenant-scoped Livewire inventory', function (): 
     $inventory->save(app(CreateRecord::class));
 
     expect($zone->records()->count())->toBe(1);
+});
+
+it('renders named DNS feature inventories only for the current team', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    DnsTemplate::query()->create(['id' => (string) Str::uuid(), 'team_id' => $team->getKey(), 'name' => 'Current template', 'records' => [], 'active' => true]);
+    DnsTemplate::query()->create(['id' => (string) Str::uuid(), 'team_id' => $otherTeam->getKey(), 'name' => 'Other template', 'records' => [], 'active' => true]);
+
+    $this->actingAs($user);
+    $templates = app(DnsTemplateInventory::class)->render()->getData()['items'];
+
+    expect($templates)->toHaveCount(1)->and($templates->first()->name)->toBe('Current template');
+});
+
+it('fails closed when a named DNS feature inventory has no current team', function (): void {
+    $this->actingAs(User::factory()->create(['current_team_id' => null]));
+
+    expect(fn () => app(DnsTemplateInventory::class)->render())
+        ->toThrow(HttpException::class);
 });
