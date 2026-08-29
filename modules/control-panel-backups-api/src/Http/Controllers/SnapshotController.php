@@ -9,11 +9,14 @@ use Illuminate\Http\Request;
 use Liberu\ControlPanel\Backups\Actions\CreateDestination;
 use Liberu\ControlPanel\Backups\Actions\CreateSchedule;
 use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
+use Liberu\ControlPanel\Backups\Actions\DeleteDestination;
 use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
 use Liberu\ControlPanel\Backups\Actions\RecordBackupFeature;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
+use Liberu\ControlPanel\Backups\Actions\UpdateDestination;
 use Liberu\ControlPanel\Backups\Actions\UpdatePolicy;
 use Liberu\ControlPanel\Backups\Actions\VerifySnapshot;
+use Liberu\ControlPanel\Backups\Models\BackupDestination;
 use Liberu\ControlPanel\Backups\Models\BackupPolicy;
 use Liberu\ControlPanel\Backups\Models\BackupSnapshot;
 use Liberu\ControlPanel\Backups\Queries\ListSnapshots;
@@ -67,6 +70,26 @@ final class SnapshotController
         $data = $request->validate(['name' => ['sometimes', 'string', 'max:160'], 'schedule' => ['sometimes', 'array'], 'retention_days' => ['sometimes', 'integer', 'min:1'], 'storage_driver' => ['sometimes', 'string', 'max:80'], 'storage_config' => ['sometimes', 'array'], 'encrypted' => ['sometimes', 'boolean'], 'active' => ['sometimes', 'boolean']]);
 
         return response()->json(['data' => self::policyResource($update->execute($policy, $data))]);
+    }
+
+    public function updateDestination(Request $request, string $id, UpdateDestination $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $destination = BackupDestination::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['name' => ['sometimes', 'string', 'max:120'], 'driver' => ['sometimes', 'in:local,s3,sftp,ftp'], 'config' => ['sometimes', 'array'], 'retention_days' => ['sometimes', 'integer', 'min:1'], 'default' => ['sometimes', 'boolean'], 'active' => ['sometimes', 'boolean']]);
+
+        return response()->json(['data' => self::destinationResource($update->execute($destination, $data))]);
+    }
+
+    public function deleteDestination(Request $request, string $id, DeleteDestination $delete): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $destination = BackupDestination::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($destination);
+
+        return response()->json(status: 204);
     }
 
     public function deletePolicy(Request $request, string $id, DeletePolicy $delete): JsonResponse
@@ -129,5 +152,10 @@ final class SnapshotController
     private static function policyResource(BackupPolicy $policy): array
     {
         return ['id' => $policy->getKey(), 'type' => 'control-panel-backup-policy', 'attributes' => $policy->only(['name', 'schedule', 'retention_days', 'storage_driver', 'encrypted', 'active'])];
+    }
+
+    private static function destinationResource(BackupDestination $destination): array
+    {
+        return ['id' => $destination->getKey(), 'type' => 'control-panel-backup-destination', 'attributes' => $destination->only(['name', 'driver', 'retention_days', 'default', 'active', 'last_checked_at', 'health'])];
     }
 }
