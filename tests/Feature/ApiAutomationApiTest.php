@@ -82,6 +82,17 @@ it('revokes only a current-team API credential through the API', function (): vo
         ->assertUnprocessable();
 });
 
+it('updates only a current-team API credential through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $credential = app(RegisterApiCredential::class)->execute(['team_id' => $team->getKey(), 'name' => 'Deploy']);
+    $otherCredential = app(RegisterApiCredential::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Other']);
+
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/api-and-automation/credentials/'.$otherCredential->getKey(), ['name' => 'Nope'])->assertNotFound();
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/api-and-automation/credentials/'.$credential->getKey(), ['name' => 'Release', 'scopes' => ['release']])->assertOk()->assertJsonPath('data.attributes.name', 'Release')->assertJsonMissingPath('data.attributes.secret');
+});
+
 it('updates only a current-team webhook through the API', function (): void {
     $team = Team::factory()->create();
     $otherTeam = Team::factory()->create();

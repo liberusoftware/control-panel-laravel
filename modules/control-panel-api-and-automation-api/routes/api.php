@@ -9,6 +9,7 @@ Route::prefix('api/v1/control-panel/api-and-automation')->middleware(['api', 'au
     Route::get('/', [AutomationController::class, 'index'])->name('control-panel.api-and-automation.index');
     Route::post('/', [AutomationController::class, 'store'])->name('control-panel.api-and-automation.store');
     Route::post('credentials', [AutomationController::class, 'credential'])->name('control-panel.api-and-automation.credentials.store');
+    Route::patch('credentials/{credential}', [AutomationController::class, 'updateCredential'])->name('control-panel.api-and-automation.credentials.update');
     Route::post('credentials/{credential}/revoke', [AutomationController::class, 'revokeCredential'])->name('control-panel.api-and-automation.credentials.revoke');
     Route::post('webhooks', [AutomationController::class, 'webhook'])->name('control-panel.api-and-automation.webhooks.store');
     Route::patch('webhooks/{webhook}', [AutomationController::class, 'updateWebhook'])->name('control-panel.api-and-automation.webhooks.update');

@@ -7,7 +7,10 @@
         <ul>
             @foreach ($credentials as $credential)
                 <li wire:key="api-credential-{{ $credential->getKey() }}">
-                    <span>{{ $credential->name }}</span>
+                    <form wire:submit="update('{{ $credential->getKey() }}', null)" class="inline-flex gap-2">
+                        <input type="text" wire:model="edits.{{ $credential->getKey() }}.name" value="{{ $credential->name }}" maxlength="120" required>
+                        <button type="submit">{{ __('Save') }}</button>
+                    </form>
                     <span>{{ $credential->status }}</span>
                     @if ($credential->status === 'active')
                         <button type="button" wire:click="revoke('{{ $credential->getKey() }}')">{{ __('Revoke') }}</button>
