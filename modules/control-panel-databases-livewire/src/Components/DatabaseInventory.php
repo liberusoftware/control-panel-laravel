@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Databases\Actions\ActivateDatabase;
 use Liberu\ControlPanel\Databases\Actions\ArchiveDatabase;
 use Liberu\ControlPanel\Databases\Actions\SuspendDatabase;
+use Liberu\ControlPanel\Databases\Actions\UpdateDatabase;
 use Liberu\ControlPanel\Databases\Models\Database;
 use Liberu\ControlPanel\Databases\Queries\ListDatabases;
 use Livewire\Component;
@@ -20,6 +21,9 @@ final class DatabaseInventory extends Component
     public int $perPage = 25;
 
     public string $search = '';
+
+    /** @var array<string, array<string, mixed>> */
+    public array $edits = [];
 
     public function updatedSearch(): void
     {
@@ -46,6 +50,23 @@ final class DatabaseInventory extends Component
     {
         $database = Database::query()->whereKey($databaseId)->where('team_id', $this->teamId())->firstOrFail();
         $archive->execute($database);
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function update(string $databaseId, ?array $attributes, UpdateDatabase $update): void
+    {
+        $database = Database::query()->whereKey($databaseId)->where('team_id', $this->teamId())->firstOrFail();
+        $attributes ??= $this->edits[$databaseId] ?? [];
+        validator($attributes, [
+            'name' => ['required', 'string', 'max:128'],
+            'engine_id' => ['required', 'uuid'],
+            'account_id' => ['nullable', 'string', 'max:255'],
+            'charset' => ['required', 'string', 'max:40'],
+            'collation' => ['required', 'string', 'max:80'],
+            'metadata' => ['nullable', 'array'],
+        ])->validate();
+        $update->execute($database, $attributes);
+        unset($this->edits[$databaseId]);
     }
 
     public function render(ListDatabases $list): View

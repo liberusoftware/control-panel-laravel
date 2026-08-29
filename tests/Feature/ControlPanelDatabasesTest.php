@@ -12,6 +12,7 @@ use Liberu\ControlPanel\Databases\Actions\CreateDatabase;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabaseUser;
 use Liberu\ControlPanel\Databases\Actions\GrantDatabasePrivilege;
 use Liberu\ControlPanel\Databases\Actions\SuspendDatabase;
+use Liberu\ControlPanel\Databases\Actions\UpdateDatabase;
 use Liberu\ControlPanel\Databases\DatabasesServiceProvider;
 use Liberu\ControlPanel\Databases\Enums\DatabaseStatus;
 use Liberu\ControlPanel\Databases\Events\DatabaseCreated;
@@ -72,4 +73,14 @@ it('stores encrypted database credentials and allow-listed privileges', function
         ->and($privilege->privilege)->toBe('select');
     expect(fn () => app(GrantDatabasePrivilege::class)->execute($user, 'drop', '*'))
         ->toThrow(ValidationException::class);
+});
+
+it('updates database settings while preserving lifecycle state', function (): void {
+    $engine = DatabaseEngine::query()->firstOrFail();
+    $database = app(CreateDatabase::class)->execute(['team_id' => 'team-1', 'engine_id' => $engine->getKey(), 'name' => 'customer_app']);
+    app(ActivateDatabase::class)->execute($database);
+
+    $updated = app(UpdateDatabase::class)->execute($database, ['name' => 'renamed_app', 'charset' => 'utf8mb4']);
+
+    expect($updated->name)->toBe('renamed_app')->and($updated->charset)->toBe('utf8mb4')->and($updated->status)->toBe(DatabaseStatus::Active);
 });

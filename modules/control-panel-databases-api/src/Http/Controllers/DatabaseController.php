@@ -17,6 +17,7 @@ use Liberu\ControlPanel\Databases\Actions\GrantDatabasePrivilege;
 use Liberu\ControlPanel\Databases\Actions\RecordDatabaseHealth;
 use Liberu\ControlPanel\Databases\Actions\RequestDatabaseUpgrade;
 use Liberu\ControlPanel\Databases\Actions\SuspendDatabase;
+use Liberu\ControlPanel\Databases\Actions\UpdateDatabase;
 use Liberu\ControlPanel\Databases\Models\Database;
 use Liberu\ControlPanel\Databases\Models\DatabaseUser;
 use Liberu\ControlPanel\Databases\Queries\ListDatabases;
@@ -121,6 +122,27 @@ final class DatabaseController
         $database = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => self::resource($database)], 201);
+    }
+
+    public function update(Request $request, string $id, UpdateDatabase $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $database = Database::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate([
+            'name' => ['sometimes', 'string', 'max:128'],
+            'engine_id' => ['sometimes', 'uuid', Rule::exists('control_panel_database_engines', 'id')->where(function (Builder $query) use ($teamId): void {
+                $query->where('active', true)->where(function (Builder $query) use ($teamId): void {
+                    $query->whereNull('team_id')->orWhere('team_id', $teamId);
+                });
+            })],
+            'account_id' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'charset' => ['sometimes', 'string', 'max:40'],
+            'collation' => ['sometimes', 'string', 'max:80'],
+            'metadata' => ['sometimes', 'nullable', 'array'],
+        ]);
+
+        return response()->json(['data' => self::resource($update->execute($database, $data))]);
     }
 
     private static function resource(Database $database): array
