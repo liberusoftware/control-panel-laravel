@@ -11,13 +11,16 @@ use Liberu\ControlPanel\Backups\Actions\CreateSchedule;
 use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
 use Liberu\ControlPanel\Backups\Actions\DeleteDestination;
 use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
+use Liberu\ControlPanel\Backups\Actions\DeleteSchedule;
 use Liberu\ControlPanel\Backups\Actions\RecordBackupFeature;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\UpdateDestination;
 use Liberu\ControlPanel\Backups\Actions\UpdatePolicy;
+use Liberu\ControlPanel\Backups\Actions\UpdateSchedule;
 use Liberu\ControlPanel\Backups\Actions\VerifySnapshot;
 use Liberu\ControlPanel\Backups\Models\BackupDestination;
 use Liberu\ControlPanel\Backups\Models\BackupPolicy;
+use Liberu\ControlPanel\Backups\Models\BackupSchedule;
 use Liberu\ControlPanel\Backups\Models\BackupSnapshot;
 use Liberu\ControlPanel\Backups\Queries\ListSnapshots;
 
@@ -92,6 +95,26 @@ final class SnapshotController
         return response()->json(status: 204);
     }
 
+    public function updateSchedule(Request $request, string $id, UpdateSchedule $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $schedule = BackupSchedule::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['cron' => ['sometimes', 'string', 'max:120'], 'timezone' => ['sometimes', 'timezone'], 'active' => ['sometimes', 'boolean']]);
+
+        return response()->json(['data' => self::scheduleResource($update->execute($schedule, $data))]);
+    }
+
+    public function deleteSchedule(Request $request, string $id, DeleteSchedule $delete): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $schedule = BackupSchedule::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($schedule);
+
+        return response()->json(status: 204);
+    }
+
     public function deletePolicy(Request $request, string $id, DeletePolicy $delete): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
@@ -157,5 +180,10 @@ final class SnapshotController
     private static function destinationResource(BackupDestination $destination): array
     {
         return ['id' => $destination->getKey(), 'type' => 'control-panel-backup-destination', 'attributes' => $destination->only(['name', 'driver', 'retention_days', 'default', 'active', 'last_checked_at', 'health'])];
+    }
+
+    private static function scheduleResource(BackupSchedule $schedule): array
+    {
+        return ['id' => $schedule->getKey(), 'type' => 'control-panel-backup-schedule', 'attributes' => $schedule->only(['policy_id', 'cron', 'timezone', 'active', 'next_run_at', 'last_run_at'])];
     }
 }

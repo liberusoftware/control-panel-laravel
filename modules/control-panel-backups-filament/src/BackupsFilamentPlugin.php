@@ -9,6 +9,7 @@ use Filament\Panel;
 use Liberu\ControlPanel\BackupsFilament\Resources\BackupDestinationResource;
 use Liberu\ControlPanel\BackupsFilament\Resources\BackupExecutionResource;
 use Liberu\ControlPanel\BackupsFilament\Resources\BackupPolicyResource;
+use Liberu\ControlPanel\BackupsFilament\Resources\BackupScheduleResource;
 use Liberu\ControlPanel\BackupsFilament\Resources\BackupSnapshotResource;
 
 final class BackupsFilamentPlugin implements Plugin
@@ -25,7 +26,7 @@ final class BackupsFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([BackupSnapshotResource::class, BackupPolicyResource::class, BackupDestinationResource::class, BackupExecutionResource::class]);
+        $panel->resources([BackupSnapshotResource::class, BackupPolicyResource::class, BackupDestinationResource::class, BackupScheduleResource::class, BackupExecutionResource::class]);
     }
 
     public function boot(Panel $panel): void {}
