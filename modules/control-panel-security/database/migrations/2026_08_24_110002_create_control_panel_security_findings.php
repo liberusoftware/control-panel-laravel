@@ -10,7 +10,7 @@ return new class() extends Migration
     {
         Schema::create('control_panel_security_findings', function (Blueprint $t): void {
             $t->uuid('id')->primary();
-            $t->string('team_id')->nullable()->index();
+            $t->string('team_id')->index();
             $t->string('subject_type', 120);
             $t->string('subject_id', 160);
             $t->string('code', 120);
