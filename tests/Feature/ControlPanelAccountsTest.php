@@ -15,6 +15,7 @@ use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
+use Liberu\ControlPanel\Accounts\Actions\UpdateAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
 use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
 use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
@@ -108,6 +109,17 @@ it('supports packages, delegation, and validated branding', function (): void {
     $package = app(UpdateHostingPackage::class)->execute($package, ['active' => false]);
     $delegation = app(RevokeDelegation::class)->execute($delegation);
     expect($package->active)->toBeFalse()->and($delegation->active)->toBeFalse();
+});
+
+it('updates accounts through the domain action while preserving hierarchy invariants', function (): void {
+    $parent = app(CreateAccount::class)->execute(['team_id' => 'team-1', 'owner_id' => 'owner-parent', 'type' => 'reseller', 'name' => 'Parent']);
+    $account = app(CreateAccount::class)->execute(['team_id' => 'team-1', 'owner_id' => 'owner-child', 'type' => 'customer', 'name' => 'Child', 'parent_id' => $parent->getKey()]);
+
+    $updated = app(UpdateAccount::class)->execute($account, ['name' => 'Renamed child', 'brand' => ['name' => 'Brand']]);
+
+    expect($updated->name)->toBe('Renamed child')->and($updated->brand)->toMatchArray(['name' => 'Brand']);
+    expect(fn () => app(UpdateAccount::class)->execute($account, ['parent_id' => $account->getKey()]))
+        ->toThrow(ValidationException::class);
 });
 
 it('exposes the quota guard through the authenticated tenant-scoped API', function (): void {
