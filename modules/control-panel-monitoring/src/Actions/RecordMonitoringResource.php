@@ -20,14 +20,18 @@ final class RecordMonitoringResource
 {
     public function execute(array $a): Model
     {
+        $teamId = $a['team_id'] ?? null;
         $kind = (string) ($a['kind'] ?? '');
         $map = ['metric' => MetricSample::class, 'log' => LogEntry::class, 'uptime' => UptimeCheck::class, 'capacity' => CapacitySnapshot::class, 'alert' => AlertRule::class, 'incident' => Incident::class, 'maintenance' => MaintenanceWindow::class, 'status' => StatusSnapshot::class];
+        if ($teamId === null || trim((string) $teamId) === '') {
+            throw ValidationException::withMessages(['team_id' => 'A team is required.']);
+        }
         if (! isset($map[$kind])) {
             throw ValidationException::withMessages(['kind' => 'Unsupported monitoring resource.']);
         } $attributes = $a;
         unset($attributes['kind']);
         $attributes['id'] = $attributes['id'] ?? (string) Str::uuid();
-        $attributes['team_id'] = $a['team_id'] ?? null;
+        $attributes['team_id'] = (string) $teamId;
         if ($kind === 'maintenance') {
             $attributes['status'] = $attributes['status'] ?? 'scheduled';
         } if ($kind === 'incident') {
