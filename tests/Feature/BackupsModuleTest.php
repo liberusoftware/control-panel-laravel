@@ -12,6 +12,7 @@ use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
 use Liberu\ControlPanel\Backups\Actions\DeleteDestination;
 use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
 use Liberu\ControlPanel\Backups\Actions\DeleteSchedule;
+use Liberu\ControlPanel\Backups\Actions\DeleteSnapshot;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\UpdateDestination;
 use Liberu\ControlPanel\Backups\Actions\UpdatePolicy;
@@ -100,4 +101,18 @@ it('updates and deletes backup schedules through domain actions', function (): v
     app(DeleteSchedule::class)->execute($updated);
 
     expect($schedule->newQuery()->whereKey($schedule->getKey())->exists())->toBeFalse();
+});
+
+it('deletes completed backup snapshots but protects running snapshots', function (): void {
+    $policy = app(CreatePolicy::class)->execute(['team_id' => 'team-1', 'name' => 'Nightly', 'storage_driver' => 'local']);
+    $snapshot = app(CreateSnapshot::class)->execute($policy);
+
+    app(DeleteSnapshot::class)->execute($snapshot);
+
+    expect($snapshot->newQuery()->whereKey($snapshot->getKey())->exists())->toBeFalse();
+
+    $running = app(CreateSnapshot::class)->execute($policy);
+    $running->update(['status' => SnapshotStatus::Running]);
+
+    expect(fn () => app(DeleteSnapshot::class)->execute($running))->toThrow(ValidationException::class);
 });

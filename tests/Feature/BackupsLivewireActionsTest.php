@@ -12,6 +12,7 @@ use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
 use Liberu\ControlPanel\Backups\Actions\DeleteDestination;
 use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
 use Liberu\ControlPanel\Backups\Actions\DeleteSchedule;
+use Liberu\ControlPanel\Backups\Actions\DeleteSnapshot;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\UpdateDestination;
 use Liberu\ControlPanel\Backups\Actions\UpdatePolicy;
@@ -99,6 +100,23 @@ it('updates and deletes only a current-team backup schedule from Livewire', func
     expect(fn () => $inventory->updateSchedule($foreign->getKey(), ['cron' => '0 3 * * *', 'timezone' => 'UTC'], app(UpdateSchedule::class)))->toThrow(ModelNotFoundException::class);
     $inventory->updateSchedule($owned->getKey(), ['cron' => '0 4 * * *', 'timezone' => 'UTC'], app(UpdateSchedule::class));
     $inventory->deleteSchedule($owned->getKey(), app(DeleteSchedule::class));
+
+    expect($owned->newQuery()->whereKey($owned->getKey())->exists())->toBeFalse();
+});
+
+it('deletes only a current-team snapshot from Livewire', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreignPolicy = app(CreatePolicy::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Foreign', 'storage_driver' => 'local']);
+    $ownedPolicy = app(CreatePolicy::class)->execute(['team_id' => $team->getKey(), 'name' => 'Owned', 'storage_driver' => 'local']);
+    $foreign = app(CreateSnapshot::class)->execute($foreignPolicy);
+    $owned = app(CreateSnapshot::class)->execute($ownedPolicy);
+
+    $this->actingAs($user);
+    $inventory = app(SnapshotInventory::class);
+    expect(fn () => $inventory->delete($foreign->getKey(), app(DeleteSnapshot::class)))->toThrow(ModelNotFoundException::class);
+    $inventory->delete($owned->getKey(), app(DeleteSnapshot::class));
 
     expect($owned->newQuery()->whereKey($owned->getKey())->exists())->toBeFalse();
 });

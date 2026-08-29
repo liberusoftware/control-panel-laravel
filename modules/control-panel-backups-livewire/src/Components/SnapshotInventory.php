@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\BackupsLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Backups\Actions\DeleteSnapshot;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\VerifySnapshot;
 use Liberu\ControlPanel\Backups\Models\BackupSnapshot;
@@ -33,6 +34,12 @@ final class SnapshotInventory extends Component
         $this->validate(['restoreTarget' => ['required', 'string', 'max:1024']]);
         $restore->execute($snapshot, $teamId, $this->restoreTarget);
         $this->reset('restoreTarget');
+    }
+
+    public function delete(string $snapshotId, DeleteSnapshot $delete): void
+    {
+        $snapshot = BackupSnapshot::query()->whereKey($snapshotId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($snapshot);
     }
 
     public function render(): View

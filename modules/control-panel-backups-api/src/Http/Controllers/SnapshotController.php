@@ -12,6 +12,7 @@ use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
 use Liberu\ControlPanel\Backups\Actions\DeleteDestination;
 use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
 use Liberu\ControlPanel\Backups\Actions\DeleteSchedule;
+use Liberu\ControlPanel\Backups\Actions\DeleteSnapshot;
 use Liberu\ControlPanel\Backups\Actions\RecordBackupFeature;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\UpdateDestination;
@@ -121,6 +122,16 @@ final class SnapshotController
         abort_if($teamId === null, 403, 'A current team is required.');
         $policy = BackupPolicy::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
         $delete->execute($policy);
+
+        return response()->json(status: 204);
+    }
+
+    public function deleteSnapshot(Request $request, string $id, DeleteSnapshot $delete): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $snapshot = BackupSnapshot::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($snapshot);
 
         return response()->json(status: 204);
     }
