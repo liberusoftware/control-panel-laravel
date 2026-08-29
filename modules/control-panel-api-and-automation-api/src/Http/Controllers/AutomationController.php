@@ -75,6 +75,7 @@ final class AutomationController
     public function pauseWebhook(Request $request, string $webhook, PauseWebhook $pause): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = WebhookEndpoint::query()->whereKey($webhook)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => self::webhookResource($pause->execute($item))]);
@@ -83,6 +84,7 @@ final class AutomationController
     public function resumeWebhook(Request $request, string $webhook, ResumeWebhook $resume): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = WebhookEndpoint::query()->whereKey($webhook)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => self::webhookResource($resume->execute($item))]);

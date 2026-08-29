@@ -42,3 +42,19 @@ it('pauses and resumes only a current-team webhook through the API', function ()
         ->postJson('/api/v1/control-panel/api-and-automation/webhooks/'.$otherWebhook->getKey().'/pause')
         ->assertNotFound();
 });
+
+it('rejects webhook state changes without a current team', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => null]);
+    $webhook = app(RegisterWebhook::class)->execute([
+        'team_id' => $team->getKey(), 'name' => 'Events', 'url' => 'https://example.test/hooks',
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/api-and-automation/webhooks/'.$webhook->getKey().'/pause')
+        ->assertForbidden();
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/api-and-automation/webhooks/'.$webhook->getKey().'/resume')
+        ->assertForbidden();
+});
