@@ -112,6 +112,7 @@ final class AccountController
     public function revokeDelegation(Request $request, string $delegation, RevokeDelegation $revoke): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
         $item = AccountDelegation::query()->whereKey($delegation)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-account-delegation', 'attributes' => $revoke->execute($item)->only(['delegate_id', 'permissions', 'expires_at', 'active'])]]);

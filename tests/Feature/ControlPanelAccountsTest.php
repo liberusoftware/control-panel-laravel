@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Accounts\AccountsServiceProvider;
 use Liberu\ControlPanel\Accounts\Actions\ArchiveAccount;
@@ -171,4 +172,13 @@ it('archives an account through the tenant-scoped API', function (): void {
         ->postJson('/api/v1/control-panel/accounts/'.$account->getKey().'/archive')
         ->assertOk()
         ->assertJsonPath('data.attributes.status', 'archived');
+});
+
+it('rejects delegation revocation without a current team', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $user = User::factory()->create(['current_team_id' => null]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/accounts/delegations/'.Str::uuid().'/revoke')
+        ->assertForbidden();
 });
