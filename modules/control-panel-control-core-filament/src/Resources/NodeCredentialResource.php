@@ -15,7 +15,10 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
+use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource\Pages\CreateNodeCredential;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource\Pages\ListNodeCredentials;
 
 final class NodeCredentialResource extends Resource
 {
@@ -28,7 +31,13 @@ final class NodeCredentialResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('node_id')->required()->maxLength(255),
+            Select::make('node_id')->options(fn (): array => Node::query()
+                ->where('team_id', auth()->user()?->current_team_id)
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all())
+                ->searchable()
+                ->required(),
             TextInput::make('name')->required()->maxLength(160),
             Select::make('type')->options(['ssh' => 'SSH', 'api' => 'API', 'agent' => 'Agent'])->required(),
             TextInput::make('username')->maxLength(160),
@@ -66,6 +75,9 @@ final class NodeCredentialResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => Pages\ListNodeCredentials::route('/')];
+        return [
+            'index' => ListNodeCredentials::route('/'),
+            'create' => CreateNodeCredential::route('/create'),
+        ];
     }
 }

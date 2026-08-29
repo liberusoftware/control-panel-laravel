@@ -10,6 +10,8 @@ use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
 use Liberu\ControlPanel\ControlCore\Enums\CredentialStatus;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource\Pages\CreateNodeCredential;
 
 uses(RefreshDatabase::class);
 
@@ -39,4 +41,8 @@ it('registers encrypted managed credentials and supports revocation', function (
 
     $revoked = app(RevokeNodeCredential::class)->execute($credential);
     expect($revoked->status)->toBe(CredentialStatus::Revoked);
+});
+
+it('exposes a tenant-scoped Filament create workflow for node credentials', function (): void {
+    expect(NodeCredentialResource::getPages()['create']->getPage())->toBe(CreateNodeCredential::class);
 });
