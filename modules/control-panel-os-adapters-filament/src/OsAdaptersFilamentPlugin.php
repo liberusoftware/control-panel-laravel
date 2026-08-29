@@ -8,6 +8,7 @@ use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Liberu\ControlPanel\OsAdaptersFilament\Resources\OsAdapterResource;
 use Liberu\ControlPanel\OsAdaptersFilament\Resources\OsPackageResource;
+use Liberu\ControlPanel\OsAdaptersFilament\Resources\OsServiceResource;
 use Liberu\ControlPanel\OsAdaptersFilament\Resources\SupportMatrixResource;
 
 final class OsAdaptersFilamentPlugin implements Plugin
@@ -24,7 +25,7 @@ final class OsAdaptersFilamentPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->resources([OsAdapterResource::class, OsPackageResource::class, SupportMatrixResource::class]);
+        $panel->resources([OsAdapterResource::class, OsPackageResource::class, OsServiceResource::class, SupportMatrixResource::class]);
     }
 
     public function boot(Panel $panel): void {}

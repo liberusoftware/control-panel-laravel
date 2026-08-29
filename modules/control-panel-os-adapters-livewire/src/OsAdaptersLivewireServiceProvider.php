@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\OsAdaptersLivewire;
 use Illuminate\Support\ServiceProvider;
 use Liberu\ControlPanel\OsAdaptersLivewire\Components\OsAdapterInventory;
 use Liberu\ControlPanel\OsAdaptersLivewire\Components\PackageInventory;
+use Liberu\ControlPanel\OsAdaptersLivewire\Components\ServiceInventory;
 use Livewire\Livewire;
 
 final class OsAdaptersLivewireServiceProvider extends ServiceProvider
@@ -16,5 +17,6 @@ final class OsAdaptersLivewireServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'control-panel-os-adapters-livewire');
         Livewire::component('module-control-panel-os-adapters::os-adapter-inventory', OsAdapterInventory::class);
         Livewire::component('module-control-panel-os-adapters::package-inventory', PackageInventory::class);
+        Livewire::component('module-control-panel-os-adapters::service-inventory', ServiceInventory::class);
     }
 }

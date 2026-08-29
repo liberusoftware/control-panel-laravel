@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\OsAdapters\Actions\RecordOsResource;
 use Liberu\ControlPanel\OsAdapters\Actions\RecordSupportMatrix;
+use Liberu\ControlPanel\OsAdapters\Actions\UpdateOsService;
 use Liberu\ControlPanel\OsAdapters\Models\FilesystemMount;
 use Liberu\ControlPanel\OsAdapters\Models\FirewallRule;
 use Liberu\ControlPanel\OsAdapters\Models\OsPackage;
@@ -44,4 +45,12 @@ it('records support matrix decisions independently from node inventory', functio
     $entry = app(RecordSupportMatrix::class)->execute(['operating_system' => 'AlmaLinux', 'version' => '9', 'capability' => 'firewall', 'supported' => true]);
 
     expect($entry->supported)->toBeTrue()->and($entry->capability)->toBe('firewall');
+});
+
+it('updates an OS service through the domain action', function (): void {
+    $service = app(RecordOsResource::class)->execute(OsService::class, ['team_id' => 'team-1', 'node_id' => 'node-1', 'name' => 'nginx', 'status' => 'running', 'enabled' => true]);
+
+    $updated = app(UpdateOsService::class)->execute($service, ['name' => 'nginx-mainline', 'status' => 'stopped', 'enabled' => false]);
+
+    expect($updated->name)->toBe('nginx-mainline')->and($updated->status)->toBe('stopped')->and($updated->enabled)->toBeFalse();
 });
