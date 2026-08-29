@@ -18,6 +18,7 @@ use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\ResumeWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\RevokeApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
+use Liberu\ControlPanel\ApiAutomation\Actions\UpdateApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\UpdateWebhook;
 use Liberu\ControlPanel\ApiAutomation\Models\ApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationDefinition;
@@ -82,6 +83,16 @@ final class AutomationController
         $item = ApiCredential::query()->whereKey($credential)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => self::credentialResource($revoke->execute($item))]);
+    }
+
+    public function updateCredential(Request $request, string $credential, UpdateApiCredential $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = ApiCredential::query()->whereKey($credential)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['name' => ['sometimes', 'string', 'max:120'], 'scopes' => ['sometimes', 'array'], 'scopes.*' => ['string', 'max:120'], 'expires_at' => ['sometimes', 'nullable', 'date']]);
+
+        return response()->json(['data' => self::credentialResource($update->execute($item, $data))]);
     }
 
     public function updateWebhook(Request $request, string $webhook, UpdateWebhook $update): JsonResponse

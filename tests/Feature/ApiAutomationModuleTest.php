@@ -10,6 +10,7 @@ use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\ResumeWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\RevokeApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
+use Liberu\ControlPanel\ApiAutomation\Actions\UpdateApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\UpdateWebhook;
 use Liberu\ControlPanel\ApiAutomation\ApiAutomationServiceProvider;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
@@ -37,6 +38,13 @@ it('revokes an active API credential and rejects repeat revocation', function ()
     expect(app(RevokeApiCredential::class)->execute($credential)->status)->toBe('revoked')
         ->and(fn () => app(RevokeApiCredential::class)->execute($credential->refresh()))
         ->toThrow(ValidationException::class);
+});
+
+it('updates active API credential metadata without exposing its secret', function (): void {
+    $credential = app(RegisterApiCredential::class)->execute(['team_id' => 'team-1', 'name' => 'Deploy', 'secret' => 'hidden']);
+    $updated = app(UpdateApiCredential::class)->execute($credential, ['name' => 'Release', 'scopes' => ['release']]);
+
+    expect($updated->name)->toBe('Release')->and($updated->scopes)->toBe(['release'])->and($updated->secret)->toBe('hidden');
 });
 
 it('rejects insecure webhook endpoints and makes orchestration idempotent', function (): void {

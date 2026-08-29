@@ -16,6 +16,7 @@ use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\ResumeWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\RevokeApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
+use Liberu\ControlPanel\ApiAutomation\Actions\UpdateApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Queries\ListAutomations;
 use Liberu\ControlPanel\ApiAutomation\Queries\ListWebhooks;
 
@@ -27,6 +28,7 @@ final class ApiAutomationServiceProvider extends ServiceProvider
         $this->app->scoped(ListAutomations::class);
         $this->app->scoped(RegisterApiCredential::class);
         $this->app->scoped(RevokeApiCredential::class);
+        $this->app->scoped(UpdateApiCredential::class);
         $this->app->scoped(RegisterWebhook::class);
         $this->app->scoped(PauseWebhook::class);
         $this->app->scoped(ResumeWebhook::class);
