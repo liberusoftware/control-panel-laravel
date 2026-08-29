@@ -139,6 +139,20 @@ it('expires a credential through the tenant-scoped API', function (): void {
         ->assertJsonPath('data.attributes.status', 'expired');
 });
 
+it('updates only a current-team credential through the API', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute(['team_id' => $team->getKey(), 'name' => 'API node', 'hostname' => 'api.test']);
+    $credential = app(RegisterNodeCredential::class)->execute(['team_id' => $team->getKey(), 'node_id' => $node->getKey(), 'name' => 'API key', 'secret' => 'long-enough-secret']);
+    $otherNode = app(RegisterNode::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Other node', 'hostname' => 'other.test']);
+    $otherCredential = app(RegisterNodeCredential::class)->execute(['team_id' => $otherTeam->getKey(), 'node_id' => $otherNode->getKey(), 'name' => 'Other key', 'secret' => 'long-enough-secret']);
+
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/control-core/credentials/'.$otherCredential->getKey(), ['name' => 'Nope'])->assertNotFound();
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/control-core/credentials/'.$credential->getKey(), ['name' => 'Release key', 'username' => 'deploy'])->assertOk()->assertJsonPath('data.attributes.name', 'Release key')->assertJsonMissingPath('data.attributes.secret');
+});
+
 it('never exposes credentials through a node query', function (): void {
     $node = Node::query()->create([
         'team_id' => 'team-1',

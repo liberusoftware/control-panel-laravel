@@ -8,10 +8,12 @@ use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
+use Liberu\ControlPanel\ControlCore\Actions\UpdateNodeCredential;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
 use Liberu\ControlPanel\ControlCore\Enums\CredentialStatus;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource\Pages\CreateNodeCredential;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource\Pages\EditNodeCredential;
 
 uses(RefreshDatabase::class);
 
@@ -43,6 +45,15 @@ it('registers encrypted managed credentials and supports revocation', function (
     expect($revoked->status)->toBe(CredentialStatus::Revoked);
 });
 
+it('updates active credential metadata without changing its secret', function (): void {
+    $node = app(RegisterNode::class)->execute(['team_id' => 'team-1', 'name' => 'Managed node', 'hostname' => 'node.test']);
+    $credential = app(RegisterNodeCredential::class)->execute(['team_id' => 'team-1', 'node_id' => $node->getKey(), 'name' => 'Deploy key', 'secret' => 'a-secret-value']);
+    $updated = app(UpdateNodeCredential::class)->execute($credential, ['name' => 'Release key', 'username' => 'deploy']);
+
+    expect($updated->name)->toBe('Release key')->and($updated->username)->toBe('deploy')->and($updated->secret)->toBe('a-secret-value');
+});
+
 it('exposes a tenant-scoped Filament create workflow for node credentials', function (): void {
     expect(NodeCredentialResource::getPages()['create']->getPage())->toBe(CreateNodeCredential::class);
+    expect(NodeCredentialResource::getPages()['edit']->getPage())->toBe(EditNodeCredential::class);
 });

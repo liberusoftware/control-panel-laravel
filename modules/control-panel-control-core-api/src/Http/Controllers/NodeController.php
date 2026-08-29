@@ -14,6 +14,7 @@ use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
 use Liberu\ControlPanel\ControlCore\Actions\UpdateDesiredState;
+use Liberu\ControlPanel\ControlCore\Actions\UpdateNodeCredential;
 use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
 use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
@@ -130,6 +131,16 @@ final class NodeController
         $item = NodeCredential::query()->whereKey($credential)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => $this->credentialResource($revoke->execute($item))]);
+    }
+
+    public function updateCredential(Request $request, string $credential, UpdateNodeCredential $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = NodeCredential::query()->whereKey($credential)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['name' => ['sometimes', 'string', 'max:160'], 'username' => ['sometimes', 'nullable', 'string', 'alpha_dash', 'max:120'], 'expires_at' => ['sometimes', 'nullable', 'date'], 'metadata' => ['sometimes', 'array']]);
+
+        return response()->json(['data' => $this->credentialResource($update->execute($item, $data))]);
     }
 
     public function expireCredential(Request $request, string $credential, ExpireNodeCredential $expire): JsonResponse

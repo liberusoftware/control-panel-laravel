@@ -17,6 +17,7 @@ use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
 use Liberu\ControlPanel\ControlCore\Actions\TransitionOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\UpdateDesiredState;
+use Liberu\ControlPanel\ControlCore\Actions\UpdateNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\WriteAuditEntry;
 use Liberu\ControlPanel\ControlCore\Queries\ListAuditEntries;
 use Liberu\ControlPanel\ControlCore\Queries\ListInventory;
@@ -38,6 +39,7 @@ final class ControlCoreServiceProvider extends ServiceProvider
         $this->app->scoped(ListInventory::class);
         $this->app->scoped(SyncNodeCapabilities::class);
         $this->app->scoped(UpdateDesiredState::class);
+        $this->app->scoped(UpdateNodeCredential::class);
         $this->app->scoped(TransitionOperationTask::class);
         $this->app->scoped(WriteAuditEntry::class);
         $this->app->scoped(ListAuditEntries::class);
