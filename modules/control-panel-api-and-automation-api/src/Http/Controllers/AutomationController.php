@@ -16,8 +16,10 @@ use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomation;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomationCommand;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\ResumeWebhook;
+use Liberu\ControlPanel\ApiAutomation\Actions\RevokeApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
 use Liberu\ControlPanel\ApiAutomation\Actions\UpdateWebhook;
+use Liberu\ControlPanel\ApiAutomation\Models\ApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationDefinition;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
 use Liberu\ControlPanel\ApiAutomation\Models\WebhookEndpoint;
@@ -71,6 +73,15 @@ final class AutomationController
         $webhook = $register->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $webhook->getKey(), 'type' => 'control-panel-automation-webhook', 'attributes' => $webhook->only(['name', 'url', 'events', 'status', 'retry_limit'])]], 201);
+    }
+
+    public function revokeCredential(Request $request, string $credential, RevokeApiCredential $revoke): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = ApiCredential::query()->whereKey($credential)->where('team_id', $teamId)->firstOrFail();
+
+        return response()->json(['data' => self::credentialResource($revoke->execute($item))]);
     }
 
     public function updateWebhook(Request $request, string $webhook, UpdateWebhook $update): JsonResponse
@@ -165,6 +176,11 @@ final class AutomationController
     private static function resource(AutomationDefinition $item): array
     {
         return ['id' => $item->getKey(), 'type' => 'control-panel-automation-definition', 'attributes' => $item->only(['name', 'kind', 'status', 'schedule', 'definition'])];
+    }
+
+    private static function credentialResource(ApiCredential $item): array
+    {
+        return ['id' => $item->getKey(), 'type' => 'control-panel-api-credential', 'attributes' => $item->only(['name', 'scopes', 'status', 'expires_at'])];
     }
 
     private static function templateResource(AutomationTemplate $item): array

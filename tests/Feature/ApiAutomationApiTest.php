@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Liberu\ControlPanel\ApiAutomation\Actions\RegisterApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\ApiAutomationServiceProvider;
 use Liberu\ControlPanel\ApiAutomationApi\ApiAutomationApiServiceProvider;
@@ -57,6 +58,28 @@ it('rejects webhook state changes without a current team', function (): void {
     $this->actingAs($user, 'sanctum')
         ->postJson('/api/v1/control-panel/api-and-automation/webhooks/'.$webhook->getKey().'/resume')
         ->assertForbidden();
+});
+
+it('revokes only a current-team API credential through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $credential = app(RegisterApiCredential::class)->execute(['team_id' => $team->getKey(), 'name' => 'Deploy']);
+    $otherCredential = app(RegisterApiCredential::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Other']);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/api-and-automation/credentials/'.$otherCredential->getKey().'/revoke')
+        ->assertNotFound();
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/api-and-automation/credentials/'.$credential->getKey().'/revoke')
+        ->assertOk()
+        ->assertJsonPath('data.attributes.status', 'revoked')
+        ->assertJsonMissingPath('data.attributes.secret');
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/api-and-automation/credentials/'.$credential->getKey().'/revoke')
+        ->assertUnprocessable();
 });
 
 it('updates only a current-team webhook through the API', function (): void {

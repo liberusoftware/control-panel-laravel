@@ -8,6 +8,8 @@ paths:
       post: {operationId: control.panel.api.and.automation.templates.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/TemplateCreate'}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/api-and-automation/credentials:
     post: {operationId: control.panel.api.and.automation.credentials.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/CredentialCreate'}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/api-and-automation/credentials/{credential}/revoke:
+    post: {operationId: control.panel.api.and.automation.credentials.revoke, security: [{sanctum: []}], parameters: [{name: credential, in: path, required: true, schema: {type: string, format: uuid}}], responses: {'200': {$ref: '#/components/responses/Resource'}}, '404': {description: Credential is outside the current team.}, '422': {description: Credential is not active.}}
   /api/v1/control-panel/api-and-automation/webhooks:
     post: {operationId: control.panel.api.and.automation.webhooks.create, security: [{sanctum: []}], requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/WebhookCreate'}}}}, responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/api-and-automation/webhooks/{webhook}:
