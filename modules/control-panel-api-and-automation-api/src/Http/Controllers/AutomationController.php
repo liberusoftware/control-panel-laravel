@@ -17,6 +17,7 @@ use Liberu\ControlPanel\ApiAutomation\Actions\RegisterAutomationCommand;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\ResumeWebhook;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
+use Liberu\ControlPanel\ApiAutomation\Actions\UpdateWebhook;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationDefinition;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
 use Liberu\ControlPanel\ApiAutomation\Models\WebhookEndpoint;
@@ -70,6 +71,22 @@ final class AutomationController
         $webhook = $register->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $webhook->getKey(), 'type' => 'control-panel-automation-webhook', 'attributes' => $webhook->only(['name', 'url', 'events', 'status', 'retry_limit'])]], 201);
+    }
+
+    public function updateWebhook(Request $request, string $webhook, UpdateWebhook $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = WebhookEndpoint::query()->whereKey($webhook)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate([
+            'name' => ['sometimes', 'string', 'max:120'],
+            'url' => ['sometimes', 'url', 'starts_with:https://', 'max:2048'],
+            'events' => ['sometimes', 'array'],
+            'events.*' => ['string', 'max:120'],
+            'retry_limit' => ['sometimes', 'integer', 'between:0,20'],
+        ]);
+
+        return response()->json(['data' => self::webhookResource($update->execute($item, $data))]);
     }
 
     public function pauseWebhook(Request $request, string $webhook, PauseWebhook $pause): JsonResponse
