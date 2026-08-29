@@ -13,5 +13,6 @@ Route::prefix('api/v1/control-panel/monitoring')->middleware(['api', 'auth:sanct
     Route::post('/resources', [MonitorController::class, 'record'])->name('control-panel.monitoring.resources.store');
     Route::post('/maintenance/{window}/cancel', [MonitorController::class, 'cancelMaintenance'])->name('control-panel.monitoring.maintenance.cancel');
     Route::delete('/maintenance/{window}', [MonitorController::class, 'deleteMaintenance'])->name('control-panel.monitoring.maintenance.delete');
+    Route::patch('/maintenance/{window}', [MonitorController::class, 'updateMaintenance'])->name('control-panel.monitoring.maintenance.update');
     Route::get('{monitor}', [MonitorController::class, 'show'])->name('control-panel.monitoring.show');
 });

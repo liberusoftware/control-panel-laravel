@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Monitoring\Actions\CancelMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Actions\DeleteMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Actions\ResolveMonitoringEvent;
+use Liberu\ControlPanel\Monitoring\Actions\UpdateMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Models\MaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Models\MonitoringEvent;
 use Livewire\Component;
@@ -26,6 +27,13 @@ final class MonitoringFeatureInventory extends Component
     {
         $window = MaintenanceWindow::query()->whereKey($windowId)->where('team_id', $this->teamId())->firstOrFail();
         $delete->execute($window);
+    }
+
+    /** @param array<string, mixed> $attributes */
+    public function updateMaintenance(string $windowId, array $attributes, UpdateMaintenanceWindow $update): void
+    {
+        $window = MaintenanceWindow::query()->whereKey($windowId)->where('team_id', $this->teamId())->firstOrFail();
+        $update->execute($window, $attributes);
     }
 
     public function resolveEvent(string $eventId, ResolveMonitoringEvent $resolve): void
