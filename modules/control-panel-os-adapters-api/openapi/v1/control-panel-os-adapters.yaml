@@ -8,6 +8,8 @@ paths:
     post: {operationId: control.panel.os.adapters.packages.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/os-adapters/services:
     post: {operationId: control.panel.os.adapters.services.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/os-adapters/services/{service}:
+    patch: {operationId: control.panel.os.adapters.services.update, security: [{sanctum: []}], parameters: [{name: service, in: path, required: true, schema: {type: string, format: uuid}}], responses: {'200': {$ref: '#/components/responses/Resource'}}, '404': {description: Service is outside the current team.}}
   /api/v1/control-panel/os-adapters/firewall-rules:
     post: {operationId: control.panel.os.adapters.firewall.rules.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/os-adapters/users:

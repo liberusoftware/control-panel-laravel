@@ -10,6 +10,7 @@ Route::prefix('api/v1/control-panel/os-adapters')->middleware(['api', 'auth:sanc
     Route::post('/', [OsAdapterController::class, 'store'])->name('control-panel.os-adapters.store');
     Route::post('packages', [OsAdapterController::class, 'package'])->name('control-panel.os-adapters.packages.store');
     Route::post('services', [OsAdapterController::class, 'service'])->name('control-panel.os-adapters.services.store');
+    Route::patch('services/{service}', [OsAdapterController::class, 'updateService'])->name('control-panel.os-adapters.services.update');
     Route::post('firewall-rules', [OsAdapterController::class, 'firewall'])->name('control-panel.os-adapters.firewall.store');
     Route::post('users', [OsAdapterController::class, 'user'])->name('control-panel.os-adapters.users.store');
     Route::post('filesystems', [OsAdapterController::class, 'filesystem'])->name('control-panel.os-adapters.filesystems.store');

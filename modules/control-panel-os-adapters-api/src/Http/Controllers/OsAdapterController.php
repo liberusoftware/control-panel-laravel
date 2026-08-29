@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Liberu\ControlPanel\OsAdapters\Actions\RecordOsResource;
 use Liberu\ControlPanel\OsAdapters\Actions\RecordSupportMatrix;
 use Liberu\ControlPanel\OsAdapters\Actions\RegisterOsAdapter;
+use Liberu\ControlPanel\OsAdapters\Actions\UpdateOsService;
 use Liberu\ControlPanel\OsAdapters\Models\FilesystemMount;
 use Liberu\ControlPanel\OsAdapters\Models\FirewallRule;
 use Liberu\ControlPanel\OsAdapters\Models\OsAdapter;
@@ -56,6 +57,17 @@ final class OsAdapterController
     public function service(Request $request, RecordOsResource $record): JsonResponse
     {
         return $this->record($request, $record, OsService::class, ['name' => ['required', 'string', 'max:160'], 'version' => ['nullable', 'string', 'max:80'], 'status' => ['required', 'string', 'max:40'], 'enabled' => ['sometimes', 'boolean'], 'metadata' => ['nullable', 'array']]);
+    }
+
+    public function updateService(Request $request, string $service, UpdateOsService $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = OsService::query()->whereKey($service)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['name' => ['sometimes', 'string', 'max:160'], 'version' => ['sometimes', 'nullable', 'string', 'max:80'], 'status' => ['sometimes', 'string', 'max:40'], 'enabled' => ['sometimes', 'boolean'], 'metadata' => ['sometimes', 'array']]);
+        $item = $update->execute($item, $data);
+
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-os-service', 'attributes' => $item->only(['node_id', 'name', 'version', 'status', 'enabled', 'metadata'])]]);
     }
 
     public function firewall(Request $request, RecordOsResource $record): JsonResponse
