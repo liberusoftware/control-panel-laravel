@@ -68,3 +68,13 @@ it('deletes only a current-team mailbox through API and Livewire', function (): 
     expect(MailAccount::query()->whereKey($owned->getKey())->exists())->toBeFalse()
         ->and(MailAccount::query()->whereKey($livewireAccount->getKey())->exists())->toBeFalse();
 });
+
+it('rejects mail operations targeting another team account', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreign = app(CreateMailAccount::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'foreign-operation.test', 'address' => 'support']);
+
+    $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/mail/operations', ['mail_account_id' => $foreign->getKey(), 'operation' => 'deliver'])->assertNotFound();
+    $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/mail/controls', ['mail_account_id' => $foreign->getKey(), 'spam_threshold' => 5])->assertNotFound();
+});

@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\Mail\Actions;
 
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\Mail\Models\MailAccount;
 use Liberu\ControlPanel\Mail\Models\MailOperation;
 
 final class RecordMailOperation
@@ -16,7 +17,15 @@ final class RecordMailOperation
         if (! in_array($op, ['deliver', 'quarantine', 'spam-check', 'dkim-rotate'], true)) {
             throw ValidationException::withMessages(['operation' => 'Unsupported mail operation.']);
         }
+        $teamId = trim((string) ($a['team_id'] ?? ''));
+        $accountId = $a['mail_account_id'] ?? null;
+        if ($teamId === '') {
+            throw ValidationException::withMessages(['team_id' => 'A tenant is required.']);
+        }
+        if ($accountId !== null && ! MailAccount::query()->whereKey($accountId)->where('team_id', $teamId)->exists()) {
+            abort(404);
+        }
 
-        return MailOperation::query()->create(['id' => (string) Str::uuid(), 'team_id' => $a['team_id'] ?? null, 'mail_account_id' => $a['mail_account_id'] ?? null, 'operation' => $op, 'status' => $a['status'] ?? 'queued', 'details' => $a['details'] ?? []]);
+        return MailOperation::query()->create(['id' => (string) Str::uuid(), 'team_id' => $teamId, 'mail_account_id' => $accountId, 'operation' => $op, 'status' => $a['status'] ?? 'queued', 'details' => $a['details'] ?? []]);
     }
 }

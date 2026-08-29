@@ -8,11 +8,13 @@ use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
+use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
 use Liberu\ControlPanel\Mail\Models\DkimKey;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
 beforeEach(function (): void {
@@ -21,8 +23,9 @@ beforeEach(function (): void {
 });
 it('supports aliases, mailbox controls, spam and virus settings, and diagnostics', function (): void {
     $alias = app(CreateMailAlias::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test', 'address' => 'support', 'destinations' => ['ops@example.test']]);
-    $controls = app(ConfigureMailControls::class)->execute(['team_id' => 'team-1', 'mail_account_id' => 'account-1', 'spam_threshold' => 8, 'virus_scan_enabled' => true, 'autoresponder_enabled' => true]);
-    $diagnostic = app(RecordDeliveryDiagnostic::class)->execute(['team_id' => 'team-1', 'mail_account_id' => 'account-1', 'recipient' => 'ops@example.test', 'status' => 'delivered']);
+    $account = app(CreateMailAccount::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test', 'address' => 'support']);
+    $controls = app(ConfigureMailControls::class)->execute(['team_id' => 'team-1', 'mail_account_id' => $account->getKey(), 'spam_threshold' => 8, 'virus_scan_enabled' => true, 'autoresponder_enabled' => true]);
+    $diagnostic = app(RecordDeliveryDiagnostic::class)->execute(['team_id' => 'team-1', 'mail_account_id' => $account->getKey(), 'recipient' => 'ops@example.test', 'status' => 'delivered']);
     expect($alias->destinations)->toContain('ops@example.test')->and($controls->spam_threshold)->toBe(8)->and($diagnostic->status)->toBe('delivered');
 });
 it('rejects aliases without destinations and unsafe spam thresholds', function (): void {
@@ -54,4 +57,13 @@ it('deletes a mail account through the domain action', function (): void {
     app(DeleteMailAccount::class)->execute($account);
 
     expect(MailAccount::query()->whereKey($account->getKey())->exists())->toBeFalse();
+});
+
+it('scopes mail operation and diagnostic references to their tenant', function (): void {
+    $account = app(CreateMailAccount::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test', 'address' => 'support']);
+
+    expect(fn () => app(RecordMailOperation::class)->execute(['team_id' => 'team-2', 'mail_account_id' => $account->getKey(), 'operation' => 'deliver']))
+        ->toThrow(HttpException::class);
+    expect(fn () => app(RecordDeliveryDiagnostic::class)->execute(['team_id' => 'team-2', 'mail_account_id' => $account->getKey(), 'recipient' => 'ops@example.test']))
+        ->toThrow(HttpException::class);
 });
