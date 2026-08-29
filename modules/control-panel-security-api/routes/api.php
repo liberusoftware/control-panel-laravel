@@ -9,6 +9,7 @@ Route::prefix('api/v1/control-panel/security')->middleware(['api', 'auth:sanctum
     Route::get('/', [SecurityFindingController::class, 'index'])->name('control-panel.security.index');
     Route::post('/', [SecurityFindingController::class, 'store'])->name('control-panel.security.store');
     Route::post('{finding}/resolve', [SecurityFindingController::class, 'resolve'])->name('control-panel.security.resolve');
+    Route::patch('{finding}', [SecurityFindingController::class, 'update'])->name('control-panel.security.update');
     Route::post('hardening', [SecurityFindingController::class, 'hardening'])->name('control-panel.security.hardening.store');
     Route::post('patches', [SecurityFindingController::class, 'patch'])->name('control-panel.security.patches.store');
     Route::post('mfa-rbac', [SecurityFindingController::class, 'policy'])->name('control-panel.security.mfa-rbac.store');

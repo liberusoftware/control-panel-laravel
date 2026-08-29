@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\SecurityLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Security\Actions\ResolveSecurityFinding;
+use Liberu\ControlPanel\Security\Actions\UpdateSecurityFinding;
 use Liberu\ControlPanel\Security\Models\SecurityFinding;
 use Liberu\ControlPanel\Security\Queries\ListFindings;
 use Livewire\Component;
@@ -32,6 +33,13 @@ final class FindingInventory extends Component
             ->firstOrFail();
 
         $resolve->execute($finding);
+    }
+
+    /** @param array<string, mixed> $attributes */
+    public function update(string $findingId, array $attributes, UpdateSecurityFinding $update): void
+    {
+        $finding = SecurityFinding::query()->whereKey($findingId)->where('team_id', auth()->user()?->current_team_id)->firstOrFail();
+        $update->execute($finding, $attributes);
     }
 
     public function render(ListFindings $list): View

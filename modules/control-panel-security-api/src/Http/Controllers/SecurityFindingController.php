@@ -10,6 +10,7 @@ use Liberu\ControlPanel\Security\Actions\RecordFinding;
 use Liberu\ControlPanel\Security\Actions\RecordSecurityResource;
 use Liberu\ControlPanel\Security\Actions\ResolveSecurityFinding;
 use Liberu\ControlPanel\Security\Actions\StoreSecret;
+use Liberu\ControlPanel\Security\Actions\UpdateSecurityFinding;
 use Liberu\ControlPanel\Security\Models\ComplianceStatus;
 use Liberu\ControlPanel\Security\Models\HardeningControl;
 use Liberu\ControlPanel\Security\Models\IntrusionControl;
@@ -56,6 +57,16 @@ final class SecurityFindingController
         $finding = SecurityFinding::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => self::resource($resolve->execute($finding))]);
+    }
+
+    public function update(Request $request, string $id, UpdateSecurityFinding $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $finding = SecurityFinding::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['subject_type' => ['sometimes', 'string', 'max:120'], 'subject_id' => ['sometimes', 'string', 'max:160'], 'code' => ['sometimes', 'string', 'max:120'], 'severity' => ['sometimes', 'in:critical,high,medium,low,info'], 'summary' => ['sometimes', 'string', 'max:255'], 'evidence' => ['sometimes', 'array']]);
+
+        return response()->json(['data' => self::resource($update->execute($finding, $data))]);
     }
 
     public function hardening(Request $request, RecordSecurityResource $record): JsonResponse

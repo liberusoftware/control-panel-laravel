@@ -9,6 +9,7 @@ use Liberu\ControlPanel\Security\Actions\RecordFinding;
 use Liberu\ControlPanel\Security\Actions\RecordSecurityResource;
 use Liberu\ControlPanel\Security\Actions\ResolveSecurityFinding;
 use Liberu\ControlPanel\Security\Actions\StoreSecret;
+use Liberu\ControlPanel\Security\Actions\UpdateSecurityFinding;
 use Liberu\ControlPanel\Security\Queries\ListFindings;
 
 final class SecurityServiceProvider extends ServiceProvider
@@ -20,6 +21,7 @@ final class SecurityServiceProvider extends ServiceProvider
         $this->app->scoped(ListFindings::class);
         $this->app->scoped(RecordSecurityResource::class);
         $this->app->scoped(StoreSecret::class);
+        $this->app->scoped(UpdateSecurityFinding::class);
     }
 
     public function boot(): void
