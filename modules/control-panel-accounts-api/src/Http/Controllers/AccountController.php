@@ -14,6 +14,7 @@ use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
+use Liberu\ControlPanel\Accounts\Actions\UpdateDelegation;
 use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
 use Liberu\ControlPanel\Accounts\Models\Account;
 use Liberu\ControlPanel\Accounts\Models\AccountDelegation;
@@ -116,6 +117,17 @@ final class AccountController
         $item = AccountDelegation::query()->whereKey($delegation)->where('team_id', $teamId)->firstOrFail();
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-account-delegation', 'attributes' => $revoke->execute($item)->only(['delegate_id', 'permissions', 'expires_at', 'active'])]]);
+    }
+
+    public function updateDelegation(Request $request, string $delegation, UpdateDelegation $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = AccountDelegation::query()->with('account')->whereKey($delegation)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['delegate_id' => ['sometimes', 'string', 'max:255'], 'permissions' => ['sometimes', 'array'], 'expires_at' => ['nullable', 'date'], 'active' => ['sometimes', 'boolean']]);
+        $item = $update->execute($item, $data);
+
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-account-delegation', 'attributes' => $item->only(['delegate_id', 'permissions', 'expires_at', 'active'])]]);
     }
 
     public function branding(Request $request, Account $account, UpdateBranding $update): JsonResponse

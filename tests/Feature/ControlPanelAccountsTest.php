@@ -17,6 +17,7 @@ use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
+use Liberu\ControlPanel\Accounts\Actions\UpdateDelegation;
 use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
 use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
 use Liberu\ControlPanel\Accounts\Enums\AccountType;
@@ -109,6 +110,10 @@ it('supports packages, delegation, and validated branding', function (): void {
     $package = app(UpdateHostingPackage::class)->execute($package, ['active' => false]);
     $delegation = app(RevokeDelegation::class)->execute($delegation);
     expect($package->active)->toBeFalse()->and($delegation->active)->toBeFalse();
+
+    $delegation = app(DelegateAccount::class)->execute($account, ['delegate_id' => 'user-3']);
+    expect(app(UpdateDelegation::class)->execute($delegation, ['permissions' => ['manage' => true]])->permissions)
+        ->toMatchArray(['manage' => true]);
 });
 
 it('updates accounts through the domain action while preserving hierarchy invariants', function (): void {
@@ -184,6 +189,26 @@ it('archives an account through the tenant-scoped API', function (): void {
         ->postJson('/api/v1/control-panel/accounts/'.$account->getKey().'/archive')
         ->assertOk()
         ->assertJsonPath('data.attributes.status', 'archived');
+});
+
+it('updates only a current-team delegation through the API', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute(['team_id' => $team->getKey(), 'owner_id' => 'owner-1', 'name' => 'Delegated account']);
+    $delegation = app(DelegateAccount::class)->execute($account, ['delegate_id' => 'delegate-1']);
+    $otherAccount = app(CreateAccount::class)->execute(['team_id' => $otherTeam->getKey(), 'owner_id' => 'owner-2', 'name' => 'Other account']);
+    $otherDelegation = app(DelegateAccount::class)->execute($otherAccount, ['delegate_id' => 'delegate-2']);
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/accounts/delegations/'.$delegation->getKey(), ['permissions' => ['manage' => true]])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.permissions.manage', true);
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/accounts/delegations/'.$otherDelegation->getKey(), ['permissions' => ['manage' => true]])
+        ->assertNotFound();
 });
 
 it('rejects delegation revocation without a current team', function (): void {
