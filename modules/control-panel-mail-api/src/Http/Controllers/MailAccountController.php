@@ -10,6 +10,7 @@ use Liberu\ControlPanel\Mail\Actions\ConfigureMailControls;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
 use Liberu\ControlPanel\Mail\Actions\CreateMailRoute;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
 use Liberu\ControlPanel\Mail\Actions\RecordDeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\Actions\RegisterMailDomain;
@@ -62,6 +63,16 @@ final class MailAccountController
         ]);
 
         return response()->json(['data' => self::resource($update->execute($account, $data))]);
+    }
+
+    public function delete(Request $request, string $id, DeleteMailAccount $delete): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $account = MailAccount::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($account);
+
+        return response()->json(status: 204);
     }
 
     public function operation(Request $request, RecordMailOperation $record): JsonResponse

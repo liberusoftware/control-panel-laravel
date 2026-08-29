@@ -9,6 +9,7 @@ Route::prefix('api/v1/control-panel/mail')->middleware(['api', 'auth:sanctum', '
     Route::get('/', [MailAccountController::class, 'index'])->name('control-panel.mail.index');
     Route::post('/', [MailAccountController::class, 'store'])->name('control-panel.mail.store');
     Route::patch('/{mailAccount}', [MailAccountController::class, 'update'])->name('control-panel.mail.update');
+    Route::delete('/{mailAccount}', [MailAccountController::class, 'delete'])->name('control-panel.mail.delete');
     Route::post('/operations', [MailAccountController::class, 'operation'])->name('control-panel.mail.operations.store');
     Route::post('/aliases', [MailAccountController::class, 'alias'])->name('control-panel.mail.aliases.store');
     Route::post('/routes', [MailAccountController::class, 'route'])->name('control-panel.mail.routes.store');

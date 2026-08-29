@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\MailLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
 use Liberu\ControlPanel\Mail\Queries\ListMailAccounts;
@@ -38,6 +39,13 @@ final class MailInventory extends Component
             'quota_bytes' => ['required', 'integer', 'min:0'],
         ])->validate();
         $update->execute($account, $attributes);
+        unset($this->edits[$accountId]);
+    }
+
+    public function delete(string $accountId, DeleteMailAccount $delete): void
+    {
+        $account = MailAccount::query()->whereKey($accountId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($account);
         unset($this->edits[$accountId]);
     }
 

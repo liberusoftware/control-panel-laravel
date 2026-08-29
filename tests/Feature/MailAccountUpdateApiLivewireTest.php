@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailAccount;
 use Liberu\ControlPanel\Mail\Actions\UpdateMailAccount;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
@@ -47,4 +48,23 @@ it('updates only a current-team mailbox from Livewire', function (): void {
     $inventory->update($owned->getKey(), ['domain' => 'owned.test', 'address' => 'helpdesk@owned.test', 'quota_bytes' => 5], app(UpdateMailAccount::class));
 
     expect(MailAccount::query()->findOrFail($owned->getKey())->address)->toBe('helpdesk@owned.test');
+});
+
+it('deletes only a current-team mailbox through API and Livewire', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreign = app(CreateMailAccount::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'other-delete.test', 'address' => 'support']);
+    $owned = app(CreateMailAccount::class)->execute(['team_id' => $team->getKey(), 'domain' => 'owned-delete.test', 'address' => 'support']);
+
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/mail/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/mail/'.$owned->getKey())->assertNoContent();
+
+    $livewireAccount = app(CreateMailAccount::class)->execute(['team_id' => $team->getKey(), 'domain' => 'owned-livewire.test', 'address' => 'support']);
+    $inventory = app(MailInventory::class);
+    $this->actingAs($user);
+    $inventory->delete($livewireAccount->getKey(), app(DeleteMailAccount::class));
+
+    expect(MailAccount::query()->whereKey($owned->getKey())->exists())->toBeFalse()
+        ->and(MailAccount::query()->whereKey($livewireAccount->getKey())->exists())->toBeFalse();
 });

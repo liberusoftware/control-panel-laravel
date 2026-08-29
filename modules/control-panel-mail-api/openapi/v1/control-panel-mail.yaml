@@ -21,6 +21,7 @@ paths:
   /api/v1/control-panel/mail/{mailAccount}:
     get: {operationId: control.panel.mail.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
     patch: {operationId: control.panel.mail.update, security: [{sanctum: []}], responses: {'200': {description: Mail account updated.}, '404': {description: Mail account is outside the current team.}}}
+    delete: {operationId: control.panel.mail.delete, security: [{sanctum: []}], responses: {'204': {description: Mail account deleted.}, '404': {description: Mail account is outside the current team.}}}
 components:
   securitySchemes: {sanctum: {type: http, scheme: bearer, bearerFormat: Sanctum}}
   responses:
