@@ -4,6 +4,8 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\Certificates\Actions\IssueCertificate;
+use Liberu\ControlPanel\Certificates\Actions\RecordCertificateOperation;
 use Liberu\ControlPanel\Certificates\Actions\RegisterAcmeAccount;
 use Liberu\ControlPanel\Certificates\CertificatesServiceProvider;
 use Liberu\ControlPanel\Containers\Actions\RecordContainerResource;
@@ -12,6 +14,7 @@ use Liberu\ControlPanel\Containers\ContainersServiceProvider;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\Files\Actions\RecordFileOperation;
+use Liberu\ControlPanel\Files\Actions\RegisterFile;
 use Liberu\ControlPanel\Files\FilesServiceProvider;
 use Liberu\ControlPanel\Kubernetes\Actions\RecordKubernetesResource;
 use Liberu\ControlPanel\Kubernetes\Actions\RegisterCluster;
@@ -19,6 +22,7 @@ use Liberu\ControlPanel\Kubernetes\KubernetesServiceProvider;
 use Liberu\ControlPanel\Mail\Actions\RecordMailOperation;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringEvent;
+use Liberu\ControlPanel\Monitoring\Actions\RegisterMonitor;
 use Liberu\ControlPanel\Monitoring\MonitoringServiceProvider;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -54,4 +58,16 @@ it('requires tenant-owned infrastructure references', function (): void {
 
     expect(app(RecordContainerResource::class)->execute(['team_id' => 'team-1', 'workload_id' => $workload->getKey(), 'kind' => 'image', 'name' => 'owned'])->workload_id)->toBe($workload->getKey())
         ->and(app(RecordKubernetesResource::class)->execute(['team_id' => 'team-1', 'cluster_id' => $cluster->getKey(), 'kind' => 'namespace', 'name' => 'owned'])->cluster_id)->toBe($cluster->getKey());
+});
+it('scopes lifecycle references to their tenant', function (): void {
+    $certificate = app(IssueCertificate::class)->execute(['team_id' => 'team-1', 'domains' => ['example.test']]);
+    $file = app(RegisterFile::class)->execute(['team_id' => 'team-1', 'path' => 'reports/status.json', 'disk' => 'local']);
+    $monitor = app(RegisterMonitor::class)->execute(['team_id' => 'team-1', 'subject_type' => 'service', 'subject_id' => 'service-1', 'name' => 'API']);
+
+    expect(fn () => app(RecordCertificateOperation::class)->execute(['certificate_id' => $certificate->getKey(), 'operation' => 'renew']))->toThrow(ValidationException::class);
+    expect(fn () => app(RecordFileOperation::class)->execute(['file_id' => $file->getKey(), 'operation' => 'scan']))->toThrow(ValidationException::class);
+    expect(fn () => app(RecordMonitoringEvent::class)->execute(['monitor_id' => $monitor->getKey(), 'kind' => 'alert']))->toThrow(ValidationException::class);
+    expect(fn () => app(RecordCertificateOperation::class)->execute(['team_id' => 'team-2', 'certificate_id' => $certificate->getKey(), 'operation' => 'renew']))->toThrow(HttpException::class);
+    expect(fn () => app(RecordFileOperation::class)->execute(['team_id' => 'team-2', 'file_id' => $file->getKey(), 'operation' => 'scan']))->toThrow(HttpException::class);
+    expect(fn () => app(RecordMonitoringEvent::class)->execute(['team_id' => 'team-2', 'monitor_id' => $monitor->getKey(), 'kind' => 'alert']))->toThrow(HttpException::class);
 });
