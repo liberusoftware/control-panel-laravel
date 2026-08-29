@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\ControlCoreLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
+use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
 use Livewire\Component;
@@ -14,6 +15,37 @@ use Livewire\WithPagination;
 final class CredentialInventory extends Component
 {
     use WithPagination;
+
+    public string $nodeId = '';
+
+    public string $name = '';
+
+    public string $username = '';
+
+    public string $publicKey = '';
+
+    public function createCredential(RegisterNodeCredential $register): void
+    {
+        $teamId = $this->teamId();
+        $data = $this->validate([
+            'nodeId' => ['required', 'uuid'],
+            'name' => ['required', 'string', 'max:160'],
+            'username' => ['nullable', 'string', 'alpha_dash', 'max:120'],
+            'publicKey' => ['required', 'string', 'max:10000'],
+        ]);
+
+        $register->execute([
+            'team_id' => $teamId,
+            'node_id' => $data['nodeId'],
+            'name' => $data['name'],
+            'type' => 'ssh',
+            'username' => $data['username'] ?: null,
+            'public_key' => $data['publicKey'],
+        ]);
+
+        $this->reset(['nodeId', 'name', 'username', 'publicKey']);
+        $this->resetPage();
+    }
 
     public function revoke(string $credentialId, RevokeNodeCredential $revoke): void
     {
@@ -37,7 +69,8 @@ final class CredentialInventory extends Component
 
     public function render(): View
     {
-        $credentials = NodeCredential::query()->where('team_id', $this->teamId())->latest()->paginate(25);
+        $teamId = $this->teamId();
+        $credentials = NodeCredential::query()->where('team_id', $teamId)->latest()->paginate(25);
 
         return view('control-panel-control-core-livewire::components.credential-inventory', ['credentials' => $credentials]);
     }

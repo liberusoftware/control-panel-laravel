@@ -111,6 +111,28 @@ it('revokes only a current-team credential from the Livewire inventory', functio
     expect($credential->fresh()->status->value)->toBe('revoked');
 });
 
+it('registers a tenant-scoped SSH public key from the Livewire inventory', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute([
+        'team_id' => $team->getKey(), 'name' => 'SSH node', 'hostname' => 'ssh.test',
+    ]);
+
+    $this->actingAs($user);
+    $component = app(CredentialInventory::class);
+    $component->nodeId = $node->getKey();
+    $component->name = 'Deploy key';
+    $component->username = 'deploy';
+    $component->publicKey = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIexample';
+    $component->createCredential(app(RegisterNodeCredential::class));
+
+    $credential = NodeCredential::query()->where('team_id', $team->getKey())->sole();
+    expect($credential->node_id)->toBe($node->getKey())
+        ->and($credential->type)->toBe('ssh')
+        ->and($credential->public_key)->toContain('ssh-ed25519')
+        ->and($credential->secret)->toBeNull();
+});
+
 it('transitions only a current-team operation task from the Livewire inventory', function (): void {
     $team = Team::factory()->create();
     $user = User::factory()->create(['current_team_id' => $team->getKey()]);
