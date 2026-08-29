@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\DnsLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
+use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
 use Liberu\ControlPanel\Dns\Models\Record;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -28,6 +29,9 @@ final class RecordInventory extends Component
 
     public ?int $priority = null;
 
+    /** @var array<string, array<string, mixed>> */
+    public array $edits = [];
+
     public function save(CreateRecord $create): void
     {
         $teamId = $this->teamId();
@@ -39,6 +43,20 @@ final class RecordInventory extends Component
         $create->execute(['team_id' => $teamId, 'zone_id' => $this->zoneId, 'name' => $this->name, 'type' => $this->type, 'content' => $this->content, 'ttl' => $this->ttl, 'priority' => $this->priority]);
         $this->reset(['content', 'priority']);
         $this->resetPage();
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function update(string $recordId, ?array $attributes, UpdateRecord $update): void
+    {
+        $record = Record::query()->with('zone')->whereKey($recordId)->whereHas('zone', fn ($query) => $query->where('team_id', $this->teamId()))->firstOrFail();
+        $attributes ??= $this->edits[$recordId] ?? [];
+        validator($attributes, [
+            'zone_id' => ['required', 'uuid'], 'name' => ['required', 'string', 'max:253'],
+            'type' => ['required', 'in:A,AAAA,CNAME,MX,TXT,NS,SRV,CAA'], 'content' => ['required', 'string', 'max:4096'],
+            'ttl' => ['required', 'integer', 'between:60,86400'], 'priority' => ['nullable', 'integer', 'between:0,65535'],
+        ])->validate();
+        $update->execute($record, $attributes);
+        unset($this->edits[$recordId]);
     }
 
     public function render(): View

@@ -10,7 +10,7 @@
     </form>
     <ul>
         @forelse ($records as $record)
-            <li wire:key="dns-record-{{ $record->getKey() }}">{{ $record->name }} {{ $record->type }} {{ $record->content }} ({{ $record->zone->domain }})</li>
+            <li wire:key="dns-record-{{ $record->getKey() }}">{{ $record->name }} {{ $record->type }} {{ $record->content }} ({{ $record->zone->domain }}) <form wire:submit="update('{{ $record->getKey() }}', null)"><input aria-label="{{ __('Record content') }}" wire:model="edits.{{ $record->getKey() }}.content" value="{{ $record->content }}"><input aria-label="{{ __('Record TTL') }}" type="number" wire:model="edits.{{ $record->getKey() }}.ttl" value="{{ $record->ttl }}"><button type="submit">{{ __('Save') }}</button></form></li>
         @empty
             <li>{{ __('No DNS records found.') }}</li>
         @endforelse

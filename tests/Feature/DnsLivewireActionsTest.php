@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
+use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\Dns\Models\DnsTemplate;
 use Liberu\ControlPanel\DnsLivewire\Components\DnsTemplateInventory;
@@ -64,6 +66,23 @@ it('creates records through the tenant-scoped Livewire inventory', function (): 
     $inventory->save(app(CreateRecord::class));
 
     expect($zone->records()->count())->toBe(1);
+});
+
+it('updates only a current-team DNS record from Livewire', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $ownedZone = app(CreateZone::class)->execute(['team_id' => $team->getKey(), 'domain' => 'owned.test']);
+    $foreignZone = app(CreateZone::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'foreign.test']);
+    $owned = app(CreateRecord::class)->execute(['team_id' => $team->getKey(), 'zone_id' => $ownedZone->getKey(), 'type' => 'A', 'content' => '192.0.2.1']);
+    $foreign = app(CreateRecord::class)->execute(['team_id' => $otherTeam->getKey(), 'zone_id' => $foreignZone->getKey(), 'type' => 'A', 'content' => '192.0.2.2']);
+    $inventory = app(RecordInventory::class);
+    $this->actingAs($user);
+
+    expect(fn () => $inventory->update($foreign->getKey(), ['zone_id' => $foreignZone->getKey(), 'name' => '@', 'type' => 'A', 'content' => '192.0.2.3', 'ttl' => 3600], app(UpdateRecord::class)))->toThrow(ModelNotFoundException::class);
+    $inventory->update($owned->getKey(), ['zone_id' => $ownedZone->getKey(), 'name' => '@', 'type' => 'A', 'content' => '192.0.2.3', 'ttl' => 3600], app(UpdateRecord::class));
+
+    expect($owned->refresh()->content)->toBe('192.0.2.3');
 });
 
 it('renders named DNS feature inventories only for the current team', function (): void {

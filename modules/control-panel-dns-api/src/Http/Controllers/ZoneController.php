@@ -13,6 +13,7 @@ use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\RecordDnsCheck;
 use Liberu\ControlPanel\Dns\Actions\RegisterDnsFeature;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
+use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
 use Liberu\ControlPanel\Dns\Models\Record;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Liberu\ControlPanel\Dns\Queries\ListZones;
@@ -55,6 +56,21 @@ final class ZoneController
         $item = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-dns-record', 'attributes' => $item->only(['zone_id', 'name', 'type', 'content', 'ttl', 'priority', 'metadata'])]], 201);
+    }
+
+    public function updateRecord(Request $request, string $id, UpdateRecord $update): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $record = Record::query()->whereKey($id)->whereHas('zone', fn ($query) => $query->where('team_id', $teamId))->with('zone')->firstOrFail();
+        $data = $request->validate([
+            'zone_id' => ['sometimes', 'uuid'], 'name' => ['sometimes', 'string', 'max:253'],
+            'type' => ['sometimes', 'in:A,AAAA,CNAME,MX,TXT,NS,SRV,CAA'], 'content' => ['sometimes', 'string', 'max:4096'],
+            'ttl' => ['sometimes', 'integer', 'between:60,86400'], 'priority' => ['sometimes', 'nullable', 'integer', 'between:0,65535'],
+            'metadata' => ['sometimes', 'nullable', 'array'],
+        ]);
+
+        return response()->json(['data' => self::recordResource($update->execute($record, $data))]);
     }
 
     public function bulkRecords(Request $request, CreateRecord $create): JsonResponse
