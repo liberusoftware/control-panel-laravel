@@ -11,9 +11,11 @@ use Liberu\ControlPanel\Backups\Actions\CreateSchedule;
 use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
 use Liberu\ControlPanel\Backups\Actions\DeleteDestination;
 use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
+use Liberu\ControlPanel\Backups\Actions\DeleteSchedule;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\UpdateDestination;
 use Liberu\ControlPanel\Backups\Actions\UpdatePolicy;
+use Liberu\ControlPanel\Backups\Actions\UpdateSchedule;
 use Liberu\ControlPanel\Backups\Actions\VerifySnapshot;
 use Liberu\ControlPanel\Backups\BackupsServiceProvider;
 use Liberu\ControlPanel\Backups\Enums\RestoreStatus;
@@ -83,4 +85,19 @@ it('updates and deletes encrypted backup destinations through domain actions', f
     app(DeleteDestination::class)->execute($updated);
 
     expect($destination->newQuery()->whereKey($destination->getKey())->exists())->toBeFalse();
+});
+
+it('updates and deletes backup schedules through domain actions', function (): void {
+    $policy = app(CreatePolicy::class)->execute(['team_id' => 'team-1', 'name' => 'Nightly', 'storage_driver' => 'local']);
+    $schedule = app(CreateSchedule::class)->execute($policy, '0 2 * * *');
+
+    $updated = app(UpdateSchedule::class)->execute($schedule, ['cron' => '0 4 * * *', 'timezone' => 'Europe/Amsterdam', 'active' => false]);
+
+    expect($updated->cron)->toBe('0 4 * * *')
+        ->and($updated->timezone)->toBe('Europe/Amsterdam')
+        ->and($updated->active)->toBeFalse();
+
+    app(DeleteSchedule::class)->execute($updated);
+
+    expect($schedule->newQuery()->whereKey($schedule->getKey())->exists())->toBeFalse();
 });

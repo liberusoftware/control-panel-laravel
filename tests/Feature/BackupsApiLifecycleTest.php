@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Liberu\ControlPanel\Backups\Actions\CreateDestination;
 use Liberu\ControlPanel\Backups\Actions\CreatePolicy;
+use Liberu\ControlPanel\Backups\Actions\CreateSchedule;
 use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
 use Liberu\ControlPanel\Backups\BackupsServiceProvider;
 use Liberu\ControlPanel\BackupsApi\BackupsApiServiceProvider;
@@ -67,4 +68,19 @@ it('updates and deletes only a current-team backup destination through the API',
     $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/backups/destinations/'.$owned->getKey(), ['name' => 'Updated', 'driver' => 's3'])->assertOk()->assertJsonPath('data.attributes.name', 'Updated');
     $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/destinations/'.$foreign->getKey())->assertNotFound();
     $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/destinations/'.$owned->getKey())->assertNoContent();
+});
+
+it('updates and deletes only a current-team backup schedule through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreignPolicy = app(CreatePolicy::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Foreign', 'storage_driver' => 'local']);
+    $ownedPolicy = app(CreatePolicy::class)->execute(['team_id' => $team->getKey(), 'name' => 'Owned', 'storage_driver' => 'local']);
+    $foreign = app(CreateSchedule::class)->execute($foreignPolicy, '0 1 * * *');
+    $owned = app(CreateSchedule::class)->execute($ownedPolicy, '0 2 * * *');
+
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/backups/schedules/'.$foreign->getKey(), ['cron' => '0 3 * * *'])->assertNotFound();
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/backups/schedules/'.$owned->getKey(), ['cron' => '0 4 * * *', 'timezone' => 'UTC'])->assertOk()->assertJsonPath('data.attributes.cron', '0 4 * * *');
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/schedules/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/schedules/'.$owned->getKey())->assertNoContent();
 });
