@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Monitoring\Actions\CancelMaintenanceWindow;
+use Liberu\ControlPanel\Monitoring\Actions\DeleteMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringResource;
 use Liberu\ControlPanel\Monitoring\Models\MaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\MonitoringServiceProvider;
@@ -28,6 +29,8 @@ it('cancels scheduled maintenance and rejects terminal repeats', function (): vo
     $cancelled = app(CancelMaintenanceWindow::class)->execute($window);
     expect($cancelled->status)->toBe('cancelled');
     expect(fn () => app(CancelMaintenanceWindow::class)->execute($cancelled))->toThrow(ValidationException::class);
+    app(DeleteMaintenanceWindow::class)->execute($cancelled);
+    expect(MaintenanceWindow::query()->whereKey($window->getKey())->exists())->toBeFalse();
 });
 
 it('cancels only a current-team maintenance window through API and Livewire', function (): void {
@@ -44,4 +47,6 @@ it('cancels only a current-team maintenance window through API and Livewire', fu
     $this->actingAs($user);
     app(MonitoringFeatureInventory::class)->cancelMaintenance($livewireWindow->getKey(), app(CancelMaintenanceWindow::class));
     expect(MaintenanceWindow::query()->findOrFail($livewireWindow->getKey())->status)->toBe('cancelled');
+    app(MonitoringFeatureInventory::class)->deleteMaintenance($livewireWindow->getKey(), app(DeleteMaintenanceWindow::class));
+    expect(MaintenanceWindow::query()->whereKey($livewireWindow->getKey())->exists())->toBeFalse();
 });

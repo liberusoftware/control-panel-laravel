@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\Monitoring;
 
 use Illuminate\Support\ServiceProvider;
+use Liberu\ControlPanel\Monitoring\Actions\DeleteMaintenanceWindow;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringEvent;
 use Liberu\ControlPanel\Monitoring\Actions\RecordMonitoringResource;
 use Liberu\ControlPanel\Monitoring\Actions\RegisterMonitor;
@@ -15,6 +16,7 @@ final class MonitoringServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->scoped(DeleteMaintenanceWindow::class);
         $this->app->scoped(RegisterMonitor::class);
         $this->app->scoped(ListMonitors::class);
         $this->app->scoped(RecordMonitoringEvent::class);

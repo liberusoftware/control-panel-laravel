@@ -2,7 +2,7 @@
     <h2>{{ __('Maintenance windows') }}</h2>
     <ul>
         @forelse ($maintenance as $window)
-            <li wire:key="maintenance-{{ $window->getKey() }}">{{ $window->name }} — {{ $window->status }} @if (! in_array($window->status, ['cancelled', 'completed'], true))<button type="button" wire:click="cancelMaintenance('{{ $window->getKey() }}')" wire:loading.attr="disabled">{{ __('Cancel') }}</button>@endif</li>
+            <li wire:key="maintenance-{{ $window->getKey() }}">{{ $window->name }} — {{ $window->status }} @if (! in_array($window->status, ['cancelled', 'completed'], true))<button type="button" wire:click="cancelMaintenance('{{ $window->getKey() }}')" wire:loading.attr="disabled">{{ __('Cancel') }}</button>@endif @if (! in_array($window->status, ['active', 'completed'], true))<button type="button" wire:click="deleteMaintenance('{{ $window->getKey() }}')" wire:loading.attr="disabled">{{ __('Delete') }}</button>@endif</li>
         @empty
             <li>{{ __('No maintenance windows found.') }}</li>
         @endforelse
