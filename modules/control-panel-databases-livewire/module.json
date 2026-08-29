@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\DatabasesLivewire\\DatabasesLivewireServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-databases": "^1.0"}},
   "capabilities": ["control-panel.databases.livewire"],
-  "features": ["Database inventory", "Backup inventory"],
+  "features": ["Database engine inventory", "Database inventory", "User and privilege state", "Backup inventory", "Upgrade state", "Health check state", "Remote access state"],
   "default_enabled": false
 }
