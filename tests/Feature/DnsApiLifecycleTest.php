@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
+use Liberu\ControlPanel\Dns\Contracts\DnsResolver;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\DnsApi\DnsApiServiceProvider;
 use Liberu\Foundation\Organizations\Models\Team;
@@ -117,4 +118,38 @@ it('validates DNS record content through the API', function (): void {
     $this->actingAs($user, 'sanctum')
         ->postJson('/api/v1/control-panel/dns/records/validate', ['record_type' => 'A', 'name' => '@', 'value' => 'invalid'])
         ->assertUnprocessable();
+});
+
+it('runs tenant-scoped DNS resolution and propagation checks through the API', function (): void {
+    app()->instance(DnsResolver::class, new class() implements DnsResolver
+    {
+        public function records(string $hostname, string $recordType): array
+        {
+            return [['host' => $hostname, 'ip' => '192.0.2.25']];
+        }
+
+        public function nameservers(string $hostname): array
+        {
+            return ['ns1.example.test'];
+        }
+    });
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $zone = app(CreateZone::class)->execute(['team_id' => $team->getKey(), 'domain' => 'owned-check.test']);
+    $foreignZone = app(CreateZone::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'foreign-check.test']);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/dns/zones/'.$zone->getKey().'/resolution-check')
+        ->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('data.attributes.status', 'passed');
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/dns/zones/'.$zone->getKey().'/propagation-check')
+        ->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('data.attributes.nameservers.0', 'ns1.example.test');
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/dns/zones/'.$foreignZone->getKey().'/resolution-check')
+        ->assertNotFound();
 });

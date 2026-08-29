@@ -8,6 +8,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
+use Liberu\ControlPanel\Dns\Actions\CheckDnsPropagation;
+use Liberu\ControlPanel\Dns\Actions\CheckDnsResolution;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\DeleteRecord;
@@ -157,6 +159,26 @@ final class ZoneController
         $item = $record->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-dns-check', 'attributes' => $item->only(['zone_id', 'kind', 'status', 'result', 'checked_at'])]], 201);
+    }
+
+    public function resolutionCheck(Request $request, string $zone, CheckDnsResolution $check): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $data = $request->validate(['record_id' => ['nullable', 'uuid'], 'record_type' => ['nullable', 'in:A,AAAA,CNAME,MX,TXT,NS,PTR,SRV,CAA'], 'resolver' => ['nullable', 'string', 'max:255']]);
+        $result = $check->execute(array_merge($data, ['team_id' => $teamId, 'zone_id' => $zone]));
+
+        return response()->json(['success' => $result['success'], 'data' => ['id' => $result['validation']->getKey(), 'type' => 'control-panel-dns-validation', 'attributes' => $result['validation']->only(['zone_id', 'record_id', 'status', 'resolver', 'expected', 'observed', 'checked_at', 'details'])]]);
+    }
+
+    public function propagationCheck(Request $request, string $zone, CheckDnsPropagation $check): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $data = $request->validate(['record_id' => ['nullable', 'uuid']]);
+        $result = $check->execute(array_merge($data, ['team_id' => $teamId, 'zone_id' => $zone]));
+
+        return response()->json(['success' => $result['success'], 'data' => ['id' => $result['propagation']->getKey(), 'type' => 'control-panel-dns-propagation', 'attributes' => $result['propagation']->only(['zone_id', 'record_id', 'status', 'nameservers', 'results', 'checked_at'])]]);
     }
 
     public function feature(Request $request, RegisterDnsFeature $register): JsonResponse

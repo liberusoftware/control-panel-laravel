@@ -7,14 +7,20 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
+use Liberu\ControlPanel\Dns\Actions\CheckDnsPropagation;
+use Liberu\ControlPanel\Dns\Actions\CheckDnsResolution;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\DeleteRecord;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
 use Liberu\ControlPanel\Dns\Actions\UpdateZone;
+use Liberu\ControlPanel\Dns\Contracts\DnsResolver;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\Dns\Models\DnsTemplate;
+use Liberu\ControlPanel\Dns\Models\DnsValidation;
+use Liberu\ControlPanel\Dns\Models\PropagationCheck;
+use Liberu\ControlPanel\DnsLivewire\Components\DnsFeatureInventory;
 use Liberu\ControlPanel\DnsLivewire\Components\DnsTemplateInventory;
 use Liberu\ControlPanel\DnsLivewire\Components\RecordInventory;
 use Liberu\ControlPanel\DnsLivewire\Components\ZoneInventory;
@@ -137,4 +143,34 @@ it('fails closed when a named DNS feature inventory has no current team', functi
 
     expect(fn () => app(DnsTemplateInventory::class)->render())
         ->toThrow(HttpException::class);
+});
+
+it('runs tenant-scoped DNS resolution and propagation checks from Livewire', function (): void {
+    app()->instance(DnsResolver::class, new class() implements DnsResolver
+    {
+        public function records(string $hostname, string $recordType): array
+        {
+            return [['host' => $hostname, 'ip' => '192.0.2.30']];
+        }
+
+        public function nameservers(string $hostname): array
+        {
+            return ['ns1.example.test'];
+        }
+    });
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $zone = app(CreateZone::class)->execute(['team_id' => $team->getKey(), 'domain' => 'owned-livewire.test']);
+    $foreignZone = app(CreateZone::class)->execute(['team_id' => $otherTeam->getKey(), 'domain' => 'foreign-livewire.test']);
+
+    $this->actingAs($user);
+    $inventory = app(DnsFeatureInventory::class);
+    $inventory->checkResolution($zone->getKey(), app(CheckDnsResolution::class));
+    $inventory->checkPropagation($zone->getKey(), app(CheckDnsPropagation::class));
+
+    expect(DnsValidation::query()->where('team_id', $team->getKey())->count())->toBe(1)
+        ->and(PropagationCheck::query()->where('team_id', $team->getKey())->count())->toBe(1)
+        ->and(fn () => $inventory->checkResolution($foreignZone->getKey(), app(CheckDnsResolution::class)))
+        ->toThrow(ModelNotFoundException::class);
 });

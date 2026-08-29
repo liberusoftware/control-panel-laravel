@@ -14,6 +14,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Liberu\ControlPanel\Dns\Actions\ArchiveZone;
+use Liberu\ControlPanel\Dns\Actions\CheckDnsPropagation;
+use Liberu\ControlPanel\Dns\Actions\CheckDnsResolution;
 use Liberu\ControlPanel\Dns\Actions\SuspendZone;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Liberu\ControlPanel\DnsFilament\Resources\ZoneResource\Pages\CreateZone;
@@ -49,6 +51,20 @@ final class ZoneResource extends Resource
                 ->requiresConfirmation()
                 ->visible(fn (Zone $record): bool => $record->status->value !== 'archived')
                 ->action(fn (Zone $record): Zone => app(ArchiveZone::class)->execute($record)),
+            Action::make('resolution-check')
+                ->requiresConfirmation()
+                ->action(function (Zone $record): void {
+                    abort_if(auth()->user()?->current_team_id === null, 403, 'A current team is required.');
+                    abort_unless((string) $record->team_id === (string) auth()->user()?->current_team_id, 404);
+                    app(CheckDnsResolution::class)->execute(['team_id' => auth()->user()->current_team_id, 'zone_id' => $record->getKey()]);
+                }),
+            Action::make('propagation-check')
+                ->requiresConfirmation()
+                ->action(function (Zone $record): void {
+                    abort_if(auth()->user()?->current_team_id === null, 403, 'A current team is required.');
+                    abort_unless((string) $record->team_id === (string) auth()->user()?->current_team_id, 404);
+                    app(CheckDnsPropagation::class)->execute(['team_id' => auth()->user()->current_team_id, 'zone_id' => $record->getKey()]);
+                }),
         ])->defaultSort('created_at', 'desc');
     }
 

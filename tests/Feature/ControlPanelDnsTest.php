@@ -2,19 +2,25 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Dns\Actions\ActivateZone;
+use Liberu\ControlPanel\Dns\Actions\CheckDnsPropagation;
+use Liberu\ControlPanel\Dns\Actions\CheckDnsResolution;
 use Liberu\ControlPanel\Dns\Actions\CreateRecord;
 use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\DeleteRecord;
 use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
 use Liberu\ControlPanel\Dns\Actions\UpdateZone;
 use Liberu\ControlPanel\Dns\Actions\ValidateRecord;
+use Liberu\ControlPanel\Dns\Contracts\DnsResolver;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\Dns\Enums\ZoneStatus;
 use Liberu\ControlPanel\Dns\Events\ZoneCreated;
+use Liberu\ControlPanel\Dns\Models\DnsValidation;
+use Liberu\ControlPanel\Dns\Models\PropagationCheck;
 
 uses(RefreshDatabase::class);
 
@@ -75,4 +81,38 @@ it('validates DNS record values by type', function (): void {
     expect(app(ValidateRecord::class)->execute(['record_type' => 'A', 'name' => '@', 'value' => '192.0.2.1']))->toMatchArray(['valid' => true]);
     expect(fn () => app(ValidateRecord::class)->execute(['record_type' => 'A', 'name' => '@', 'value' => 'not-an-ip']))->toThrow(ValidationException::class);
     expect(fn () => app(ValidateRecord::class)->execute(['record_type' => 'SRV', 'name' => '_http', 'value' => '0 5 443 service.example.com']))->toThrow(ValidationException::class);
+});
+
+it('checks DNS resolution and propagation through the resolver boundary', function (): void {
+    app()->instance(DnsResolver::class, new class() implements DnsResolver
+    {
+        public function records(string $hostname, string $recordType): array
+        {
+            return [['host' => $hostname, 'ip' => '192.0.2.1']];
+        }
+
+        public function nameservers(string $hostname): array
+        {
+            return ['ns1.example.test', 'ns2.example.test'];
+        }
+    });
+    $zone = app(CreateZone::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test']);
+    $record = app(CreateRecord::class)->execute(['team_id' => 'team-1', 'zone_id' => $zone->getKey(), 'name' => '@', 'type' => 'A', 'content' => '192.0.2.1']);
+
+    $resolution = app(CheckDnsResolution::class)->execute(['team_id' => 'team-1', 'zone_id' => $zone->getKey(), 'record_id' => $record->getKey()]);
+    $propagation = app(CheckDnsPropagation::class)->execute(['team_id' => 'team-1', 'zone_id' => $zone->getKey()]);
+
+    expect($resolution['success'])->toBeTrue()
+        ->and($resolution['validation'])->toBeInstanceOf(DnsValidation::class)
+        ->and($resolution['validation']->status)->toBe('passed')
+        ->and($propagation['success'])->toBeTrue()
+        ->and($propagation['propagation'])->toBeInstanceOf(PropagationCheck::class)
+        ->and($propagation['propagation']->nameservers)->toHaveCount(2);
+});
+
+it('rejects DNS checks for a zone outside the tenant', function (): void {
+    $zone = app(CreateZone::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test']);
+
+    expect(fn () => app(CheckDnsResolution::class)->execute(['team_id' => 'team-2', 'zone_id' => $zone->getKey()]))
+        ->toThrow(ModelNotFoundException::class);
 });
