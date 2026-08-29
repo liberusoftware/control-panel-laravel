@@ -10,6 +10,7 @@ Route::prefix('api/v1/control-panel/dns')->middleware(['api', 'auth:sanctum', 't
     Route::post('/zones', [ZoneController::class, 'store'])->name('control-panel.dns.zones.store');
     Route::patch('/zones/{zone}', [ZoneController::class, 'update'])->name('control-panel.dns.zones.update');
     Route::post('/records', [ZoneController::class, 'record'])->name('control-panel.dns.records.store');
+    Route::post('/records/validate', [ZoneController::class, 'validateRecord'])->name('control-panel.dns.records.validate');
     Route::patch('/records/{record}', [ZoneController::class, 'updateRecord'])->name('control-panel.dns.records.update');
     Route::delete('/records/{record}', [ZoneController::class, 'deleteRecord'])->name('control-panel.dns.records.delete');
     Route::post('/records/bulk', [ZoneController::class, 'bulkRecords'])->name('control-panel.dns.records.bulk');

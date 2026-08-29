@@ -103,3 +103,18 @@ it('bulk creates tenant DNS records with bounded partial results', function (): 
     $response->assertCreated()->assertJsonCount(2, 'data');
     expect($zone->records()->count())->toBe(2);
 });
+
+it('validates DNS record content through the API', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/dns/records/validate', ['record_type' => 'A', 'name' => '@', 'value' => '192.0.2.10'])
+        ->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('valid', true);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/dns/records/validate', ['record_type' => 'A', 'name' => '@', 'value' => 'invalid'])
+        ->assertUnprocessable();
+});

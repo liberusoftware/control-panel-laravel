@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\MailLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailRoute;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailAlias;
+use Liberu\ControlPanel\Mail\Actions\UpdateMailRoute;
 use Liberu\ControlPanel\Mail\Models\DeliveryDiagnostic;
 use Liberu\ControlPanel\Mail\Models\DkimKey;
 use Liberu\ControlPanel\Mail\Models\MailAlias;
@@ -17,9 +21,49 @@ final class MailFeatureInventory extends Component
 {
     public int $perPage = 25;
 
+    /** @var array<string, array<string, mixed>> */
+    public array $aliasEdits = [];
+
+    /** @var array<string, array<string, mixed>> */
+    public array $routeEdits = [];
+
     public function rotateDkim(string $domain, RotateDkimKey $rotate): void
     {
         $rotate->execute($this->teamId(), $domain);
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function updateAlias(string $aliasId, ?array $attributes, UpdateMailAlias $update): void
+    {
+        $alias = MailAlias::query()->whereKey($aliasId)->where('team_id', $this->teamId())->firstOrFail();
+        $attributes ??= $this->aliasEdits[$aliasId] ?? [];
+        validator($attributes, ['domain' => ['required', 'string', 'max:253'], 'address' => ['required', 'string', 'max:320'], 'destinations' => ['required', 'array', 'min:1'], 'destinations.*' => ['email'], 'active' => ['sometimes', 'boolean']])->validate();
+        $update->execute($alias, $attributes);
+        unset($this->aliasEdits[$aliasId]);
+    }
+
+    public function deleteAlias(string $aliasId, DeleteMailAlias $delete): void
+    {
+        $alias = MailAlias::query()->whereKey($aliasId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($alias);
+        unset($this->aliasEdits[$aliasId]);
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function updateRoute(string $routeId, ?array $attributes, UpdateMailRoute $update): void
+    {
+        $route = MailRoute::query()->whereKey($routeId)->where('team_id', $this->teamId())->firstOrFail();
+        $attributes ??= $this->routeEdits[$routeId] ?? [];
+        validator($attributes, ['domain' => ['required', 'string', 'max:253'], 'source_pattern' => ['required', 'string', 'max:255'], 'destination' => ['required', 'email', 'max:320'], 'priority' => ['required', 'integer', 'min:0'], 'active' => ['sometimes', 'boolean']])->validate();
+        $update->execute($route, $attributes);
+        unset($this->routeEdits[$routeId]);
+    }
+
+    public function deleteRoute(string $routeId, DeleteMailRoute $delete): void
+    {
+        $route = MailRoute::query()->whereKey($routeId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($route);
+        unset($this->routeEdits[$routeId]);
     }
 
     public function render(): View

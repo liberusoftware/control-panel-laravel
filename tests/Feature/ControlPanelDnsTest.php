@@ -11,6 +11,7 @@ use Liberu\ControlPanel\Dns\Actions\CreateZone;
 use Liberu\ControlPanel\Dns\Actions\DeleteRecord;
 use Liberu\ControlPanel\Dns\Actions\UpdateRecord;
 use Liberu\ControlPanel\Dns\Actions\UpdateZone;
+use Liberu\ControlPanel\Dns\Actions\ValidateRecord;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\Dns\Enums\ZoneStatus;
 use Liberu\ControlPanel\Dns\Events\ZoneCreated;
@@ -68,4 +69,10 @@ it('deletes a DNS record through the domain action', function (): void {
     app(DeleteRecord::class)->execute($record);
 
     expect($zone->records()->whereKey($record->getKey())->exists())->toBeFalse();
+});
+
+it('validates DNS record values by type', function (): void {
+    expect(app(ValidateRecord::class)->execute(['record_type' => 'A', 'name' => '@', 'value' => '192.0.2.1']))->toMatchArray(['valid' => true]);
+    expect(fn () => app(ValidateRecord::class)->execute(['record_type' => 'A', 'name' => '@', 'value' => 'not-an-ip']))->toThrow(ValidationException::class);
+    expect(fn () => app(ValidateRecord::class)->execute(['record_type' => 'SRV', 'name' => '_http', 'value' => '0 5 443 service.example.com']))->toThrow(ValidationException::class);
 });

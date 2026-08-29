@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\MailFilament\Resources;
 
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -12,6 +13,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
 use Liberu\ControlPanel\Mail\Models\MailAlias;
 use Liberu\ControlPanel\MailFilament\Resources\MailAliasResource\Pages\CreateMailAlias;
 use Liberu\ControlPanel\MailFilament\Resources\MailAliasResource\Pages\EditMailAlias;
@@ -37,7 +39,13 @@ final class MailAliasResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('domain'), TextColumn::make('address')->searchable(), TextColumn::make('destinations')->listWithLineBreaks(), TextColumn::make('active')->badge()]);
+        return $table->columns([TextColumn::make('domain'), TextColumn::make('address')->searchable(), TextColumn::make('destinations')->listWithLineBreaks(), TextColumn::make('active')->badge()])->recordActions([
+            DeleteAction::make()->action(function (MailAlias $record): void {
+                abort_if(auth()->user()?->current_team_id === null, 403, 'A current team is required.');
+                abort_unless((string) $record->team_id === (string) auth()->user()?->current_team_id, 404);
+                app(DeleteMailAlias::class)->execute($record);
+            }),
+        ]);
     }
 
     public static function getEloquentQuery(): Builder
