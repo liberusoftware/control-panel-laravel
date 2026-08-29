@@ -31,6 +31,7 @@ use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\ReleaseOperationLock;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\TransitionOperationTask;
+use Liberu\ControlPanel\ControlCore\Actions\UpdateNodeCredential;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
 use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
 use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
@@ -131,6 +132,22 @@ it('revokes only a current-team credential from the Livewire inventory', functio
     app(CredentialInventory::class)->revoke($credential->getKey(), app(RevokeNodeCredential::class));
 
     expect($credential->fresh()->status->value)->toBe('revoked');
+});
+
+it('updates only a current-team credential from the Livewire inventory', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute(['team_id' => $team->getKey(), 'name' => 'Node', 'hostname' => 'node.test']);
+    $credential = app(RegisterNodeCredential::class)->execute(['team_id' => $team->getKey(), 'node_id' => $node->getKey(), 'name' => 'Deploy', 'secret' => 'long-enough-secret']);
+    $otherNode = app(RegisterNode::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Other', 'hostname' => 'other.test']);
+    $otherCredential = app(RegisterNodeCredential::class)->execute(['team_id' => $otherTeam->getKey(), 'node_id' => $otherNode->getKey(), 'name' => 'Other', 'secret' => 'long-enough-secret']);
+
+    $this->actingAs($user);
+    $inventory = app(CredentialInventory::class);
+    $inventory->update($credential->getKey(), ['name' => 'Release', 'username' => 'deploy'], app(UpdateNodeCredential::class));
+    expect($credential->fresh()->name)->toBe('Release');
+    expect(fn () => $inventory->update($otherCredential->getKey(), ['name' => 'Nope'], app(UpdateNodeCredential::class)))->toThrow(ModelNotFoundException::class);
 });
 
 it('registers a tenant-scoped SSH public key from the Livewire inventory', function (): void {

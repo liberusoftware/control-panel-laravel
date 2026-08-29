@@ -18,6 +18,7 @@ use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource\Pages\CreateNodeCredential;
+use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource\Pages\EditNodeCredential;
 use Liberu\ControlPanel\ControlCoreFilament\Resources\NodeCredentialResource\Pages\ListNodeCredentials;
 
 final class NodeCredentialResource extends Resource
@@ -78,6 +79,7 @@ final class NodeCredentialResource extends Resource
         return [
             'index' => ListNodeCredentials::route('/'),
             'create' => CreateNodeCredential::route('/create'),
+            'edit' => EditNodeCredential::route('/{record}/edit'),
         ];
     }
 }

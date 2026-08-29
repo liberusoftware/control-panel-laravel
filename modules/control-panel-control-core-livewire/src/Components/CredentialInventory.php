@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
+use Liberu\ControlPanel\ControlCore\Actions\UpdateNodeCredential;
 use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -23,6 +24,19 @@ final class CredentialInventory extends Component
     public string $username = '';
 
     public string $publicKey = '';
+
+    /** @var array<string, array<string, mixed>> */
+    public array $edits = [];
+
+    /** @param array<string, mixed>|null $attributes */
+    public function update(string $credentialId, ?array $attributes, UpdateNodeCredential $update): void
+    {
+        $credential = NodeCredential::query()->whereKey($credentialId)->where('team_id', $this->teamId())->firstOrFail();
+        $attributes ??= $this->edits[$credentialId] ?? [];
+        $attributes = validator($attributes, ['name' => ['required', 'string', 'max:160'], 'username' => ['nullable', 'string', 'alpha_dash', 'max:120'], 'expires_at' => ['nullable', 'date'], 'metadata' => ['nullable', 'array']])->validate();
+        $update->execute($credential, $attributes);
+        unset($this->edits[$credentialId]);
+    }
 
     public function createCredential(RegisterNodeCredential $register): void
     {

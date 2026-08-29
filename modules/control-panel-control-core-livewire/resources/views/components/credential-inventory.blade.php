@@ -32,7 +32,10 @@
         <ul>
             @foreach ($credentials as $credential)
                 <li wire:key="credential-{{ $credential->getKey() }}">
-                    <span>{{ $credential->name }}</span>
+                    <form wire:submit="update('{{ $credential->getKey() }}', null)">
+                        <input type="text" wire:model="edits.{{ $credential->getKey() }}.name" value="{{ $credential->name }}" maxlength="160" required>
+                        <button type="submit">{{ __('Save') }}</button>
+                    </form>
                     <span>{{ $credential->type }}</span>
                     <span>{{ $credential->status->value }}</span>
                     @if ($credential->status->value !== 'revoked')
