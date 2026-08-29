@@ -9,8 +9,10 @@ use Liberu\ControlPanel\Backups\Actions\CreateDestination;
 use Liberu\ControlPanel\Backups\Actions\CreatePolicy;
 use Liberu\ControlPanel\Backups\Actions\CreateSchedule;
 use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
+use Liberu\ControlPanel\Backups\Actions\DeleteDestination;
 use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
+use Liberu\ControlPanel\Backups\Actions\UpdateDestination;
 use Liberu\ControlPanel\Backups\Actions\UpdatePolicy;
 use Liberu\ControlPanel\Backups\Actions\VerifySnapshot;
 use Liberu\ControlPanel\Backups\BackupsServiceProvider;
@@ -65,4 +67,20 @@ it('updates and deletes backup policies through domain actions', function (): vo
     app(DeletePolicy::class)->execute($updated);
 
     expect($policy->newQuery()->whereKey($policy->getKey())->exists())->toBeFalse();
+});
+
+it('updates and deletes encrypted backup destinations through domain actions', function (): void {
+    $destination = app(CreateDestination::class)->execute(['team_id' => 'team-1', 'name' => 'Local', 'driver' => 'local', 'config' => ['path' => '/backups']]);
+
+    $updated = app(UpdateDestination::class)->execute($destination, ['name' => 'Archive', 'driver' => 's3', 'retention_days' => 90, 'config' => ['bucket' => 'archive']]);
+
+    expect($updated->name)->toBe('Archive')
+        ->and($updated->driver)->toBe('s3')
+        ->and($updated->retention_days)->toBe(90)
+        ->and($updated->config)->toMatchArray(['bucket' => 'archive'])
+        ->and($updated->toArray())->not->toHaveKey('config');
+
+    app(DeleteDestination::class)->execute($updated);
+
+    expect($destination->newQuery()->whereKey($destination->getKey())->exists())->toBeFalse();
 });

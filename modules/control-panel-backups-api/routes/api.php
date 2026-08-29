@@ -13,6 +13,8 @@ Route::prefix('api/v1/control-panel/backups')->middleware(['api', 'auth:sanctum'
     Route::post('/snapshots/{snapshot}/verify', [SnapshotController::class, 'verify'])->name('control-panel.backups.snapshots.verify');
     Route::post('/snapshots/{snapshot}/restore', [SnapshotController::class, 'restore'])->name('control-panel.backups.snapshots.restore');
     Route::post('/destinations', [SnapshotController::class, 'destination'])->name('control-panel.backups.destinations.store');
+    Route::patch('/destinations/{destination}', [SnapshotController::class, 'updateDestination'])->name('control-panel.backups.destinations.update');
+    Route::delete('/destinations/{destination}', [SnapshotController::class, 'deleteDestination'])->name('control-panel.backups.destinations.delete');
     Route::post('/schedules', [SnapshotController::class, 'schedule'])->name('control-panel.backups.schedules.store');
     Route::post('/features', [SnapshotController::class, 'feature'])->name('control-panel.backups.features.store');
     Route::get('snapshots/{snapshot}', [SnapshotController::class, 'show'])->name('control-panel.backups.show');

@@ -15,6 +15,9 @@ paths:
   /api/v1/control-panel/backups/policies/{policy}:
     patch: {operationId: control.panel.backups.policies.update, security: [{sanctum: []}], responses: {'200': {description: Backup policy updated}}}
     delete: {operationId: control.panel.backups.policies.delete, security: [{sanctum: []}], responses: {'204': {description: Backup policy deleted}}}
+  /api/v1/control-panel/backups/destinations/{destination}:
+    patch: {operationId: control.panel.backups.destinations.update, security: [{sanctum: []}], responses: {'200': {description: Backup destination updated}}}
+    delete: {operationId: control.panel.backups.destinations.delete, security: [{sanctum: []}], responses: {'204': {description: Backup destination deleted}}}
   /api/v1/control-panel/backups/snapshots/{snapshot}/verify:
     post: {operationId: control.panel.backups.snapshots.verify, security: [{sanctum: []}], responses: {'200': {description: Snapshot verification result}}}
   /api/v1/control-panel/backups/snapshots/{snapshot}/restore:

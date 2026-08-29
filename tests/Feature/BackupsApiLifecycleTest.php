@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Liberu\ControlPanel\Backups\Actions\CreateDestination;
 use Liberu\ControlPanel\Backups\Actions\CreatePolicy;
 use Liberu\ControlPanel\Backups\Actions\CreateSnapshot;
 use Liberu\ControlPanel\Backups\BackupsServiceProvider;
@@ -53,4 +54,17 @@ it('updates and deletes only a current-team backup policy through the API', func
     $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/backups/policies/'.$owned->getKey(), ['name' => 'Updated', 'retention_days' => 10])->assertOk()->assertJsonPath('data.attributes.name', 'Updated');
     $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/policies/'.$foreign->getKey())->assertNotFound();
     $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/policies/'.$owned->getKey())->assertNoContent();
+});
+
+it('updates and deletes only a current-team backup destination through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreign = app(CreateDestination::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Foreign', 'driver' => 'local']);
+    $owned = app(CreateDestination::class)->execute(['team_id' => $team->getKey(), 'name' => 'Owned', 'driver' => 'local']);
+
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/backups/destinations/'.$foreign->getKey(), ['name' => 'Blocked'])->assertNotFound();
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/backups/destinations/'.$owned->getKey(), ['name' => 'Updated', 'driver' => 's3'])->assertOk()->assertJsonPath('data.attributes.name', 'Updated');
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/destinations/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/destinations/'.$owned->getKey())->assertNoContent();
 });
