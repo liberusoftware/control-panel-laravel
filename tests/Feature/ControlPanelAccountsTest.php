@@ -128,6 +128,18 @@ it('exposes the quota guard through the authenticated tenant-scoped API', functi
         ->assertUnprocessable();
 });
 
+it('bounds hosting package pagination for the authenticated tenant API', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    app(CreateHostingPackage::class)->execute(['team_id' => $team->getKey(), 'name' => 'Starter']);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/accounts/packages?per_page=1000')
+        ->assertOk()
+        ->assertJsonPath('meta.per_page', 100);
+});
+
 it('exposes individual accounts only to their current team', function (): void {
     app()->register(AccountsApiServiceProvider::class);
     $team = Team::factory()->create();

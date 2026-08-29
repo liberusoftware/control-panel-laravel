@@ -76,7 +76,8 @@ final class AccountController
     {
         $teamId = $request->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
-        $items = HostingPackage::query()->where('team_id', $teamId)->latest()->paginate($request->integer('per_page', 25));
+        $perPage = min(max($request->integer('per_page', 25), 1), 100);
+        $items = HostingPackage::query()->where('team_id', $teamId)->latest()->paginate($perPage);
 
         return response()->json(['data' => $items->through(static fn (HostingPackage $item): array => ['id' => $item->getKey(), 'type' => 'control-panel-hosting-package', 'attributes' => $item->only(['name', 'limits', 'features', 'active'])]), 'meta' => ['current_page' => $items->currentPage(), 'per_page' => $items->perPage(), 'total' => $items->total()]]);
     }
