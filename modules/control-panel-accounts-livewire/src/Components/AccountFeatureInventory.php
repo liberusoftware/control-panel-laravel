@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\AccountsLivewire\Components;
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\UpdateDelegation;
+use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
 use Liberu\ControlPanel\Accounts\Models\AccountDelegation;
 use Liberu\ControlPanel\Accounts\Models\HostingPackage;
 use Livewire\Component;
@@ -15,6 +16,27 @@ final class AccountFeatureInventory extends Component
 {
     /** @var array<string, array<string, mixed>> */
     public array $delegationEdits = [];
+
+    /** @var array<string, array<string, mixed>> */
+    public array $packageEdits = [];
+
+    /** @param array<string, mixed>|null $attributes */
+    public function updatePackage(string $packageId, ?array $attributes, UpdateHostingPackage $update): void
+    {
+        $package = HostingPackage::query()
+            ->whereKey($packageId)
+            ->where('team_id', $this->teamId())
+            ->firstOrFail();
+        $attributes ??= $this->packageEdits[$packageId] ?? [];
+        $attributes = validator($attributes, [
+            'name' => ['required', 'string', 'max:160'],
+            'limits' => ['nullable', 'array'],
+            'features' => ['nullable', 'array'],
+            'active' => ['sometimes', 'boolean'],
+        ])->validate();
+        $update->execute($package, $attributes);
+        unset($this->packageEdits[$packageId]);
+    }
 
     public function revokeDelegation(string $delegationId, RevokeDelegation $revoke): void
     {
