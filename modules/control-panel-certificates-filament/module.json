@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\CertificatesFilament\\CertificatesFilamentServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-certificates": "^1.0"}},
   "capabilities": ["control-panel.certificates.filament"],
-  "features": ["Certificate administration", "ACME account and operation workflows"],
+  "features": ["ACME accounts", "Certificate issuance", "Certificate deployment", "Certificate renewal", "Certificate revocation", "Expiry monitoring"],
   "default_enabled": false
 }
