@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\ControlCoreLivewire\Components;
 
 use Illuminate\Contracts\View\View;
 use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
+use Liberu\ControlPanel\ControlCore\Actions\GenerateSshKeyPair;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\UpdateNodeCredential;
@@ -24,6 +25,28 @@ final class CredentialInventory extends Component
     public string $username = '';
 
     public string $publicKey = '';
+
+    public string $generatedPrivateKey = '';
+
+    public string $generatedPublicKey = '';
+
+    public string $keyPassphrase = '';
+
+    public int $keyBits = 4096;
+
+    public string $keyComment = '';
+
+    public function generateKeyPair(GenerateSshKeyPair $generate): void
+    {
+        $data = $this->validate([
+            'keyPassphrase' => ['nullable', 'string', 'min:8', 'max:4096'],
+            'keyBits' => ['required', 'integer', 'in:2048,4096'],
+            'keyComment' => ['nullable', 'string', 'max:255'],
+        ]);
+        $pair = $generate->execute($data['keyPassphrase'] ?: null, $data['keyBits'], $data['keyComment'] ?: null);
+        $this->generatedPrivateKey = $pair['private_key'];
+        $this->generatedPublicKey = $pair['public_key'];
+    }
 
     /** @var array<string, array<string, mixed>> */
     public array $edits = [];

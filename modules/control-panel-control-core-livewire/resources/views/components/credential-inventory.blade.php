@@ -26,6 +26,23 @@
         <button type="submit">{{ __('Register credential') }}</button>
     </form>
 
+    <form wire:submit="generateKeyPair" aria-labelledby="control-core-key-generation">
+        <h3 id="control-core-key-generation">Generate an SSH key pair</h3>
+        <label>Passphrase <input type="password" wire:model="keyPassphrase" minlength="8"></label>
+        @error('keyPassphrase') <p role="alert">{{ $message }}</p> @enderror
+        <label>Bits <select wire:model="keyBits"><option value="2048">2048</option><option value="4096">4096</option></select></label>
+        <label>Comment <input type="text" wire:model="keyComment" maxlength="255"></label>
+        <button type="submit">{{ __('Generate key pair') }}</button>
+    </form>
+
+    @if ($generatedPrivateKey !== '')
+        <aside aria-label="Generated SSH key pair">
+            <p role="alert">{{ __('Save the private key now. It is not stored by the control panel.') }}</p>
+            <label>Public key <textarea readonly>{{ $generatedPublicKey }}</textarea></label>
+            <label>Private key <textarea readonly>{{ $generatedPrivateKey }}</textarea></label>
+        </aside>
+    @endif
+
     @if ($credentials->isEmpty())
         <p>No managed node credentials are registered for the current team.</p>
     @else
