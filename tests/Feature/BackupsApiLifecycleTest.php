@@ -41,3 +41,16 @@ it('verifies and restores only a current-team snapshot through the API', functio
         ->postJson('/api/v1/control-panel/backups/snapshots/'.$otherSnapshot->getKey().'/verify', ['checksum' => 'sha256:other'])
         ->assertNotFound();
 });
+
+it('updates and deletes only a current-team backup policy through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreign = app(CreatePolicy::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Foreign', 'storage_driver' => 'local']);
+    $owned = app(CreatePolicy::class)->execute(['team_id' => $team->getKey(), 'name' => 'Owned', 'storage_driver' => 'local']);
+
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/backups/policies/'.$foreign->getKey(), ['name' => 'Blocked'])->assertNotFound();
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/backups/policies/'.$owned->getKey(), ['name' => 'Updated', 'retention_days' => 10])->assertOk()->assertJsonPath('data.attributes.name', 'Updated');
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/policies/'.$foreign->getKey())->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/policies/'.$owned->getKey())->assertNoContent();
+});
