@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\ApiAutomationFilament\Resources;
 
+use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
@@ -13,6 +14,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\ApiAutomation\Actions\RevokeApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Models\ApiCredential;
 use Liberu\ControlPanel\ApiAutomationFilament\Resources\ApiCredentialResource\Pages\CreateApiCredential;
 use Liberu\ControlPanel\ApiAutomationFilament\Resources\ApiCredentialResource\Pages\EditApiCredential;
@@ -44,6 +46,11 @@ final class ApiCredentialResource extends Resource
             TextColumn::make('status')->badge(),
             TextColumn::make('expires_at')->dateTime()->sortable(),
             TextColumn::make('last_used_at')->dateTime()->sortable(),
+        ])->recordActions([
+            Action::make('revoke')
+                ->requiresConfirmation()
+                ->visible(fn (ApiCredential $record): bool => $record->status === 'active')
+                ->action(fn (ApiCredential $record): ApiCredential => app(RevokeApiCredential::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 
