@@ -17,10 +17,14 @@
     "control-panel.control-core"
   ],
   "features": [
-    "Node lifecycle and capability inventory",
+    "Node lifecycle",
+    "Capability inventory",
     "Encrypted node credentials",
+    "Task engine",
+    "Inventory records",
     "Desired and observed state",
-    "Idempotent operation locks"
+    "Idempotent operation locks",
+    "Audit records"
   ],
   "default_enabled": false
 }
