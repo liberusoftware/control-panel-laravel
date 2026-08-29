@@ -177,6 +177,25 @@ it('exposes individual accounts only to their current team', function (): void {
         ->assertNotFound();
 });
 
+it('updates only a current-team account through the API', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute(['team_id' => $team->getKey(), 'owner_id' => 'owner-1', 'name' => 'Editable account']);
+    $otherAccount = app(CreateAccount::class)->execute(['team_id' => $otherTeam->getKey(), 'owner_id' => 'owner-2', 'name' => 'Other account']);
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/accounts/'.$account->getKey(), ['name' => 'Updated account', 'owner_id' => 'owner-updated'])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.name', 'Updated account')
+        ->assertJsonPath('data.attributes.owner_id', 'owner-updated');
+
+    $this->actingAs($user, 'sanctum')
+        ->patchJson('/api/v1/control-panel/accounts/'.$otherAccount->getKey(), ['name' => 'Should not update'])
+        ->assertNotFound();
+});
+
 it('archives an account through the tenant-scoped API', function (): void {
     app()->register(AccountsApiServiceProvider::class);
     $team = Team::factory()->create();

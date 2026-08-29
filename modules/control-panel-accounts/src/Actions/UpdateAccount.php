@@ -22,7 +22,7 @@ final class UpdateAccount
             throw ValidationException::withMessages(['account' => 'A valid name, owner, and account type are required.']);
         }
 
-        $parentId = $attributes['parent_id'] ?? $account->parent_id;
+        $parentId = array_key_exists('parent_id', $attributes) ? $attributes['parent_id'] : $account->parent_id;
         if ($parentId !== null) {
             $parent = Account::query()->whereKey($parentId)->where('team_id', $account->team_id)->first();
             $validParent = $parent !== null && (string) $parent->getKey() !== (string) $account->getKey()

@@ -13,6 +13,7 @@ use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
+use Liberu\ControlPanel\Accounts\Actions\UpdateAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
 use Liberu\ControlPanel\Accounts\Actions\UpdateDelegation;
 use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
@@ -156,6 +157,21 @@ final class AccountController
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-account', 'attributes' => $item->toArray()]]);
     }
 
+    public function update(Request $request, Account $account, UpdateAccount $update): JsonResponse
+    {
+        $this->assertTeam($request, $account);
+        $data = $request->validate([
+            'owner_id' => ['sometimes', 'string', 'max:255'],
+            'parent_id' => ['sometimes', 'nullable', 'uuid'],
+            'type' => ['sometimes', 'in:customer,reseller,administrator'],
+            'name' => ['sometimes', 'string', 'max:160'],
+            'brand' => ['sometimes', 'array'],
+            'quota_overrides' => ['sometimes', 'array'],
+        ]);
+
+        return response()->json(['data' => self::resource($update->execute($account, $data))]);
+    }
+
     public function store(Request $request, CreateAccount $create): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
@@ -176,7 +192,7 @@ final class AccountController
 
     private static function resource(Account $account): array
     {
-        return ['id' => $account->getKey(), 'type' => 'control-panel-account', 'attributes' => $account->only(['name', 'type', 'status', 'brand', 'quota_overrides', 'suspended_reason', 'suspended_at'])];
+        return ['id' => $account->getKey(), 'type' => 'control-panel-account', 'attributes' => $account->only(['owner_id', 'parent_id', 'name', 'type', 'status', 'brand', 'quota_overrides', 'suspended_reason', 'suspended_at'])];
     }
 
     private function assertTeam(Request $request, Account $account): void
