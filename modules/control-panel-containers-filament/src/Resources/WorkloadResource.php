@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\ContainersFilament\Resources;
 
 use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -12,6 +13,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\Containers\Actions\DeleteWorkload;
 use Liberu\ControlPanel\Containers\Actions\StartWorkload;
 use Liberu\ControlPanel\Containers\Actions\StopWorkload;
 use Liberu\ControlPanel\Containers\Models\Workload;
@@ -43,6 +45,7 @@ final class WorkloadResource extends Resource
         return $table->columns([TextColumn::make('name')->searchable()->sortable(), TextColumn::make('image')->searchable(), TextColumn::make('status')->badge(), TextColumn::make('node_id'), TextColumn::make('created_at')->dateTime()])->recordActions([
             Action::make('start')->visible(fn (Workload $record): bool => $record->status !== 'running')->action(fn (Workload $record): Workload => app(StartWorkload::class)->execute($record)),
             Action::make('stop')->requiresConfirmation()->visible(fn (Workload $record): bool => $record->status !== 'stopped')->action(fn (Workload $record): Workload => app(StopWorkload::class)->execute($record)),
+            DeleteAction::make()->visible(fn (Workload $record): bool => $record->team_id === auth()->user()?->current_team_id && $record->status !== 'running')->action(fn (Workload $record): void => app(DeleteWorkload::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\ContainersApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Liberu\ControlPanel\Containers\Actions\DeleteWorkload;
 use Liberu\ControlPanel\Containers\Actions\RecordContainerResource;
 use Liberu\ControlPanel\Containers\Actions\RegisterContainerAsset;
 use Liberu\ControlPanel\Containers\Actions\RegisterWorkload;
@@ -56,6 +57,14 @@ final class WorkloadController
         $this->assertTeam($request, $workload);
 
         return response()->json(['data' => self::resource($stop->execute($workload))]);
+    }
+
+    public function delete(Request $request, Workload $workload, DeleteWorkload $delete): JsonResponse
+    {
+        $this->assertTeam($request, $workload);
+        $delete->execute($workload);
+
+        return response()->json(status: 204);
     }
 
     public function resourceRecord(Request $request, RecordContainerResource $record): JsonResponse
