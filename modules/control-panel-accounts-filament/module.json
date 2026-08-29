@@ -8,7 +8,7 @@
   "provider": "Liberu\\ControlPanel\\AccountsFilament\\AccountsFilamentServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-accounts": "^1.0"}},
   "capabilities": ["control-panel.accounts.filament"],
-  "features": ["Account operations plugin"],
+  "features": ["Account hierarchy", "Hosting packages", "Quota management", "Delegation", "Branding", "Suspension and recovery"],
   "default_enabled": false,
   "presentation": {"filament": {"admin": ["Liberu\\ControlPanel\\AccountsFilament\\AccountsFilamentPlugin"], "app": []}}
 }
