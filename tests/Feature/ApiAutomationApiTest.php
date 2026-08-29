@@ -58,3 +58,13 @@ it('rejects webhook state changes without a current team', function (): void {
         ->postJson('/api/v1/control-panel/api-and-automation/webhooks/'.$webhook->getKey().'/resume')
         ->assertForbidden();
 });
+
+it('bounds automation pagination', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/api-and-automation?per_page=1000')
+        ->assertOk()
+        ->assertJsonPath('meta.per_page', 100);
+});

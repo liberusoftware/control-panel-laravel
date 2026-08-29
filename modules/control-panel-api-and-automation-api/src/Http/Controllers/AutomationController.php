@@ -28,7 +28,7 @@ final class AutomationController
     {
         $teamId = $request->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
-        $items = $list->execute($teamId, $request->integer('per_page', 25));
+        $items = $list->execute($teamId, self::perPage($request));
 
         return response()->json(['data' => $items->through(static fn (AutomationDefinition $item): array => self::resource($item)), 'meta' => ['current_page' => $items->currentPage(), 'per_page' => $items->perPage(), 'total' => $items->total()]]);
     }
@@ -158,5 +158,10 @@ final class AutomationController
     private static function webhookResource(WebhookEndpoint $item): array
     {
         return ['id' => $item->getKey(), 'type' => 'control-panel-automation-webhook', 'attributes' => $item->only(['name', 'url', 'events', 'status', 'retry_limit', 'failure_count', 'last_delivered_at'])];
+    }
+
+    private static function perPage(Request $request): int
+    {
+        return min(max($request->integer('per_page', 25), 1), 100);
     }
 }
