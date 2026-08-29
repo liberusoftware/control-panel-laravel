@@ -31,6 +31,7 @@ use Liberu\ControlPanel\WebHosting\Models\RuntimeVersion;
 use Liberu\ControlPanel\WebHosting\Models\SslCertificate;
 use Liberu\ControlPanel\WebHosting\Models\VirtualHost;
 use Liberu\ControlPanel\WebHosting\Models\WebServer;
+use Liberu\ControlPanel\WebHosting\Queries\ApplicationStatistics;
 use Liberu\ControlPanel\WebHosting\Queries\ListDomains;
 use Liberu\ControlPanel\WebHosting\Queries\ListGitDeployments;
 
@@ -149,6 +150,17 @@ final class DomainController
         $page = HostedApplication::query()->where('team_id', $teamId)->with('domain')->latest()->paginate($this->perPage($request));
 
         return response()->json(['data' => $page->through(fn (HostedApplication $application): array => self::applicationResource($application)), 'meta' => ['current_page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()]]);
+    }
+
+    public function applicationStatistics(Request $request, ApplicationStatistics $statistics): JsonResponse
+    {
+        $teamId = $this->teamId($request);
+        $days = min(max($request->integer('days', 30), 1), 365);
+
+        return response()->json(['data' => [
+            'type' => 'control-panel-hosted-application-statistics',
+            'attributes' => $statistics->execute($teamId, $days),
+        ]]);
     }
 
     public function application(Request $request, RegisterHostingResource $register): JsonResponse

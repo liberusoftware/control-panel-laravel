@@ -93,6 +93,12 @@ paths:
       operationId: control.panel.web.hosting.applications.create
       security: [{sanctum: []}]
       responses: {'201': {description: Hosted application registered.}}
+  /api/v1/control-panel/web-hosting/applications/statistics:
+    get:
+      operationId: control.panel.web.hosting.applications.statistics
+      security: [{sanctum: []}]
+      parameters: [{name: days, in: query, schema: {type: integer, minimum: 1, maximum: 365, default: 30}}]
+      responses: {'200': {description: Tenant-scoped hosted application statistics.}}
   /api/v1/control-panel/web-hosting/applications/{application}/performance:
     get:
       operationId: control.panel.web.hosting.applications.performance

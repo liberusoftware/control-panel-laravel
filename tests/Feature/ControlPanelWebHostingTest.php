@@ -77,6 +77,33 @@ it('requires a current team before mutating a domain through the API', function 
         ->assertForbidden();
 });
 
+it('returns tenant-scoped hosted application statistics through the API', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $user = User::factory()->create(['current_team_id' => 'team-1']);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'statistics.test']);
+    $application = HostedApplication::query()->create([
+        'team_id' => 'team-1', 'domain_id' => $domain->getKey(), 'name' => 'Statistics app', 'type' => 'laravel',
+        'document_root' => '/srv/statistics', 'status' => 'installed',
+    ]);
+    app(RecordApplicationMetric::class)->execute($application, ['healthy' => true, 'response_time_ms' => 40]);
+    app(RecordApplicationMetric::class)->execute($application, ['healthy' => false, 'response_time_ms' => 80]);
+    HostedApplication::query()->create([
+        'team_id' => 'team-2', 'domain_id' => $domain->getKey(), 'name' => 'Other app', 'type' => 'static',
+        'document_root' => '/srv/other', 'status' => 'installed',
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/web-hosting/applications/statistics?days=30')
+        ->assertOk()
+        ->assertJsonPath('data.type', 'control-panel-hosted-application-statistics')
+        ->assertJsonPath('data.attributes.total_applications', 1)
+        ->assertJsonPath('data.attributes.installed_applications', 1)
+        ->assertJsonPath('data.attributes.total_checks', 2)
+        ->assertJsonPath('data.attributes.healthy_checks', 1)
+        ->assertJsonPath('data.attributes.uptime_percentage', 50)
+        ->assertJsonPath('data.attributes.average_response_time', 60);
+});
+
 it('creates a desired virtual host for a domain and node', function (): void {
     $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'example.test']);
 
