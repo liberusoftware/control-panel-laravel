@@ -9,15 +9,39 @@ paths:
   /api/v1/control-panel/security/hardening:
     post: {operationId: control.panel.security.hardening.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/security/patches:
+    get: {operationId: control.panel.security.patches.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.security.patches.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/security/mfa-rbac:
+    get: {operationId: control.panel.security.mfa.rbac.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.security.mfa.rbac.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/security/secrets:
+    get: {operationId: control.panel.security.secrets.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.security.secrets.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/security/malware-scans:
+    get: {operationId: control.panel.security.malware.scans.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.security.malware.scans.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/security/intrusion-controls:
+    get: {operationId: control.panel.security.intrusion.controls.list, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.security.intrusion.controls.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/security/fail2ban:
+    post:
+      operationId: control.panel.security.fail2ban.configure
+      security: [{sanctum: []}]
+      responses: {'201': {$ref: '#/components/responses/Resource'}}
+  /api/v1/control-panel/security/fail2ban/{jail}/bans:
+    get:
+      operationId: control.panel.security.fail2ban.bans.list
+      security: [{sanctum: []}]
+      responses: {'200': {$ref: '#/components/responses/Collection'}}
+    post:
+      operationId: control.panel.security.fail2ban.bans.record
+      security: [{sanctum: []}]
+      responses: {'201': {$ref: '#/components/responses/Resource'}}
+  /api/v1/control-panel/security/fail2ban/bans/{ban}/unban:
+    post:
+      operationId: control.panel.security.fail2ban.bans.unban
+      security: [{sanctum: []}]
+      responses: {'200': {$ref: '#/components/responses/Resource'}}
   /api/v1/control-panel/security/compliance:
     post: {operationId: control.panel.security.compliance.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/security/{finding}:

@@ -12,6 +12,7 @@ use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
 use Liberu\ControlPanel\Backups\Actions\DeleteSchedule;
 use Liberu\ControlPanel\Backups\Actions\DeleteSnapshot;
 use Liberu\ControlPanel\Backups\Actions\RecordBackupFeature;
+use Liberu\ControlPanel\Backups\Actions\RecordDestinationHealth;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\UpdateDestination;
 use Liberu\ControlPanel\Backups\Actions\UpdatePolicy;
@@ -29,6 +30,7 @@ final class BackupsServiceProvider extends ServiceProvider
         $this->app->scoped(CreateSchedule::class);
         $this->app->scoped(RequestRestore::class);
         $this->app->scoped(RecordBackupFeature::class);
+        $this->app->scoped(RecordDestinationHealth::class);
         $this->app->scoped(UpdatePolicy::class);
         $this->app->scoped(UpdateDestination::class);
         $this->app->scoped(UpdateSchedule::class);

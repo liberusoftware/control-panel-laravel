@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\OsAdapters\Actions\CreateFirewallRule;
+use Liberu\ControlPanel\OsAdapters\Actions\DeleteFirewallRule;
 use Liberu\ControlPanel\OsAdapters\Actions\RecordOsResource;
 use Liberu\ControlPanel\OsAdapters\Actions\RecordSupportMatrix;
+use Liberu\ControlPanel\OsAdapters\Actions\UpdateFirewallRule;
 use Liberu\ControlPanel\OsAdapters\Actions\UpdateOsService;
 use Liberu\ControlPanel\OsAdapters\Models\FilesystemMount;
 use Liberu\ControlPanel\OsAdapters\Models\FirewallRule;
@@ -54,6 +57,20 @@ it('updates an OS service through the domain action', function (): void {
     $updated = app(UpdateOsService::class)->execute($service, ['name' => 'nginx-mainline', 'status' => 'stopped', 'enabled' => false]);
 
     expect($updated->name)->toBe('nginx-mainline')->and($updated->status)->toBe('stopped')->and($updated->enabled)->toBeFalse();
+});
+
+it('validates, updates, and deletes firewall rules through domain actions', function (): void {
+    $rule = app(CreateFirewallRule::class)->execute([
+        'team_id' => 'team-1', 'node_id' => 'node-1', 'direction' => 'inbound', 'action' => 'allow',
+        'protocol' => 'tcp', 'port' => 443, 'source' => '10.0.0.0/8', 'active' => true,
+    ]);
+    $updated = app(UpdateFirewallRule::class)->execute($rule, ['action' => 'deny', 'source' => '2001:db8::/32']);
+
+    expect($updated->action)->toBe('deny')->and($updated->source)->toBe('2001:db8::/32');
+    expect(fn () => app(CreateFirewallRule::class)->execute(['team_id' => 'team-1', 'node_id' => 'node-1', 'direction' => 'inbound', 'action' => 'allow', 'source' => 'not-an-ip']))->toThrow(ValidationException::class);
+
+    app(DeleteFirewallRule::class)->execute($updated);
+    expect(FirewallRule::query()->find($rule->getKey()))->toBeNull();
 });
 
 it('reports missing and stopped services for a tenant', function (): void {

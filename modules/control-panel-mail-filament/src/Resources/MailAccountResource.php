@@ -24,7 +24,7 @@ final class MailAccountResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-envelope';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Email & Messaging';
 
     public static function form(Schema $schema): Schema
     {
@@ -40,7 +40,7 @@ final class MailAccountResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([TextColumn::make('address')->searchable()->sortable(), TextColumn::make('domain')->searchable(), TextColumn::make('status')->badge(), TextColumn::make('quota_bytes')->numeric(), TextColumn::make('created_at')->dateTime()])->recordActions([
-            DeleteAction::make()->action(fn (MailAccount $record): void => app(DeleteMailAccount::class)->execute($record)),
+            DeleteAction::make()->action(fn (MailAccount $record) => app(DeleteMailAccount::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

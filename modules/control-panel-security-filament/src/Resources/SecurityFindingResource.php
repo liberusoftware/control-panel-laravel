@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\SecurityFilament\Resources;
 
+use Filament\Actions\Action;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -23,7 +24,7 @@ final class SecurityFindingResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shield-exclamation';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Security & Compliance';
 
     public static function form(Schema $schema): Schema
     {
@@ -59,4 +60,3 @@ final class SecurityFindingResource extends Resource
         return ['index' => ListSecurityFindings::route('/'), 'create' => CreateSecurityFinding::route('/create'), 'edit' => EditSecurityFinding::route('/{record}/edit')];
     }
 }
-use Filament\Actions\Action;

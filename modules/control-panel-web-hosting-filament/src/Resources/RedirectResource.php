@@ -22,7 +22,7 @@ final class RedirectResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-uturn-right';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Web Hosting';
 
     public static function form(Schema $schema): Schema
     {

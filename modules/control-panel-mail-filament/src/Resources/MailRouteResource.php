@@ -24,7 +24,7 @@ final class MailRouteResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-right-circle';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Email & Messaging';
 
     public static function form(Schema $schema): Schema
     {

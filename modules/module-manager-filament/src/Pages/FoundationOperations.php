@@ -20,7 +20,19 @@ final class FoundationOperations extends Page
 
     public function mount(ModuleRegistry $registry): void
     {
-        $this->modules = array_map(fn ($manifest) => $manifest->toArray(), $registry->all());
+        $enabled = collect($registry->resolve(
+            (array) config('modules.enabled', []),
+            (array) config('modules.disabled', []),
+        ))->mapWithKeys(fn ($manifest): array => [$manifest->name() => true]);
+
+        $this->modules = array_map(
+            fn ($manifest): array => $manifest->toArray() + [
+                'enabled' => $enabled->has($manifest->name()),
+                'dependencies' => $manifest->requiredPackages(),
+                'features' => $manifest->features(),
+            ],
+            $registry->all(),
+        );
     }
 
     public static function canAccess(): bool

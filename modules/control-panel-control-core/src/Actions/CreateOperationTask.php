@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
 use Liberu\ControlPanel\ControlCore\Events\OperationTaskCreated;
+use Liberu\ControlPanel\ControlCore\Exceptions\IdempotencyConflict;
 use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCore\Models\OperationTask;
 
@@ -29,10 +30,25 @@ final readonly class CreateOperationTask
             throw ValidationException::withMessages(['node_id' => 'The node is not available in the current team.']);
         }
 
+        $nodeId = $attributes['node_id'] ?? null;
+        $payload = $attributes['payload'] ?? [];
+        $timeoutAt = isset($attributes['timeout_seconds'])
+            ? now()->addSeconds(max((int) $attributes['timeout_seconds'], 1))
+            : ($attributes['timeout_at'] ?? null);
+
         $task = OperationTask::query()->firstOrCreate(
             ['team_id' => $attributes['team_id'] ?? null, 'idempotency_key' => $key],
-            ['id' => (string) Str::uuid(), 'node_id' => $attributes['node_id'] ?? null, 'operation' => $operation, 'status' => TaskStatus::Pending, 'payload' => $attributes['payload'] ?? [], 'attempts' => 0],
+            ['id' => (string) Str::uuid(), 'node_id' => $nodeId, 'operation' => $operation, 'status' => TaskStatus::Pending, 'payload' => $payload, 'attempts' => 0, 'timeout_at' => $timeoutAt],
         );
+
+        if (! $task->wasRecentlyCreated && (
+            $task->operation !== $operation
+            || (string) $task->node_id !== (string) $nodeId
+            || ($task->payload ?? []) !== $payload
+        )) {
+            throw new IdempotencyConflict();
+        }
+
         if ($task->wasRecentlyCreated) {
             $this->events->dispatch(new OperationTaskCreated($task->getKey()));
         }

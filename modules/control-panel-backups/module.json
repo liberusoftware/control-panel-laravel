@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\Backups\\BackupsServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-manager": "^1.0"}},
   "capabilities": ["control-panel.backups"],
-  "features": ["Policies", "Snapshots", "Application-consistent backup", "Encryption", "Off-site storage", "Restore", "Verification", "Retention", "Schedules"],
+  "features": ["Policies", "Snapshots", "Application-consistent backup", "Encryption", "Off-site storage", "Restore", "Verification", "Destination health", "Retention", "Schedules"],
   "default_enabled": false
 }

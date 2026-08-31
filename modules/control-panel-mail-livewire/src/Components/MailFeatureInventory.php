@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\MailLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Mail\Actions\ConfigureMailAuthentication;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailAlias;
 use Liberu\ControlPanel\Mail\Actions\DeleteMailRoute;
 use Liberu\ControlPanel\Mail\Actions\RotateDkimKey;
@@ -26,6 +27,19 @@ final class MailFeatureInventory extends Component
 
     /** @var array<string, array<string, mixed>> */
     public array $routeEdits = [];
+
+    /** @param array<string, mixed> $attributes */
+    public function configureAuthentication(string $domainId, array $attributes, ConfigureMailAuthentication $configure): void
+    {
+        $domain = MailDomain::query()->whereKey($domainId)->where('team_id', $this->teamId())->firstOrFail();
+        validator($attributes, [
+            'spf_enabled' => ['sometimes', 'boolean'], 'dkim_enabled' => ['sometimes', 'boolean'],
+            'dkim_selector' => ['sometimes', 'string', 'max:63'], 'dmarc_enabled' => ['sometimes', 'boolean'],
+            'dmarc_policy' => ['sometimes', 'in:none,quarantine,reject'], 'dmarc_percentage' => ['sometimes', 'integer', 'min:0', 'max:100'],
+            'dmarc_rua_email' => ['sometimes', 'email'], 'dmarc_ruf_email' => ['sometimes', 'email'],
+        ])->validate();
+        $configure->execute($domain, $attributes);
+    }
 
     public function rotateDkim(string $domain, RotateDkimKey $rotate): void
     {

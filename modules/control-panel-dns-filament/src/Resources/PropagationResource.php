@@ -13,7 +13,7 @@ final class PropagationResource extends DnsFeatureResource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-globe-alt';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'DNS';
 
     protected static function featureFields(): array
     {

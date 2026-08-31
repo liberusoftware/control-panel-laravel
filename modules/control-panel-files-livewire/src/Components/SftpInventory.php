@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\FilesLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Files\Actions\DeleteSftpAccount;
 use Liberu\ControlPanel\Files\Models\SftpAccount;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -20,6 +21,12 @@ final class SftpInventory extends Component
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    public function delete(string $accountId, DeleteSftpAccount $delete): void
+    {
+        $account = SftpAccount::query()->whereKey($accountId)->where('team_id', $this->teamId())->firstOrFail();
+        $delete->execute($account);
     }
 
     public function render(): View

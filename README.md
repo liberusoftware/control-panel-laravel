@@ -51,6 +51,8 @@ php artisan serve
 
 Review `.env` before migrating. Use `php artisan migrate --seed` only when example data is wanted. The optional interactive `install.sh` supports local, Docker, and Kubernetes-oriented setup.
 
+For Docker Compose, the application is served by Laravel Octane on container port `8000` and is published at `http://localhost:${APP_PORT:-8000}`. Set `APP_PORT` to change the host port; the container port must remain `8000`.
+
 ## Composable package architecture
 
 Each runtime capability is an independent `liberu-module` Composer package with its own GitHub repository, release lifecycle, manifest, provider, documentation, and tests. Each visual package is an independent `liberu-theme`. Shared contract packages and the custom installer are normal Composer dependencies under `/vendor`.

@@ -20,6 +20,7 @@ use Liberu\ControlPanel\ApiAutomation\Actions\RevokeApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
 use Liberu\ControlPanel\ApiAutomation\Actions\UpdateApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\UpdateWebhook;
+use Liberu\ControlPanel\ApiAutomation\Exceptions\OrchestrationIdempotencyConflict;
 use Liberu\ControlPanel\ApiAutomation\Models\ApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationDefinition;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
@@ -43,7 +44,7 @@ final class AutomationController
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = AutomationDefinition::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-automation', 'attributes' => $item->toArray()]]);
+        return response()->json(['data' => self::resource($item)]);
     }
 
     public function store(Request $request, RegisterAutomation $register): JsonResponse
@@ -139,7 +140,11 @@ final class AutomationController
         }
         $item = AutomationTemplate::query()->whereKey($template)->where('team_id', $teamId)->firstOrFail();
         $data = $request->validate(['input' => ['nullable', 'array']]);
-        $run = $start->execute($item, $data['input'] ?? [], $teamId, $idempotencyKey);
+        try {
+            $run = $start->execute($item, $data['input'] ?? [], (string) $teamId, $idempotencyKey);
+        } catch (OrchestrationIdempotencyConflict $exception) {
+            return response()->json(['title' => 'Idempotency conflict', 'detail' => $exception->getMessage(), 'status' => 409], 409);
+        }
 
         return response()->json(['data' => ['id' => $run->getKey(), 'type' => 'control-panel-orchestration-run', 'attributes' => $run->only(['template_id', 'status', 'input', 'started_at'])]], 202);
     }

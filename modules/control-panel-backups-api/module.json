@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\BackupsApi\\BackupsApiServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-backups": "^1.0"}},
   "capabilities": ["control-panel.backups.api"],
-  "features": ["Policies", "Snapshots", "Destinations", "Schedules", "Restore", "Verification", "Retention"],
+  "features": ["Policies", "Snapshots", "Destinations", "Destination health", "Schedules", "Restore", "Verification", "Retention"],
   "default_enabled": false
 }

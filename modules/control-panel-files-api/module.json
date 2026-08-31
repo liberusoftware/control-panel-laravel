@@ -8,6 +8,6 @@
   "provider": "Liberu\\ControlPanel\\FilesApi\\FilesApiServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-files": "^1.0"}},
   "capabilities": ["control-panel.files.api"],
-  "features": ["Home directories", "Permissions", "SFTP", "File operations", "Quotas", "Scanning", "Retention"],
+  "features": ["Home directories", "Permissions", "SFTP account lifecycle and key rotation", "File operations", "Quotas", "Scanning", "Retention"],
   "default_enabled": false
 }

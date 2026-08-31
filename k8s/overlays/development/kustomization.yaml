@@ -24,5 +24,5 @@ configMapGenerator:
   - LOG_LEVEL=debug
 
 images:
-- name: ghcr.io/liberusoftware/boilerplate-laravel
+- name: ghcr.io/liberusoftware/control-panel-laravel
   newTag: develop

@@ -12,6 +12,6 @@
     "packages": {"liberusoftware/module-control-panel-control-core": "^1.0"}
   },
   "capabilities": ["control-panel.control-core.api"],
-  "features": ["Node lifecycle", "Capability inventory", "Credential lifecycle", "Task engine", "Inventory records", "Desired and observed state", "Operation locks", "Audit records"],
+  "features": ["Node lifecycle", "Capability inventory", "Credential lifecycle", "SSH key deployment and connection-test operations", "Task engine", "Task cancellation, timeout handling, compensation, and idempotent retry recovery", "Inventory records", "Desired and observed state", "Operation locks", "Audit records"],
   "default_enabled": false
 }

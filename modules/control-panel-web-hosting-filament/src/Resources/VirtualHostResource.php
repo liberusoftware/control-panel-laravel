@@ -25,7 +25,7 @@ final class VirtualHostResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-globe-alt';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Web Hosting';
 
     public static function form(Schema $schema): Schema
     {
@@ -37,7 +37,7 @@ final class VirtualHostResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([TextColumn::make('domain.hostname')->searchable(), TextColumn::make('server')->badge(), TextColumn::make('runtime'), TextColumn::make('document_root'), TextColumn::make('active')->badge()])->recordActions([
-            DeleteAction::make()->action(fn (VirtualHost $record): void => app(DeleteVirtualHost::class)->execute($record)),
+            DeleteAction::make()->action(fn (VirtualHost $record) => app(DeleteVirtualHost::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

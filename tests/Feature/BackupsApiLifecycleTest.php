@@ -71,6 +71,26 @@ it('updates and deletes only a current-team backup destination through the API',
     $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/backups/destinations/'.$owned->getKey())->assertNoContent();
 });
 
+it('records destination health only for the current team through the API', function (): void {
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $foreign = app(CreateDestination::class)->execute(['team_id' => $otherTeam->getKey(), 'name' => 'Foreign', 'driver' => 'local']);
+    $owned = app(CreateDestination::class)->execute(['team_id' => $team->getKey(), 'name' => 'Owned', 'driver' => 'local']);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/backups/destinations/'.$foreign->getKey().'/health', ['healthy' => true])
+        ->assertNotFound();
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/backups/destinations/'.$owned->getKey().'/health', ['healthy' => false, 'latency_ms' => 42, 'message' => 'Unavailable', 'details' => ['adapter' => 's3']])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.health.healthy', false)
+        ->assertJsonPath('data.attributes.health.latency_ms', 42)
+        ->assertJsonPath('data.attributes.health.message', 'Unavailable')
+        ->assertJsonPath('data.attributes.last_checked_at', fn (string $value): bool => $value !== '');
+});
+
 it('updates and deletes only a current-team backup schedule through the API', function (): void {
     $team = Team::factory()->create();
     $otherTeam = Team::factory()->create();

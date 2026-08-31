@@ -7,6 +7,7 @@ paths:
   /api/v1/control-panel/containers/resources:
     post: {operationId: control.panel.containers.resources.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/containers/assets:
+    get: {operationId: control.panel.containers.assets.list, security: [{sanctum: []}], parameters: [{name: kind, in: query, required: true, schema: {type: string, enum: [image, registry, network, volume, secret, limit, lifecycle]}}, {name: per_page, in: query, schema: {type: integer, minimum: 1, maximum: 100}}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.containers.assets.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/containers/{workload}:
     get: {operationId: control.panel.containers.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}

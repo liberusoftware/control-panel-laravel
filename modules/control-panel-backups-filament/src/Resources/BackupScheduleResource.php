@@ -24,7 +24,7 @@ final class BackupScheduleResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clock';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Backups';
 
     public static function form(Schema $schema): Schema
     {

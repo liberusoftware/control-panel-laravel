@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\App\Pages\AccountSetup;
+use App\Filament\App\Widgets\AccountSetupWidget;
 use App\Filament\ModulePlugins;
 use App\Support\ThemeColors;
 use Filament\Http\Middleware\Authenticate;
@@ -34,9 +36,16 @@ class AppPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/App/Pages'), for: 'App\Filament\App\Pages')
             ->pages([
                 Dashboard::class,
+                AccountSetup::class,
+            ])
+            ->navigationGroups([
+                'Account',
+                'Workspace',
+                'Settings',
             ])
             ->discoverWidgets(in: app_path('Filament/App/Widgets'), for: 'App\Filament\App\Widgets')
             ->widgets([
+                AccountSetupWidget::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])

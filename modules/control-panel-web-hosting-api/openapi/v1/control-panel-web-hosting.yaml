@@ -27,6 +27,70 @@ paths:
       summary: Register a domain
       security: [{sanctum: []}]
       responses: {'201': {description: Created}}
+  /api/v1/control-panel/web-hosting/usage:
+    get:
+      operationId: control.panel.web.hosting.usage.list
+      security: [{sanctum: []}]
+      parameters:
+        - {name: domain_id, in: query, schema: {type: string, format: uuid}}
+        - {name: months, in: query, schema: {type: integer, minimum: 1, maximum: 60, default: 12}}
+      responses: {'200': {description: Tenant-scoped monthly resource usage.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/usage:
+    get:
+      operationId: control.panel.web.hosting.domains.usage.list
+      security: [{sanctum: []}]
+      parameters:
+        - {name: domain, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: months, in: query, schema: {type: integer, minimum: 1, maximum: 60, default: 12}}
+      responses: {'200': {description: Monthly resource usage for the authorized domain.}, '404': {description: Domain is outside the current team.}}
+    post:
+      operationId: control.panel.web.hosting.domains.usage.record
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                month: {type: integer, minimum: 1, maximum: 12}
+                year: {type: integer, minimum: 2000, maximum: 2200}
+                disk_usage_mb: {type: integer, minimum: 0}
+                bandwidth_usage_mb: {type: integer, minimum: 0}
+      responses: {'201': {description: Monthly resource usage recorded.}, '404': {description: Domain is outside the current team.}, '422': {description: Invalid usage values.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/cron-jobs:
+    get:
+      operationId: control.panel.web.hosting.domains.cron-jobs.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Cron jobs for the authorized domain.}}
+    post:
+      operationId: control.panel.web.hosting.domains.cron-jobs.create
+      security: [{sanctum: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, required: [name, command, schedule], properties: {name: {type: string}, command: {type: string}, schedule: {type: string, example: '0 * * * *'}, active: {type: boolean}}}
+      responses: {'201': {description: Cron job created.}, '404': {description: Domain is outside the current team.}, '422': {description: Invalid cron job.}}
+  /api/v1/control-panel/web-hosting/cron-jobs/{job}:
+    patch:
+      operationId: control.panel.web.hosting.cron-jobs.update
+      security: [{sanctum: []}]
+      responses: {'200': {description: Cron job updated.}}
+    delete:
+      operationId: control.panel.web.hosting.cron-jobs.delete
+      security: [{sanctum: []}]
+      responses: {'204': {description: Cron job deleted.}}
+  /api/v1/control-panel/web-hosting/cron-jobs/{job}/executions:
+    get:
+      operationId: control.panel.web.hosting.cron-jobs.executions.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Cron execution history.}}
+    post:
+      operationId: control.panel.web.hosting.cron-jobs.executions.record
+      security: [{sanctum: []}]
+      responses: {'201': {description: Cron execution recorded.}}
     patch:
       operationId: control.panel.web.hosting.domains.update
       security: [{sanctum: []}]
@@ -146,3 +210,90 @@ paths:
       security: [{sanctum: []}]
       parameters: [{name: application, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {'200': {description: WordPress update status.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/redirects:
+    post:
+      operationId: control.panel.web.hosting.redirects.store
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'201': {description: Redirect policy created.}}
+  /api/v1/control-panel/web-hosting/redirects/{redirect}:
+    patch:
+      operationId: control.panel.web.hosting.redirects.update
+      security: [{sanctum: []}]
+      parameters: [{name: redirect, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Redirect policy updated.}, '404': {description: Redirect is outside the current team.}}
+    delete:
+      operationId: control.panel.web.hosting.redirects.delete
+      security: [{sanctum: []}]
+      parameters: [{name: redirect, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'204': {description: Redirect policy deleted.}, '404': {description: Redirect is outside the current team.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/mime-types:
+    post:
+      operationId: control.panel.web.hosting.mime.types.store
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'201': {description: MIME type metadata created.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/hotlink-protection:
+    post:
+      operationId: control.panel.web.hosting.hotlink.protection.store
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Hotlink protection configured.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/directory-protections:
+    post:
+      operationId: control.panel.web.hosting.directory.protections.store
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'201': {description: Directory protection configured.}}
+  /api/v1/control-panel/web-hosting/directory-protections/{protection}/users:
+    post:
+      operationId: control.panel.web.hosting.directory.protection.users.store
+      security: [{sanctum: []}]
+      parameters: [{name: protection, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'201': {description: Directory protection user created.}}
+  /api/v1/control-panel/web-hosting/directory-protections/{protection}:
+    delete:
+      operationId: control.panel.web.hosting.directory.protections.delete
+      security: [{sanctum: []}]
+      parameters: [{name: protection, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'204': {description: Directory protection deleted.}}
+  /api/v1/control-panel/web-hosting/directory-protection-users/{user}:
+    delete:
+      operationId: control.panel.web.hosting.directory.protection.users.delete
+      security: [{sanctum: []}]
+      parameters: [{name: user, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'204': {description: Directory protection user deleted.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/custom-error-pages:
+    post:
+      operationId: control.panel.web.hosting.custom.error.pages.store
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'201': {description: Custom error page saved.}}
+  /api/v1/control-panel/web-hosting/custom-error-pages/{page}:
+    delete:
+      operationId: control.panel.web.hosting.custom.error.pages.delete
+      security: [{sanctum: []}]
+      parameters: [{name: page, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'204': {description: Custom error page deleted.}}
+  /api/v1/control-panel/web-hosting/domains/{domain}/subdomains:
+    get:
+      operationId: control.panel.web.hosting.domains.subdomains.list
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Subdomains for the authorized domain.}, '404': {description: Domain is outside the current team.}}
+    post:
+      operationId: control.panel.web.hosting.domains.subdomains.create
+      security: [{sanctum: []}]
+      parameters: [{name: domain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'201': {description: Subdomain created.}, '422': {description: Invalid subdomain configuration.}}
+  /api/v1/control-panel/web-hosting/subdomains/{subdomain}:
+    patch:
+      operationId: control.panel.web.hosting.subdomains.update
+      security: [{sanctum: []}]
+      parameters: [{name: subdomain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Subdomain updated.}, '404': {description: Subdomain is outside the current team.}}
+    delete:
+      operationId: control.panel.web.hosting.subdomains.delete
+      security: [{sanctum: []}]
+      parameters: [{name: subdomain, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'204': {description: Subdomain deleted.}, '404': {description: Subdomain is outside the current team.}}

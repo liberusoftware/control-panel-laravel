@@ -1,6 +1,6 @@
 <section aria-labelledby="control-panel-account-feature-inventory">
     <h2 id="control-panel-account-feature-inventory">Account features</h2>
-    <p>{{ $packages->count() }} packages and {{ $delegations->count() }} delegations.</p>
+    <p>{{ $packages->count() }} packages, {{ $assignments->count() }} package assignments, and {{ $delegations->count() }} delegations.</p>
     <ul>
         @foreach ($packages as $package)
             <li wire:key="package-{{ $package->getKey() }}">
@@ -15,6 +15,22 @@
                     </label>
                     <button type="submit">Save package</button>
                 </form>
+            </li>
+        @endforeach
+    </ul>
+    <ul>
+        @foreach ($assignments as $assignment)
+            <li wire:key="assignment-{{ $assignment->getKey() }}">
+                {{ $assignment->account?->name }} — {{ $assignment->hostingPackage?->name }}
+                ({{ $assignment->start_date?->toDateString() }}{{ $assignment->end_date ? ' to '.$assignment->end_date->toDateString() : '' }})
+                — {{ $assignment->active ? 'active' : 'inactive' }}
+                <form wire:submit="updateAssignment('{{ $assignment->getKey() }}', null)" class="inline-flex gap-2">
+                    <label><span class="sr-only">Start date</span><input type="date" wire:model="assignmentEdits.{{ $assignment->getKey() }}.start_date" value="{{ $assignment->start_date?->toDateString() }}" required></label>
+                    <label><span class="sr-only">End date</span><input type="date" wire:model="assignmentEdits.{{ $assignment->getKey() }}.end_date" value="{{ $assignment->end_date?->toDateString() }}"></label>
+                    <label><span>Active</span><input type="checkbox" wire:model="assignmentEdits.{{ $assignment->getKey() }}.active" @checked($assignment->active)></label>
+                    <button type="submit">Save assignment</button>
+                </form>
+                <button type="button" wire:click="removeAssignment('{{ $assignment->getKey() }}')">Remove</button>
             </li>
         @endforeach
     </ul>

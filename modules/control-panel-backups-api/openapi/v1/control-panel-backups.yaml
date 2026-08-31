@@ -18,6 +18,8 @@ paths:
   /api/v1/control-panel/backups/destinations/{destination}:
     patch: {operationId: control.panel.backups.destinations.update, security: [{sanctum: []}], responses: {'200': {description: Backup destination updated}}}
     delete: {operationId: control.panel.backups.destinations.delete, security: [{sanctum: []}], responses: {'204': {description: Backup destination deleted}}}
+  /api/v1/control-panel/backups/destinations/{destination}/health:
+    post: {operationId: control.panel.backups.destinations.health, security: [{sanctum: []}], parameters: [{name: destination, in: path, required: true, schema: {type: string, format: uuid}}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [healthy], properties: {healthy: {type: boolean}, latency_ms: {type: integer, minimum: 0}, message: {type: string, maxLength: 1000}, details: {type: object}}}}}}, responses: {'200': {description: Backup destination health recorded}}}
   /api/v1/control-panel/backups/schedules/{schedule}:
     patch: {operationId: control.panel.backups.schedules.update, security: [{sanctum: []}], responses: {'200': {description: Backup schedule updated}}}
     delete: {operationId: control.panel.backups.schedules.delete, security: [{sanctum: []}], responses: {'204': {description: Backup schedule deleted}}}

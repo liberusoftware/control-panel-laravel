@@ -23,7 +23,7 @@ final class HardeningControlResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shield-check';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Security & Compliance';
 
     public static function form(Schema $schema): Schema
     {

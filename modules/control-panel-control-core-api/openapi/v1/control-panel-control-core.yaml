@@ -28,26 +28,34 @@ paths:
     patch:
       operationId: control.panel.control.core.nodes.status
       security: [{sanctum: []}]
-      parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {'200': {description: Node status changed.}}
+      parameters:
+        - {name: node, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: If-Match, in: header, required: false, description: ETag from the last node representation., schema: {type: string}}
+      responses: {'200': {description: Node status changed.}, '412': {description: The node changed since it was read.}}
   /api/v1/control-panel/control-core/nodes/{node}/decommission:
     post:
       operationId: control.panel.control.core.nodes.decommission
       security: [{sanctum: []}]
-      parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {'200': {description: Node decommissioned.}, '422': {description: Node is already decommissioned.}}
+      parameters:
+        - {name: node, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: If-Match, in: header, required: false, schema: {type: string}}
+      responses: {'200': {description: Node decommissioned.}, '412': {description: The node changed since it was read.}, '422': {description: Node is already decommissioned.}}
   /api/v1/control-panel/control-core/nodes/{node}/desired-state:
     patch:
       operationId: control.panel.control.core.nodes.desired.state
       security: [{sanctum: []}]
-      parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {'200': {description: Desired state updated.}}
+      parameters:
+        - {name: node, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: If-Match, in: header, required: false, schema: {type: string}}
+      responses: {'200': {description: Desired state updated.}, '412': {description: The node changed since it was read.}}
   /api/v1/control-panel/control-core/nodes/{node}/capabilities:
     put:
       operationId: control.panel.control.core.nodes.capabilities.sync
       security: [{sanctum: []}]
-      parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {'200': {description: Capabilities synchronized.}}
+      parameters:
+        - {name: node, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: If-Match, in: header, required: false, schema: {type: string}}
+      responses: {'200': {description: Capabilities synchronized.}, '412': {description: The node changed since it was read.}}
   /api/v1/control-panel/control-core/nodes/{node}/credentials:
     post:
       operationId: control.panel.control.core.credentials.create
@@ -77,9 +85,64 @@ paths:
       security: [{sanctum: []}]
       parameters: [{name: credential, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {'200': {description: Credential updated.}, '404': {description: Credential is outside the current team.}, '422': {description: Credential is not active.}}
+  /api/v1/control-panel/control-core/nodes/{node}/ssh/deploy-key:
+    post:
+      operationId: control.panel.control.core.nodes.ssh.deploy.key
+      security: [{sanctum: []}]
+      parameters:
+        - {name: node, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: Idempotency-Key, in: header, required: false, description: Preferred idempotency key transport; the legacy body field remains supported., schema: {type: string, maxLength: 160}}
+      responses: {'202': {description: SSH public-key deployment queued.}, '404': {description: Node is outside the current team.}, '409': {description: Idempotency key was reused for a different request.}, '422': {description: Invalid key or request.}}
+  /api/v1/control-panel/control-core/nodes/{node}/ssh/test-connection:
+    post:
+      operationId: control.panel.control.core.nodes.ssh.test.connection
+      security: [{sanctum: []}]
+      parameters:
+        - {name: node, in: path, required: true, schema: {type: string, format: uuid}}
+        - {name: Idempotency-Key, in: header, required: false, description: Preferred idempotency key transport; the legacy body field remains supported., schema: {type: string, maxLength: 160}}
+      responses: {'202': {description: SSH connection test queued.}, '404': {description: Node is outside the current team.}, '409': {description: Idempotency key was reused for a different request.}}
   /api/v1/control-panel/control-core/tasks:
     get: {summary: List operation tasks, responses: {'200': {description: Authorized task collection.}}}
-    post: {summary: Queue an idempotent operation, responses: {'201': {description: Task queued.}}}
+    post:
+      operationId: control.panel.control.core.tasks.create
+      security: [{sanctum: []}]
+      parameters: [{name: Idempotency-Key, in: header, required: true, schema: {type: string, maxLength: 160}}]
+      responses: {'201': {description: Task queued.}, '409': {description: Idempotency key was reused for a different request.}, '422': {description: Invalid task or idempotency key.}}
+  /api/v1/control-panel/control-core/tasks/{task}/retry:
+    post:
+      operationId: control.panel.control.core.tasks.retry
+      security: [{sanctum: []}]
+      parameters: [{name: task, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Failed task returned to the pending queue.}, '404': {description: Task is outside the current team.}, '422': {description: Task is not failed.}}
+  /api/v1/control-panel/control-core/tasks/{task}/cancel:
+    post:
+      operationId: control.panel.control.core.tasks.cancel
+      security: [{sanctum: []}]
+      parameters: [{name: task, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Pending or running task cancelled.}, '404': {description: Task is outside the current team.}, '422': {description: Task is already terminal.}}
+  /api/v1/control-panel/control-core/tasks/{task}/timeout:
+    post:
+      operationId: control.panel.control.core.tasks.timeout
+      security: [{sanctum: []}]
+      parameters: [{name: task, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Expired running task marked failed.}, '404': {description: Task is outside the current team.}, '422': {description: Task is not running or its timeout has not elapsed.}}
+  /api/v1/control-panel/control-core/tasks/{task}/compensation:
+    post:
+      operationId: control.panel.control.core.tasks.compensation
+      security: [{sanctum: []}]
+      parameters: [{name: task, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Compensation state recorded.}, '404': {description: Task is outside the current team.}, '422': {description: Task is not terminal or the compensation transition is invalid.}}
+  /api/v1/control-panel/control-core/tasks/{task}/steps:
+    get:
+      operationId: control.panel.control.core.tasks.steps.list
+      security: [{sanctum: []}]
+      parameters: [{name: task, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'200': {description: Ordered task step log.}, '404': {description: Task is outside the current team.}}
+    post:
+      operationId: control.panel.control.core.tasks.steps.record
+      security: [{sanctum: []}]
+      parameters: [{name: task, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {'201': {description: Task step recorded.}, '200': {description: Existing task step updated.}, '404': {description: Task is outside the current team.}, '422': {description: Invalid task step.}}
   /api/v1/control-panel/control-core/inventory:
     get: {summary: List observed inventory, responses: {'200': {description: Authorized inventory collection.}}}
     post: {summary: Record observed inventory, responses: {'201': {description: Inventory recorded.}}}

@@ -18,24 +18,26 @@ final readonly class TransitionOperationTask
     /** @param array<string, mixed>|null $result */
     public function execute(OperationTask $task, TaskStatus $status, ?array $result = null, ?string $error = null): OperationTask
     {
-        if (in_array($task->status, [TaskStatus::Succeeded, TaskStatus::Failed, TaskStatus::Cancelled], true)) {
-            throw ValidationException::withMessages(['status' => 'A finished task cannot be transitioned.']);
-        }
-        if ($status === TaskStatus::Running && $task->status !== TaskStatus::Pending) {
-            throw ValidationException::withMessages(['status' => 'Only pending tasks can start.']);
-        }
-
         return DB::transaction(function () use ($task, $status, $result, $error): OperationTask {
-            $task->forceFill([
+            $lockedTask = OperationTask::query()->lockForUpdate()->findOrFail($task->getKey());
+
+            if (in_array($lockedTask->status, [TaskStatus::Succeeded, TaskStatus::Failed, TaskStatus::Cancelled], true)) {
+                throw ValidationException::withMessages(['status' => 'A finished task cannot be transitioned.']);
+            }
+            if ($status === TaskStatus::Running && $lockedTask->status !== TaskStatus::Pending) {
+                throw ValidationException::withMessages(['status' => 'Only pending tasks can start.']);
+            }
+
+            $lockedTask->forceFill([
                 'status' => $status,
-                'result' => $result ?? $task->result,
+                'result' => $result ?? $lockedTask->result,
                 'error' => $error,
-                'attempts' => $status === TaskStatus::Running ? $task->attempts + 1 : $task->attempts,
+                'attempts' => $status === TaskStatus::Running ? $lockedTask->attempts + 1 : $lockedTask->attempts,
                 'finished_at' => in_array($status, [TaskStatus::Succeeded, TaskStatus::Failed, TaskStatus::Cancelled], true) ? now() : null,
             ])->save();
-            $this->events->dispatch(new OperationTaskTransitioned($task->getKey(), $status->value));
+            $this->events->dispatch(new OperationTaskTransitioned($lockedTask->getKey(), $status->value));
 
-            return $task->refresh();
+            return $lockedTask->refresh();
         });
     }
 }

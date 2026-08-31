@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\Mail;
 
 use Illuminate\Support\ServiceProvider;
+use Liberu\ControlPanel\Mail\Actions\ConfigureMailAuthentication;
 use Liberu\ControlPanel\Mail\Actions\ConfigureMailControls;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
@@ -33,6 +34,7 @@ final class MailServiceProvider extends ServiceProvider
         $this->app->scoped(DeleteMailRoute::class);
         $this->app->scoped(UpdateMailRoute::class);
         $this->app->scoped(ConfigureMailControls::class);
+        $this->app->scoped(ConfigureMailAuthentication::class);
         $this->app->scoped(RecordDeliveryDiagnostic::class);
         $this->app->scoped(ListMailAccounts::class);
         $this->app->scoped(RecordMailOperation::class);

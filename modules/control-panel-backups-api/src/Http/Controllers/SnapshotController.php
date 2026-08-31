@@ -14,6 +14,7 @@ use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
 use Liberu\ControlPanel\Backups\Actions\DeleteSchedule;
 use Liberu\ControlPanel\Backups\Actions\DeleteSnapshot;
 use Liberu\ControlPanel\Backups\Actions\RecordBackupFeature;
+use Liberu\ControlPanel\Backups\Actions\RecordDestinationHealth;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\UpdateDestination;
 use Liberu\ControlPanel\Backups\Actions\UpdatePolicy;
@@ -27,6 +28,13 @@ use Liberu\ControlPanel\Backups\Queries\ListSnapshots;
 
 final class SnapshotController
 {
+    /** @var array<string, list<string>> */
+    private const FEATURE_FIELDS = [
+        'execution' => ['policy_id', 'type', 'consistency', 'status', 'started_at', 'completed_at', 'error', 'metadata'],
+        'encryption' => ['policy_id', 'algorithm', 'active', 'rotated_at'],
+        'offsite' => ['snapshot_id', 'destination_id', 'status', 'attempts', 'transferred_at', 'error', 'metadata'],
+    ];
+
     public function index(Request $request, ListSnapshots $list): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
@@ -42,7 +50,7 @@ final class SnapshotController
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = BackupSnapshot::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-backup-snapshot', 'attributes' => $item->toArray()]]);
+        return response()->json(['data' => self::resource($item)]);
     }
 
     public function store(Request $request, CreateSnapshot $create): JsonResponse
@@ -84,6 +92,16 @@ final class SnapshotController
         $data = $request->validate(['name' => ['sometimes', 'string', 'max:120'], 'driver' => ['sometimes', 'in:local,s3,sftp,ftp'], 'config' => ['sometimes', 'array'], 'retention_days' => ['sometimes', 'integer', 'min:1'], 'default' => ['sometimes', 'boolean'], 'active' => ['sometimes', 'boolean']]);
 
         return response()->json(['data' => self::destinationResource($update->execute($destination, $data))]);
+    }
+
+    public function destinationHealth(Request $request, string $id, RecordDestinationHealth $record): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $destination = BackupDestination::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['healthy' => ['required', 'boolean'], 'latency_ms' => ['nullable', 'integer', 'min:0'], 'message' => ['nullable', 'string', 'max:1000'], 'details' => ['nullable', 'array']]);
+
+        return response()->json(['data' => self::destinationResource($record->execute($destination, $data['healthy'], $data['latency_ms'] ?? null, $data['message'] ?? null, $data['details'] ?? []))]);
     }
 
     public function deleteDestination(Request $request, string $id, DeleteDestination $delete): JsonResponse
@@ -175,7 +193,7 @@ final class SnapshotController
         $data = $request->validate(['kind' => ['required', 'in:execution,encryption,offsite'], 'payload' => ['required', 'array']]);
         $item = $record->execute(array_merge($data['payload'], ['kind' => $data['kind'], 'team_id' => $teamId]));
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-backup-'.$data['kind'], 'attributes' => $item->toArray()]], 201);
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-backup-'.$data['kind'], 'attributes' => $item->only(self::FEATURE_FIELDS[$data['kind']])]], 201);
     }
 
     private static function resource(BackupSnapshot $snapshot): array

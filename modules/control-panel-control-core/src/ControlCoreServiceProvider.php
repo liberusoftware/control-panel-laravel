@@ -14,6 +14,7 @@ use Liberu\ControlPanel\ControlCore\Actions\RecordInventory;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\ReleaseOperationLock;
+use Liberu\ControlPanel\ControlCore\Actions\RequestSshOperation;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
 use Liberu\ControlPanel\ControlCore\Actions\TransitionOperationTask;
@@ -46,6 +47,7 @@ final class ControlCoreServiceProvider extends ServiceProvider
         $this->app->scoped(WriteAuditEntry::class);
         $this->app->scoped(ListAuditEntries::class);
         $this->app->scoped(RegisterNodeCredential::class);
+        $this->app->scoped(RequestSshOperation::class);
         $this->app->scoped(RevokeNodeCredential::class);
         $this->app->scoped(ReleaseOperationLock::class);
     }

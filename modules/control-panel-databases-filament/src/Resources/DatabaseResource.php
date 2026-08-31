@@ -30,7 +30,7 @@ final class DatabaseResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-circle-stack';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Databases';
 
     public static function form(Schema $schema): Schema
     {

@@ -19,6 +19,7 @@ use Liberu\ControlPanel\Mail\Actions\UpdateMailRoute;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
 use Liberu\ControlPanel\Mail\Models\DkimKey;
 use Liberu\ControlPanel\Mail\Models\MailAccount;
+use Liberu\ControlPanel\Mail\Models\MailControl;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 uses(RefreshDatabase::class);
@@ -32,6 +33,21 @@ it('supports aliases, mailbox controls, spam and virus settings, and diagnostics
     $controls = app(ConfigureMailControls::class)->execute(['team_id' => 'team-1', 'mail_account_id' => $account->getKey(), 'spam_threshold' => 8, 'virus_scan_enabled' => true, 'autoresponder_enabled' => true]);
     $diagnostic = app(RecordDeliveryDiagnostic::class)->execute(['team_id' => 'team-1', 'mail_account_id' => $account->getKey(), 'recipient' => 'ops@example.test', 'status' => 'delivered']);
     expect($alias->destinations)->toContain('ops@example.test')->and($controls->spam_threshold)->toBe(8)->and($diagnostic->status)->toBe('delivered');
+});
+
+it('tracks autoresponder windows and rejects inverted dates', function (): void {
+    $account = app(CreateMailAccount::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test', 'address' => 'support']);
+    $controls = app(ConfigureMailControls::class)->execute([
+        'team_id' => 'team-1', 'mail_account_id' => $account->getKey(), 'autoresponder_enabled' => true,
+        'autoresponder_message' => 'Away', 'autoresponder_start_at' => now()->subHour(), 'autoresponder_end_at' => now()->addHour(),
+    ]);
+
+    expect($controls->isAutoresponderActive())->toBeTrue()
+        ->and(MailControl::query()->whereKey($controls->getKey())->value('autoresponder_message'))->toBe('Away');
+
+    expect(fn () => app(ConfigureMailControls::class)->execute([
+        'team_id' => 'team-1', 'mail_account_id' => $account->getKey(), 'autoresponder_start_at' => now()->addDay(), 'autoresponder_end_at' => now(),
+    ]))->toThrow(ValidationException::class);
 });
 it('rejects aliases without destinations and unsafe spam thresholds', function (): void {
     expect(fn () => app(CreateMailAlias::class)->execute(['team_id' => 'team-1', 'domain' => 'example.test', 'address' => 'support', 'destinations' => []]))->toThrow(ValidationException::class);

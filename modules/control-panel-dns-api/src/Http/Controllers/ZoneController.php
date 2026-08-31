@@ -25,6 +25,15 @@ use Liberu\ControlPanel\Dns\Queries\ListZones;
 
 final class ZoneController
 {
+    /** @var array<string, list<string>> */
+    private const FEATURE_FIELDS = [
+        'template' => ['name', 'records', 'active'],
+        'dnssec' => ['zone_id', 'key_tag', 'algorithm', 'digest_type', 'digest', 'public_key', 'active', 'rotated_at'],
+        'provider' => ['name', 'driver', 'endpoint', 'settings', 'active'],
+        'validation' => ['zone_id', 'record_id', 'status', 'resolver', 'expected', 'observed', 'checked_at', 'details'],
+        'propagation' => ['zone_id', 'record_id', 'status', 'nameservers', 'results', 'checked_at'],
+    ];
+
     public function index(Request $request, ListZones $list): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
@@ -40,7 +49,7 @@ final class ZoneController
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = Zone::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-dns-zone', 'attributes' => $item->toArray()]]);
+        return response()->json(['data' => self::resource($item)]);
     }
 
     public function store(Request $request, CreateZone $create): JsonResponse
@@ -188,7 +197,7 @@ final class ZoneController
         $data = $request->validate(['kind' => ['required', 'in:template,dnssec,provider,validation,propagation'], 'payload' => ['required', 'array']]);
         $item = $register->execute(array_merge($data['payload'], ['kind' => $data['kind'], 'team_id' => $teamId]));
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-dns-'.$data['kind'], 'attributes' => $item->toArray()]], 201);
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-dns-'.$data['kind'], 'attributes' => $item->only(self::FEATURE_FIELDS[$data['kind']])]], 201);
     }
 
     public function suspend(Request $request, string $zone, SuspendZone $suspend): JsonResponse

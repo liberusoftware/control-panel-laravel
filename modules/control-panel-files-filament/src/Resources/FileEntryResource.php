@@ -24,7 +24,7 @@ final class FileEntryResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Files & Access';
 
     public static function form(Schema $schema): Schema
     {

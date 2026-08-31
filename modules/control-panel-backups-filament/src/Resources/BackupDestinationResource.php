@@ -24,7 +24,7 @@ final class BackupDestinationResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-server-stack';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Backups';
 
     public static function form(Schema $schema): Schema
     {
@@ -39,7 +39,7 @@ final class BackupDestinationResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('name')->searchable(), TextColumn::make('driver')->badge(), TextColumn::make('retention_days'), TextColumn::make('default')->badge(), TextColumn::make('active')->badge()])->recordActions([
+        return $table->columns([TextColumn::make('name')->searchable(), TextColumn::make('driver')->badge(), TextColumn::make('retention_days'), TextColumn::make('default')->badge(), TextColumn::make('active')->badge(), TextColumn::make('last_checked_at')->dateTime()->toggleable()])->recordActions([
             DeleteAction::make()->action(function (BackupDestination $record): void {
                 abort_if(auth()->user()?->current_team_id === null, 403, 'A current team is required.');
                 abort_unless((string) $record->team_id === (string) auth()->user()?->current_team_id, 404);

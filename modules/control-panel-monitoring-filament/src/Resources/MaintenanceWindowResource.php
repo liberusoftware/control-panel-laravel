@@ -27,7 +27,7 @@ final class MaintenanceWindowResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-wrench-screwdriver';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Monitoring';
 
     public static function form(Schema $schema): Schema
     {
@@ -38,7 +38,7 @@ final class MaintenanceWindowResource extends Resource
     {
         return $table->columns([TextColumn::make('name')->searchable()->sortable(), TextColumn::make('scope'), TextColumn::make('starts_at')->dateTime()->sortable(), TextColumn::make('ends_at')->dateTime(), TextColumn::make('status')->badge()])->recordActions([
             Action::make('cancel')->requiresConfirmation()->visible(fn (MaintenanceWindow $record): bool => ! in_array($record->status, ['cancelled', 'completed'], true))->action(fn (MaintenanceWindow $record): MaintenanceWindow => app(CancelMaintenanceWindow::class)->execute($record)),
-            DeleteAction::make()->visible(fn (MaintenanceWindow $record): bool => $record->team_id === auth()->user()?->current_team_id && ! in_array($record->status, ['active', 'completed'], true))->action(fn (MaintenanceWindow $record): void => app(DeleteMaintenanceWindow::class)->execute($record)),
+            DeleteAction::make()->visible(fn (MaintenanceWindow $record): bool => $record->team_id === auth()->user()?->current_team_id && ! in_array($record->status, ['active', 'completed'], true))->action(fn (MaintenanceWindow $record) => app(DeleteMaintenanceWindow::class)->execute($record)),
         ])->defaultSort('starts_at', 'desc');
     }
 

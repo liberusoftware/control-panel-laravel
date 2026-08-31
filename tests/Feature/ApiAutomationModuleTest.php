@@ -13,6 +13,7 @@ use Liberu\ControlPanel\ApiAutomation\Actions\StartOrchestration;
 use Liberu\ControlPanel\ApiAutomation\Actions\UpdateApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\UpdateWebhook;
 use Liberu\ControlPanel\ApiAutomation\ApiAutomationServiceProvider;
+use Liberu\ControlPanel\ApiAutomation\Exceptions\OrchestrationIdempotencyConflict;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
 
 uses(RefreshDatabase::class);
@@ -56,6 +57,9 @@ it('rejects insecure webhook endpoints and makes orchestration idempotent', func
     $second = app(StartOrchestration::class)->execute($template, ['hostname' => 'node.test'], 'team-1', 'run-1');
 
     expect($second->getKey())->toBe($first->getKey());
+
+    expect(fn () => app(StartOrchestration::class)->execute($template, ['hostname' => 'other.test'], 'team-1', 'run-1'))
+        ->toThrow(OrchestrationIdempotencyConflict::class);
 });
 
 it('updates webhook delivery settings without changing lifecycle state', function (): void {

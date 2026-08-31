@@ -18,7 +18,7 @@ final class OperationLockResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-lock-closed';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Operations';
 
     public static function form(Schema $schema): Schema
     {

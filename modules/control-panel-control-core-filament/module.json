@@ -8,7 +8,7 @@
   "provider": "Liberu\\ControlPanel\\ControlCoreFilament\\ControlCoreFilamentServiceProvider",
   "requires": {"php": "^8.5", "laravel": "^13.0", "packages": {"liberusoftware/module-control-panel-control-core": "^1.0"}},
   "capabilities": ["control-panel.control-core.filament"],
-  "features": ["Node lifecycle", "Capability inventory", "Credential administration", "Task operations", "Inventory records", "Desired and observed state", "Operation locks", "Audit records"],
+  "features": ["Node lifecycle", "Capability inventory", "Credential administration", "Task operations, cancellation, timeout, compensation, and retry recovery", "Task step visibility", "Inventory records", "Desired and observed state", "Operation locks", "Audit records"],
   "default_enabled": false,
   "presentation": {"filament": {"admin": ["Liberu\\ControlPanel\\ControlCoreFilament\\ControlCoreFilamentPlugin"], "app": []}}
 }

@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: reverb
-        image: ghcr.io/liberusoftware/boilerplate-laravel:latest
+        image: ghcr.io/liberusoftware/control-panel-laravel:latest
         command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=6001"]
         ports:
         - containerPort: 6001

@@ -25,5 +25,5 @@ configMapGenerator:
   - LOG_LEVEL=warning
 
 images:
-- name: ghcr.io/liberusoftware/boilerplate-laravel
+- name: ghcr.io/liberusoftware/control-panel-laravel
   newTag: latest

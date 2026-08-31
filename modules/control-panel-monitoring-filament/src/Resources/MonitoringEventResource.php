@@ -23,7 +23,7 @@ final class MonitoringEventResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Monitoring';
 
     public static function form(Schema $schema): Schema
     {

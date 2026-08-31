@@ -12,21 +12,28 @@ use Liberu\ControlPanel\WebHosting\Actions\ActivateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\ArchiveDomain;
 use Liberu\ControlPanel\WebHosting\Actions\CheckApplicationHealth;
 use Liberu\ControlPanel\WebHosting\Actions\CheckWordPressUpdates;
+use Liberu\ControlPanel\WebHosting\Actions\CreateCronJob;
 use Liberu\ControlPanel\WebHosting\Actions\CreateDomain;
+use Liberu\ControlPanel\WebHosting\Actions\CreateSubdomain;
 use Liberu\ControlPanel\WebHosting\Actions\CreateVirtualHost;
 use Liberu\ControlPanel\WebHosting\Actions\RecordApplicationMetric;
+use Liberu\ControlPanel\WebHosting\Actions\RecordCronExecution;
 use Liberu\ControlPanel\WebHosting\Actions\RegisterGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\RequestGitDeployment;
 use Liberu\ControlPanel\WebHosting\Actions\SavePhpConfiguration;
 use Liberu\ControlPanel\WebHosting\Actions\SuspendDomain;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateDomain;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateHostedApplication;
+use Liberu\ControlPanel\WebHosting\Actions\UpdateSubdomain;
 use Liberu\ControlPanel\WebHosting\Actions\UpdateVirtualHost;
 use Liberu\ControlPanel\WebHosting\Enums\DomainStatus;
 use Liberu\ControlPanel\WebHosting\Events\DomainCreated;
+use Liberu\ControlPanel\WebHosting\Models\CronExecution;
+use Liberu\ControlPanel\WebHosting\Models\CronJob;
 use Liberu\ControlPanel\WebHosting\Models\GitDeployment;
 use Liberu\ControlPanel\WebHosting\Models\HostedApplication;
 use Liberu\ControlPanel\WebHosting\Models\PhpConfiguration;
+use Liberu\ControlPanel\WebHosting\Models\Subdomain;
 use Liberu\ControlPanel\WebHosting\WebHostingServiceProvider;
 use Liberu\ControlPanel\WebHostingApi\WebHostingApiServiceProvider;
 
@@ -68,6 +75,91 @@ it('suspends and archives domains with lifecycle invariants', function (): void 
 it('rejects invalid hostnames', function (): void {
     expect(fn () => app(CreateDomain::class)->execute(['hostname' => 'not a hostname']))
         ->toThrow(ValidationException::class);
+});
+
+it('supports tenant-owned domain cron jobs and execution history', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'scheduled.test']);
+    $job = app(CreateCronJob::class)->execute($domain, ['name' => 'Nightly report', 'command' => 'php artisan reports:run', 'schedule' => '0 2 * * *']);
+    $execution = app(RecordCronExecution::class)->execute($job, ['started_at' => '2026-08-30 02:00:00', 'finished_at' => '2026-08-30 02:00:04', 'exit_code' => 0, 'output' => 'ok', 'duration' => 4]);
+
+    expect($job->refresh()->last_run_at->toDateTimeString())->toBe('2026-08-30 02:00:04')
+        ->and($execution->wasSuccessful())->toBeTrue()
+        ->and($domain->cronJobs()->count())->toBe(1)
+        ->and(CronJob::query()->active()->count())->toBe(1);
+});
+
+it('provides cron schedule and execution presentation helpers', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'helpers.test']);
+    $job = app(CreateCronJob::class)->execute($domain, ['name' => 'Hourly', 'command' => 'echo ok', 'schedule' => CronJob::SCHEDULE_HOURLY]);
+    $execution = app(RecordCronExecution::class)->execute($job, [
+        'started_at' => now()->subMinute(),
+        'finished_at' => now(),
+        'exit_code' => 1,
+    ]);
+
+    expect(CronJob::getCommonSchedules()[CronJob::SCHEDULE_HOURLY])->toBe('Every hour')
+        ->and($job->human_schedule)->toBe('Every hour')
+        ->and($execution->failed())->toBeTrue()
+        ->and($execution->duration_in_seconds)->toBeGreaterThanOrEqual(0)
+        ->and(CronExecution::query()->recent()->count())->toBe(1)
+        ->and(Subdomain::getRedirectTypes())->toBe([301 => 'Permanent (301)', 302 => 'Temporary (302)']);
+});
+
+it('rejects malformed cron schedules and unsafe tenant access', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'scheduled.test']);
+
+    expect(fn () => app(CreateCronJob::class)->execute($domain, ['name' => 'Bad', 'command' => 'echo bad', 'schedule' => 'not a cron']))
+        ->toThrow(ValidationException::class);
+
+    app()->register(WebHostingApiServiceProvider::class);
+    $user = User::factory()->create(['current_team_id' => 'team-2']);
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey().'/cron-jobs')->assertNotFound();
+});
+
+it('manages subdomains with normalized names and lifecycle attributes', function (): void {
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'example.test']);
+    $subdomain = app(CreateSubdomain::class)->execute($domain, ['subdomain' => 'WWW', 'document_root' => '/srv/example/public', 'php_version' => '8.5', 'redirect_type' => 301]);
+
+    expect($subdomain->subdomain)->toBe('www')
+        ->and($subdomain->full_name)->toBe('www.example.test')
+        ->and($subdomain->active)->toBeTrue()
+        ->and(app(UpdateSubdomain::class)->execute($subdomain, ['active' => false])->active)->toBeFalse();
+
+    expect(fn () => app(CreateSubdomain::class)->execute($domain, ['subdomain' => 'bad name', 'document_root' => '/srv/example']))
+        ->toThrow(ValidationException::class);
+});
+
+it('manages subdomains through a tenant-scoped API', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $user = User::factory()->create(['current_team_id' => 'team-1']);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'api-subdomain.test']);
+    $foreign = app(CreateDomain::class)->execute(['team_id' => 'team-2', 'hostname' => 'foreign-subdomain.test']);
+
+    $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey().'/subdomains', ['subdomain' => 'app', 'document_root' => '/srv/app/public'])->assertCreated()->assertJsonPath('data.attributes.full_name', 'app.api-subdomain.test');
+    $id = $response->json('data.id');
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey().'/subdomains')->assertOk()->assertJsonCount(1, 'data');
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/web-hosting/subdomains/'.$id, ['active' => false])->assertOk()->assertJsonPath('data.attributes.active', false);
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/control-panel/web-hosting/domains/'.$foreign->getKey().'/subdomains')->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/web-hosting/subdomains/'.$id)->assertNoContent();
+    expect(Subdomain::query()->whereKey($id)->exists())->toBeFalse();
+});
+
+it('manages domain cron jobs and executions through the tenant-scoped API', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $user = User::factory()->create(['current_team_id' => 'team-1']);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'api-scheduled.test']);
+
+    $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey().'/cron-jobs', [
+        'name' => 'Hourly', 'command' => 'php artisan reports:run', 'schedule' => '0 * * * *',
+    ])->assertCreated()->assertJsonPath('data.attributes.schedule', '0 * * * *');
+    $job = $response->json('data.id');
+
+    $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/web-hosting/cron-jobs/'.$job.'/executions', [
+        'started_at' => '2026-08-30 03:00:00', 'finished_at' => '2026-08-30 03:00:02', 'exit_code' => 1, 'error_output' => 'failed',
+    ])->assertCreated()->assertJsonPath('data.attributes.exit_code', 1);
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/control-panel/web-hosting/cron-jobs/'.$job.'/executions')->assertOk()->assertJsonCount(1, 'data');
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/web-hosting/cron-jobs/'.$job, ['active' => false])->assertOk()->assertJsonPath('data.attributes.active', false);
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/web-hosting/cron-jobs/'.$job)->assertNoContent();
 });
 
 it('updates a domain through the action while preserving lifecycle state', function (): void {
@@ -150,6 +242,36 @@ it('returns tenant-scoped hosted application statistics through the API', functi
         ->assertJsonPath('data.attributes.healthy_checks', 1)
         ->assertJsonPath('data.attributes.uptime_percentage', 50)
         ->assertJsonPath('data.attributes.average_response_time', 60);
+});
+
+it('records and lists resource usage only for the current team through the API', function (): void {
+    app()->register(WebHostingApiServiceProvider::class);
+    $user = User::factory()->create(['current_team_id' => 'team-1']);
+    $domain = app(CreateDomain::class)->execute(['team_id' => 'team-1', 'hostname' => 'api-usage.test']);
+    $foreignDomain = app(CreateDomain::class)->execute(['team_id' => 'team-2', 'hostname' => 'foreign-api-usage.test']);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey().'/usage', [
+            'month' => 8, 'year' => 2026, 'disk_usage_mb' => 250, 'bandwidth_usage_mb' => 800,
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.type', 'control-panel-resource-usage')
+        ->assertJsonPath('data.attributes.disk_usage_mb', 250);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/web-hosting/usage?months=60')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('meta.months', 60);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/web-hosting/domains/'.$foreignDomain->getKey().'/usage', ['disk_usage_mb' => 1])
+        ->assertNotFound();
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/web-hosting/domains/'.$domain->getKey().'/usage', ['disk_usage_mb' => -1])
+        ->assertUnprocessable();
+
 });
 
 it('creates a desired virtual host for a domain and node', function (): void {

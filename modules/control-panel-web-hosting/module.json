@@ -15,9 +15,15 @@
   "features": [
     "Domain lifecycle and validation",
     "Virtual host desired state",
-    "Runtime and redirect metadata",
+    "Runtime, redirect, and MIME metadata",
+    "Monthly disk and bandwidth usage records",
     "Certificate and application references",
-    "Git repository deployment configuration and webhook security"
+    "Git repository deployment configuration and webhook security",
+    "Hotlink protection",
+    "Directory protection",
+    "Custom error pages",
+    "Domain cron jobs and execution history",
+    "Subdomain lifecycle and redirects"
   ],
   "default_enabled": false
 }
