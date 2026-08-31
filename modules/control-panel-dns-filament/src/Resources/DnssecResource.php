@@ -13,7 +13,7 @@ final class DnssecResource extends DnsFeatureResource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-key';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'DNS';
 
     protected static function featureFields(): array
     {

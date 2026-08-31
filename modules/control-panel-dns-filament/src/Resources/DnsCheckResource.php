@@ -22,7 +22,7 @@ final class DnsCheckResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shield-check';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'DNS';
 
     public static function form(Schema $schema): Schema
     {

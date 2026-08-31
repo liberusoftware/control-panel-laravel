@@ -29,7 +29,7 @@ final class BackupSnapshotResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-archive-box';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Backups';
 
     public static function form(Schema $schema): Schema
     {
@@ -56,7 +56,7 @@ final class BackupSnapshotResource extends Resource
                 ->action(fn (BackupSnapshot $record, array $data): BackupRestore => app(RequestRestore::class)->execute($record, (string) auth()->user()?->current_team_id, $data['target'])),
             DeleteAction::make()
                 ->visible(fn (BackupSnapshot $record): bool => $record->team_id === auth()->user()?->current_team_id && $record->status->value !== 'running')
-                ->action(fn (BackupSnapshot $record): void => app(DeleteSnapshot::class)->execute($record)),
+                ->action(fn (BackupSnapshot $record) => app(DeleteSnapshot::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

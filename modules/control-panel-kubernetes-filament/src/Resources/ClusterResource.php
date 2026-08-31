@@ -25,7 +25,7 @@ final class ClusterResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-server';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Kubernetes';
 
     public static function form(Schema $schema): Schema
     {

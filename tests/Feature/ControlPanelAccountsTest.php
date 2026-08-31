@@ -10,15 +10,18 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Accounts\AccountsServiceProvider;
 use Liberu\ControlPanel\Accounts\Actions\ArchiveAccount;
+use Liberu\ControlPanel\Accounts\Actions\AssignHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\CreateAccount;
 use Liberu\ControlPanel\Accounts\Actions\CreateHostingPackage;
 use Liberu\ControlPanel\Accounts\Actions\DelegateAccount;
+use Liberu\ControlPanel\Accounts\Actions\RemoveHostingPackageAssignment;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\SuspendAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateAccount;
 use Liberu\ControlPanel\Accounts\Actions\UpdateBranding;
 use Liberu\ControlPanel\Accounts\Actions\UpdateDelegation;
 use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
+use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackageAssignment;
 use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
 use Liberu\ControlPanel\Accounts\Enums\AccountType;
 use Liberu\ControlPanel\Accounts\Events\AccountSuspended;
@@ -177,6 +180,24 @@ it('exposes individual accounts only to their current team', function (): void {
         ->assertNotFound();
 });
 
+it('keeps account API resources explicit instead of serializing models', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute([
+        'team_id' => $team->getKey(),
+        'owner_id' => $user->getKey(),
+        'name' => 'Resource account',
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/accounts/'.$account->getKey())
+        ->assertOk()
+        ->assertJsonStructure(['data' => ['id', 'type', 'attributes' => ['owner_id', 'parent_id', 'name', 'type', 'status']]])
+        ->assertJsonMissingPath('data.attributes.team_id')
+        ->assertJsonMissingPath('data.attributes.created_at');
+});
+
 it('updates only a current-team account through the API', function (): void {
     app()->register(AccountsApiServiceProvider::class);
     $team = Team::factory()->create();
@@ -237,4 +258,52 @@ it('rejects delegation revocation without a current team', function (): void {
     $this->actingAs($user, 'sanctum')
         ->postJson('/api/v1/control-panel/accounts/delegations/'.Str::uuid().'/revoke')
         ->assertForbidden();
+});
+
+it('assigns and updates a hosting package with a valid date window', function (): void {
+    $account = app(CreateAccount::class)->execute(['team_id' => 'team-1', 'owner_id' => 'user-1', 'name' => 'Customer']);
+    $package = app(CreateHostingPackage::class)->execute(['team_id' => 'team-1', 'name' => 'Starter']);
+
+    $assignment = app(AssignHostingPackage::class)->execute($account, $package, ['start_date' => '2026-09-01', 'end_date' => '2026-09-30']);
+    $updated = app(UpdateHostingPackageAssignment::class)->execute($assignment, ['end_date' => '2026-10-31', 'active' => false]);
+
+    expect($updated->start_date->toDateString())->toBe('2026-09-01')
+        ->and($updated->end_date->toDateString())->toBe('2026-10-31')
+        ->and($updated->active)->toBeFalse()
+        ->and($account->hostingPackageAssignments()->count())->toBe(1);
+
+    app(RemoveHostingPackageAssignment::class)->execute($updated);
+    expect($account->hostingPackageAssignments()->count())->toBe(0);
+});
+
+it('rejects package assignments across teams, inactive packages, and reversed dates', function (): void {
+    $account = app(CreateAccount::class)->execute(['team_id' => 'team-1', 'owner_id' => 'user-1', 'name' => 'Customer']);
+    $otherPackage = app(CreateHostingPackage::class)->execute(['team_id' => 'team-2', 'name' => 'Other']);
+    $inactivePackage = app(CreateHostingPackage::class)->execute(['team_id' => 'team-1', 'name' => 'Inactive', 'active' => false]);
+
+    expect(fn () => app(AssignHostingPackage::class)->execute($account, $otherPackage))->toThrow(ValidationException::class)
+        ->and(fn () => app(AssignHostingPackage::class)->execute($account, $inactivePackage))->toThrow(ValidationException::class)
+        ->and(fn () => app(AssignHostingPackage::class)->execute($account, app(CreateHostingPackage::class)->execute(['team_id' => 'team-1', 'name' => 'Dates']), ['start_date' => '2026-10-01', 'end_date' => '2026-09-01']))->toThrow(ValidationException::class);
+});
+
+it('manages hosting package assignments through a tenant-scoped API', function (): void {
+    app()->register(AccountsApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $account = app(CreateAccount::class)->execute(['team_id' => $team->getKey(), 'owner_id' => $user->getKey(), 'name' => 'Customer']);
+    $package = app(CreateHostingPackage::class)->execute(['team_id' => $team->getKey(), 'name' => 'Starter']);
+    $otherAccount = app(CreateAccount::class)->execute(['team_id' => $otherTeam->getKey(), 'owner_id' => 'other', 'name' => 'Other']);
+
+    $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/accounts/'.$account->getKey().'/hosting-packages', [
+        'hosting_package_id' => $package->getKey(), 'start_date' => '2026-09-01', 'end_date' => '2026-09-30',
+    ])->assertCreated()->assertJsonPath('data.attributes.hosting_package_name', 'Starter');
+    $assignmentId = $response->json('data.id');
+
+    $this->actingAs($user, 'sanctum')->patchJson('/api/v1/control-panel/accounts/hosting-package-assignments/'.$assignmentId, ['active' => false])
+        ->assertOk()->assertJsonPath('data.attributes.active', false);
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/control-panel/accounts/'.$account->getKey().'/hosting-packages')
+        ->assertOk()->assertJsonCount(1, 'data');
+    $this->actingAs($user, 'sanctum')->getJson('/api/v1/control-panel/accounts/'.$otherAccount->getKey().'/hosting-packages')->assertNotFound();
+    $this->actingAs($user, 'sanctum')->deleteJson('/api/v1/control-panel/accounts/hosting-package-assignments/'.$assignmentId)->assertNoContent();
 });

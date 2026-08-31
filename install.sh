@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installation script for the boilerplate-laravel project.
+# Installation script for the Liberu Control Panel Laravel project.
 #
 # This script provides installation options for Standalone, Docker, or Kubernetes deployments.
 # It handles composer and npm installations with fallback logic and error checking.
@@ -137,16 +137,25 @@ install_npm_dependencies() {
         fi
     fi
     
-    # Check if npm is available
-    if ! command_exists npm; then
-        print_error "npm is not installed. Please install Node.js and npm first."
-        print_info "Visit: https://nodejs.org/"
-        return 1
+    if [ -f "pnpm-lock.yaml" ]; then
+        command_exists pnpm || { print_error "pnpm is required by pnpm-lock.yaml"; return 1; }
+        print_info "Running: pnpm install --frozen-lockfile"
+        pnpm install --frozen-lockfile
+    elif [ -f "yarn.lock" ]; then
+        command_exists yarn || { print_error "yarn is required by yarn.lock"; return 1; }
+        print_info "Running: yarn install --immutable"
+        yarn install --immutable
+    elif [ -f "package-lock.json" ]; then
+        command_exists npm || { print_error "npm is required by package-lock.json"; return 1; }
+        print_info "Running: npm ci"
+        npm ci
+    else
+        command_exists npm || { print_error "npm is required when no lockfile is present"; return 1; }
+        print_info "Running: npm install"
+        npm install
     fi
-    
-    # Run npm install
-    print_info "Running: npm install"
-    if npm install; then
+
+    if [ $? -eq 0 ]; then
         print_success "NPM dependencies installed successfully"
         return 0
     else
@@ -159,15 +168,21 @@ install_npm_dependencies() {
 build_frontend_assets() {
     print_header "🎬 NPM BUILD"
     
-    # Check if npm is available
-    if ! command_exists npm; then
-        print_error "npm is not installed. Cannot build assets."
-        return 1
+    if [ -f "pnpm-lock.yaml" ]; then
+        command_exists pnpm || { print_error "pnpm is required by pnpm-lock.yaml"; return 1; }
+        pnpm run build
+    elif [ -f "yarn.lock" ]; then
+        command_exists yarn || { print_error "yarn is required by yarn.lock"; return 1; }
+        yarn build
+    elif [ -f "package-lock.json" ]; then
+        command_exists npm || { print_error "npm is required by package-lock.json"; return 1; }
+        npm run build
+    else
+        command_exists npm || { print_error "npm is required when no lockfile is present"; return 1; }
+        npm run build
     fi
-    
-    # Run npm build
-    print_info "Running: npm run build"
-    if npm run build; then
+
+    if [ $? -eq 0 ]; then
         print_success "Frontend assets built successfully"
         return 0
     else
@@ -279,25 +294,12 @@ install_standalone() {
     echo "=================================="
     echo ""
     
-    # Run database migrations
-    print_header "🎬 PHP ARTISAN MIGRATE:FRESH"
-    if php artisan migrate:fresh; then
+    # Run database migrations without destroying an existing installation.
+    print_header "🎬 PHP ARTISAN MIGRATE"
+    if php artisan migrate --force; then
         print_success "Database migrated successfully"
     else
         print_error "Database migration failed"
-        exit 1
-    fi
-    
-    echo ""
-    echo "=================================="
-    echo ""
-    
-    # Seeding database
-    print_header "🎬 PHP ARTISAN DB:SEED"
-    if php artisan db:seed; then
-        print_success "Database seeded successfully"
-    else
-        print_error "Database seeding failed"
         exit 1
     fi
     

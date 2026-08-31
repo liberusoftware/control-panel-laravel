@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\AccountsLivewire\Components;
 
 use Illuminate\Contracts\View\View;
+use Liberu\ControlPanel\Accounts\Actions\AssignHostingPackage;
+use Liberu\ControlPanel\Accounts\Actions\RemoveHostingPackageAssignment;
 use Liberu\ControlPanel\Accounts\Actions\RevokeDelegation;
 use Liberu\ControlPanel\Accounts\Actions\UpdateDelegation;
 use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackage;
+use Liberu\ControlPanel\Accounts\Actions\UpdateHostingPackageAssignment;
+use Liberu\ControlPanel\Accounts\Models\Account;
 use Liberu\ControlPanel\Accounts\Models\AccountDelegation;
 use Liberu\ControlPanel\Accounts\Models\HostingPackage;
+use Liberu\ControlPanel\Accounts\Models\HostingPackageAssignment;
 use Livewire\Component;
 
 final class AccountFeatureInventory extends Component
@@ -19,6 +24,43 @@ final class AccountFeatureInventory extends Component
 
     /** @var array<string, array<string, mixed>> */
     public array $packageEdits = [];
+
+    /** @var array<string, array<string, mixed>> */
+    public array $assignmentEdits = [];
+
+    /** @param array<string, mixed> $attributes */
+    public function assignPackage(string $accountId, array $attributes, AssignHostingPackage $assign): void
+    {
+        $account = Account::query()->whereKey($accountId)->where('team_id', $this->teamId())->firstOrFail();
+        $data = validator($attributes, [
+            'hosting_package_id' => ['required', 'uuid'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date'],
+            'active' => ['sometimes', 'boolean'],
+        ])->validate();
+        $package = HostingPackage::query()->whereKey($data['hosting_package_id'])->where('team_id', $this->teamId())->firstOrFail();
+        $assign->execute($account, $package, $data);
+    }
+
+    /** @param array<string, mixed>|null $attributes */
+    public function updateAssignment(string $assignmentId, ?array $attributes, UpdateHostingPackageAssignment $update): void
+    {
+        $assignment = HostingPackageAssignment::query()->whereKey($assignmentId)->where('team_id', $this->teamId())->firstOrFail();
+        $attributes ??= $this->assignmentEdits[$assignmentId] ?? [];
+        $attributes = validator($attributes, [
+            'start_date' => ['sometimes', 'date'],
+            'end_date' => ['sometimes', 'nullable', 'date'],
+            'active' => ['sometimes', 'boolean'],
+        ])->validate();
+        $update->execute($assignment, $attributes);
+        unset($this->assignmentEdits[$assignmentId]);
+    }
+
+    public function removeAssignment(string $assignmentId, RemoveHostingPackageAssignment $remove): void
+    {
+        $assignment = HostingPackageAssignment::query()->whereKey($assignmentId)->where('team_id', $this->teamId())->firstOrFail();
+        $remove->execute($assignment);
+    }
 
     /** @param array<string, mixed>|null $attributes */
     public function updatePackage(string $packageId, ?array $attributes, UpdateHostingPackage $update): void
@@ -71,7 +113,11 @@ final class AccountFeatureInventory extends Component
         $teamId = auth()->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
 
-        return view('control-panel-accounts-livewire::components.feature-inventory', ['packages' => HostingPackage::where('team_id', $teamId)->latest()->limit(25)->get(), 'delegations' => AccountDelegation::where('team_id', $teamId)->latest()->limit(25)->get()]);
+        return view('control-panel-accounts-livewire::components.feature-inventory', [
+            'packages' => HostingPackage::where('team_id', $teamId)->latest()->limit(25)->get(),
+            'delegations' => AccountDelegation::where('team_id', $teamId)->latest()->limit(25)->get(),
+            'assignments' => HostingPackageAssignment::with(['account', 'hostingPackage'])->where('team_id', $teamId)->latest('start_date')->limit(25)->get(),
+        ]);
     }
 
     private function teamId(): string

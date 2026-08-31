@@ -18,6 +18,6 @@ final class OsAdapterInventory extends Component
         $teamId = auth()->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
 
-        return view('control-panel-os-adapters-livewire::components.os-adapter-inventory', ['items' => $list->execute($teamId, min(max($this->perPage, 1), 100)), 'supportMatrix' => SupportMatrixEntry::query()->latest()->limit(10)->get()]);
+        return view('control-panel-os-adapters-livewire::components.os-adapter-inventory', ['items' => $list->execute($teamId, min(max($this->perPage, 1), 100)), 'supportMatrix' => SupportMatrixEntry::query()->where('team_id', $teamId)->latest()->limit(10)->get()]);
     }
 }

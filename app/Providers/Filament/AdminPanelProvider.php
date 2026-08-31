@@ -39,6 +39,24 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
             ])
+            ->navigationGroups([
+                'Accounts & Hosting',
+                'Web Hosting',
+                'Databases',
+                'DNS',
+                'Email & Messaging',
+                'Backups',
+                'Certificates',
+                'Containers',
+                'Kubernetes',
+                'Monitoring',
+                'Server Management',
+                'Operations',
+                'Security & Compliance',
+                'Automation & Integrations',
+                'Administration',
+                'Settings',
+            ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,

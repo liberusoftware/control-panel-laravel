@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\Accounts\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class HostingPackage extends Model
 {
@@ -18,5 +19,10 @@ final class HostingPackage extends Model
     protected function casts(): array
     {
         return ['limits' => 'array', 'features' => 'array', 'active' => 'bool'];
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(HostingPackageAssignment::class);
     }
 }

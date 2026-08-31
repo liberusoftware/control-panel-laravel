@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: queue-worker
-        image: ghcr.io/liberusoftware/boilerplate-laravel:latest
+        image: ghcr.io/liberusoftware/control-panel-laravel:latest
         command:
         - php
         - artisan
@@ -97,7 +97,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: scheduler
-            image: ghcr.io/liberusoftware/boilerplate-laravel:latest
+            image: ghcr.io/liberusoftware/control-panel-laravel:latest
             command:
             - php
             - artisan

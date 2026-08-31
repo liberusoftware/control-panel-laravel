@@ -24,7 +24,7 @@ final class HostedApplicationResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-window';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Web Hosting';
 
     public static function form(Schema $schema): Schema
     {
@@ -42,7 +42,7 @@ final class HostedApplicationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([TextColumn::make('name')->searchable(), TextColumn::make('type')->badge(), TextColumn::make('version'), TextColumn::make('document_root'), TextColumn::make('status')->badge()])->recordActions([
-            DeleteAction::make()->action(fn (HostedApplication $record): void => app(DeleteHostedApplication::class)->execute($record)),
+            DeleteAction::make()->action(fn (HostedApplication $record) => app(DeleteHostedApplication::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

@@ -12,13 +12,16 @@ use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\GenerateSshKeyPair;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
+use Liberu\ControlPanel\ControlCore\Actions\RequestSshOperation;
 use Liberu\ControlPanel\ControlCore\Actions\RevokeNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
 use Liberu\ControlPanel\ControlCore\Actions\UpdateDesiredState;
 use Liberu\ControlPanel\ControlCore\Actions\UpdateNodeCredential;
 use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
+use Liberu\ControlPanel\ControlCore\Exceptions\IdempotencyConflict;
 use Liberu\ControlPanel\ControlCore\Models\Node;
 use Liberu\ControlPanel\ControlCore\Models\NodeCredential;
+use Liberu\ControlPanel\ControlCore\Models\OperationTask;
 use Liberu\ControlPanel\ControlCore\Queries\ListNodes;
 
 final class NodeController
@@ -29,7 +32,7 @@ final class NodeController
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->with('capabilities')->firstOrFail();
 
-        return response()->json(['data' => $this->resource($item)]);
+        return $this->nodeResponse($item);
     }
 
     public function index(Request $request, ListNodes $nodes): JsonResponse
@@ -65,7 +68,7 @@ final class NodeController
 
         $node = $register->execute(array_merge($data, ['team_id' => $teamId]));
 
-        return response()->json(['data' => $this->resource($node)], 201);
+        return $this->nodeResponse($node, 201);
     }
 
     public function updateDesiredState(Request $request, string $node, UpdateDesiredState $update): JsonResponse
@@ -73,9 +76,12 @@ final class NodeController
         $teamId = $request->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
+        if (($response = $this->assertIfMatch($request, $item)) !== null) {
+            return $response;
+        }
         $data = $request->validate(['desired_state' => ['required', 'array']]);
 
-        return response()->json(['data' => $this->resource($update->execute($item, $data['desired_state']))]);
+        return $this->nodeResponse($update->execute($item, $data['desired_state']));
     }
 
     public function updateStatus(Request $request, string $node, ChangeNodeStatus $change): JsonResponse
@@ -83,9 +89,12 @@ final class NodeController
         $teamId = $request->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
+        if (($response = $this->assertIfMatch($request, $item)) !== null) {
+            return $response;
+        }
         $data = $request->validate(['status' => ['required', 'string', 'in:pending,active,draining,decommissioned']]);
 
-        return response()->json(['data' => $this->resource($change->execute($item, NodeStatus::from($data['status'])))]);
+        return $this->nodeResponse($change->execute($item, NodeStatus::from($data['status'])));
     }
 
     public function decommission(Request $request, string $node, DecommissionNode $decommission): JsonResponse
@@ -93,8 +102,11 @@ final class NodeController
         $teamId = $request->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
+        if (($response = $this->assertIfMatch($request, $item)) !== null) {
+            return $response;
+        }
 
-        return response()->json(['data' => $this->resource($decommission->execute($item))]);
+        return $this->nodeResponse($decommission->execute($item));
     }
 
     public function capabilities(Request $request, string $node, SyncNodeCapabilities $sync): JsonResponse
@@ -102,9 +114,12 @@ final class NodeController
         $teamId = $request->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
+        if (($response = $this->assertIfMatch($request, $item)) !== null) {
+            return $response;
+        }
         $data = $request->validate(['capabilities' => ['required', 'array'], 'capabilities.*.name' => ['required', 'string', 'max:120'], 'capabilities.*.version' => ['nullable', 'string', 'max:80'], 'capabilities.*.metadata' => ['nullable', 'array']]);
 
-        return response()->json(['data' => $this->resource($sync->execute($item, $data['capabilities']))]);
+        return $this->nodeResponse($sync->execute($item, $data['capabilities']));
     }
 
     public function credential(Request $request, string $node, RegisterNodeCredential $register): JsonResponse
@@ -138,6 +153,38 @@ final class NodeController
             'type' => 'control-panel-ssh-key-pair',
             'attributes' => $generate->execute($data['passphrase'] ?? null, (int) ($data['bits'] ?? 4096), $data['comment'] ?? null),
         ]], 201);
+    }
+
+    public function deploySshKey(Request $request, string $node, RequestSshOperation $requestOperation): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
+        $request->merge(['idempotency_key' => $request->input('idempotency_key', $request->header('Idempotency-Key'))]);
+        $data = $request->validate(['username' => ['required', 'string', 'alpha_dash', 'max:32'], 'public_key' => ['required', 'string', 'max:10000'], 'idempotency_key' => ['required', 'string', 'max:160']]);
+        try {
+            $task = $requestOperation->execute((string) $teamId, (string) $item->getKey(), 'ssh.deploy-public-key', $data['idempotency_key'], $data);
+        } catch (IdempotencyConflict $exception) {
+            return response()->json(['title' => 'Idempotency conflict', 'detail' => $exception->getMessage(), 'status' => 409], 409);
+        }
+
+        return response()->json(['data' => $this->taskResource($task)], 202);
+    }
+
+    public function testSshConnection(Request $request, string $node, RequestSshOperation $requestOperation): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $item = Node::query()->whereKey($node)->where('team_id', $teamId)->firstOrFail();
+        $request->merge(['idempotency_key' => $request->input('idempotency_key', $request->header('Idempotency-Key'))]);
+        $data = $request->validate(['idempotency_key' => ['required', 'string', 'max:160']]);
+        try {
+            $task = $requestOperation->execute((string) $teamId, (string) $item->getKey(), 'ssh.test-connection', $data['idempotency_key']);
+        } catch (IdempotencyConflict $exception) {
+            return response()->json(['title' => 'Idempotency conflict', 'detail' => $exception->getMessage(), 'status' => 409], 409);
+        }
+
+        return response()->json(['data' => $this->taskResource($task)], 202);
     }
 
     public function revokeCredential(Request $request, string $credential, RevokeNodeCredential $revoke): JsonResponse
@@ -178,5 +225,42 @@ final class NodeController
     private function credentialResource(NodeCredential $credential): array
     {
         return ['id' => $credential->getKey(), 'type' => 'control-panel-node-credential', 'attributes' => $credential->only(['node_id', 'name', 'type', 'username', 'status', 'expires_at', 'last_used_at', 'metadata'])];
+    }
+
+    /** @return array<string, mixed> */
+    private function taskResource(OperationTask $task): array
+    {
+        return ['id' => $task->getKey(), 'type' => 'control-panel-operation-task', 'attributes' => $task->only(['node_id', 'operation', 'idempotency_key', 'status', 'payload', 'result', 'error', 'attempts', 'available_at', 'finished_at'])];
+    }
+
+    private function nodeResponse(Node $node, int $status = 200): JsonResponse
+    {
+        return response()->json(['data' => $this->resource($node)], $status)->header('ETag', $this->etag($node));
+    }
+
+    private function assertIfMatch(Request $request, Node $node): ?JsonResponse
+    {
+        $ifMatch = $request->header('If-Match');
+        if ($ifMatch === null || $ifMatch === '*' || hash_equals($this->etag($node), $ifMatch)) {
+            return null;
+        }
+
+        return response()->json(['title' => 'Precondition failed', 'detail' => 'The node has changed since it was read.', 'status' => 412], 412)
+            ->header('ETag', $this->etag($node));
+    }
+
+    private function etag(Node $node): string
+    {
+        return '"'.hash('sha256', (string) json_encode([
+            $node->getKey(),
+            $node->name,
+            $node->hostname,
+            $node->platform,
+            $node->status?->value ?? $node->status,
+            $node->desired_state,
+            $node->observed_state,
+            $node->last_seen_at?->toISOString(),
+            $node->updated_at?->toISOString(),
+        ])).'"';
     }
 }

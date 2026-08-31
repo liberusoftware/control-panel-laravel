@@ -18,6 +18,7 @@ Route::prefix('api/v1/control-panel/mail')->middleware(['api', 'auth:sanctum', '
     Route::post('/controls', [MailAccountController::class, 'controls'])->name('control-panel.mail.controls.store');
     Route::post('/delivery-diagnostics', [MailAccountController::class, 'diagnostic'])->name('control-panel.mail.delivery-diagnostics.store');
     Route::post('/dkim/rotate', [MailAccountController::class, 'rotateDkim'])->name('control-panel.mail.dkim.rotate');
+    Route::post('/authentication/configure', [MailAccountController::class, 'authentication'])->name('control-panel.mail.authentication.configure');
     Route::post('/domains', [MailAccountController::class, 'domain'])->name('control-panel.mail.domains.store');
     Route::patch('/{mailAccount}', [MailAccountController::class, 'update'])->name('control-panel.mail.update');
     Route::delete('/{mailAccount}', [MailAccountController::class, 'delete'])->name('control-panel.mail.delete');

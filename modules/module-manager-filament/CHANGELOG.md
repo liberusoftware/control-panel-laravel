@@ -2,6 +2,8 @@
 
 ## 1.2.2 - 2026-08-06
 
+- Expand foundation operations with module category, deployment status, features, capabilities, and dependencies.
+
 - Split CI into the three workflows `CONFORMANCE.md` §3.9 asks for, rather than one calling all
   three. Only `tests` runs on every push; installing from nothing and resolving the lowest allowed
   dependencies are release questions and now run on tags. One caller meant four jobs per push, and

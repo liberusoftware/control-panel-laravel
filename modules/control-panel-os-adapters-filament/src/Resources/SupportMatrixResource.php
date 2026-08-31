@@ -22,7 +22,7 @@ final class SupportMatrixResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-check-badge';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Server Management';
 
     public static function form(Schema $schema): Schema
     {

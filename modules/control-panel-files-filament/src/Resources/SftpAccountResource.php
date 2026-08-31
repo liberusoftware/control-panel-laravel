@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\FilesFilament\Resources;
 
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
@@ -11,6 +12,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Liberu\ControlPanel\Files\Actions\DeleteSftpAccount;
 use Liberu\ControlPanel\Files\Models\SftpAccount;
 use Liberu\ControlPanel\FilesFilament\Resources\SftpAccountResource\Pages\CreateSftpAccount;
 use Liberu\ControlPanel\FilesFilament\Resources\SftpAccountResource\Pages\EditSftpAccount;
@@ -22,7 +24,7 @@ final class SftpAccountResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-key';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Files & Access';
 
     public static function form(Schema $schema): Schema
     {
@@ -41,7 +43,9 @@ final class SftpAccountResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('username')->searchable(), TextColumn::make('home_directory'), TextColumn::make('quota_mb')->numeric(), TextColumn::make('active')->badge(), TextColumn::make('last_login_at')->dateTime()])->defaultSort('created_at', 'desc');
+        return $table->columns([TextColumn::make('username')->searchable(), TextColumn::make('home_directory'), TextColumn::make('quota_mb')->numeric(), TextColumn::make('active')->badge(), TextColumn::make('last_login_at')->dateTime()])->recordActions([
+            DeleteAction::make()->action(fn (SftpAccount $record) => app(DeleteSftpAccount::class)->execute($record)),
+        ])->defaultSort('created_at', 'desc');
     }
 
     public static function getEloquentQuery(): Builder

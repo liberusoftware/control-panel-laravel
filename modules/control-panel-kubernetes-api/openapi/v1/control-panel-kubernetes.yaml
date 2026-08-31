@@ -7,7 +7,18 @@ paths:
   /api/v1/control-panel/kubernetes/resources:
     post: {operationId: control.panel.kubernetes.resources.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/kubernetes/assets:
+    get: {operationId: control.panel.kubernetes.assets.list, security: [{sanctum: []}], parameters: [{name: kind, in: query, required: true, schema: {type: string, enum: [node, namespace, rbac, workload, ingress, helm, storage, autoscaling, upgrade, cluster-view]}}, {name: per_page, in: query, schema: {type: integer, minimum: 1, maximum: 100}}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
     post: {operationId: control.panel.kubernetes.assets.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/kubernetes/nodes/{node}/cordon:
+    post: {operationId: control.panel.kubernetes.nodes.cordon, security: [{sanctum: []}], parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/kubernetes/nodes/{node}/uncordon:
+    post: {operationId: control.panel.kubernetes.nodes.uncordon, security: [{sanctum: []}], parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/kubernetes/nodes/{node}/drain:
+    post: {operationId: control.panel.kubernetes.nodes.drain, security: [{sanctum: []}], parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/kubernetes/nodes/{node}/label:
+    post: {operationId: control.panel.kubernetes.nodes.label, security: [{sanctum: []}], parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [key, value], properties: {key: {type: string, maxLength: 253}, value: {type: string, maxLength: 63}}}}}}, responses: {'200': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/kubernetes/nodes/{node}/unlabel:
+    post: {operationId: control.panel.kubernetes.nodes.unlabel, security: [{sanctum: []}], parameters: [{name: node, in: path, required: true, schema: {type: string, format: uuid}}], requestBody: {required: true, content: {application/json: {schema: {type: object, required: [key], properties: {key: {type: string, maxLength: 253}}}}}}, responses: {'200': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/kubernetes/{cluster}:
     get: {operationId: control.panel.kubernetes.show, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/kubernetes/{cluster}/suspend:

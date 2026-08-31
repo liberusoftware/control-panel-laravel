@@ -23,7 +23,7 @@ final class ComplianceStatusResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Security & Compliance';
 
     public static function form(Schema $schema): Schema
     {

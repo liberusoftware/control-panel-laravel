@@ -20,6 +20,18 @@ use Liberu\ControlPanel\Monitoring\Queries\ListMonitors;
 
 final class MonitorController
 {
+    /** @var array<string, list<string>> */
+    private const RESOURCE_FIELDS = [
+        'metric' => ['monitor_id', 'name', 'value', 'unit', 'dimensions', 'sampled_at'],
+        'log' => ['source', 'level', 'message', 'context', 'logged_at'],
+        'uptime' => ['monitor_id', 'endpoint', 'status_code', 'response_time_ms', 'healthy', 'checked_at', 'details'],
+        'capacity' => ['resource', 'used', 'available', 'unit', 'captured_at', 'details'],
+        'alert' => ['name', 'condition', 'threshold', 'channels', 'active'],
+        'incident' => ['title', 'severity', 'status', 'summary', 'started_at', 'resolved_at', 'metadata'],
+        'maintenance' => ['name', 'starts_at', 'ends_at', 'scope', 'status', 'details'],
+        'status' => ['component', 'status', 'message', 'checked_at', 'metadata'],
+    ];
+
     public function index(Request $request, ListMonitors $list): JsonResponse
     {
         $teamId = $request->user()?->current_team_id;
@@ -35,7 +47,7 @@ final class MonitorController
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = Monitor::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-monitor', 'attributes' => $item->toArray()]]);
+        return response()->json(['data' => self::resource($item)]);
     }
 
     public function store(Request $request, RegisterMonitor $register): JsonResponse
@@ -65,7 +77,7 @@ final class MonitorController
         $data = $request->validate(['kind' => ['required', 'in:metric,log,uptime,capacity,alert,incident,maintenance,status'], 'payload' => ['required', 'array']]);
         $item = $record->execute(array_merge($data['payload'], ['kind' => $data['kind'], 'team_id' => $teamId]));
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-monitoring-resource', 'attributes' => $item->toArray()]], 201);
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-monitoring-resource', 'attributes' => $item->only(self::RESOURCE_FIELDS[$data['kind']])]], 201);
     }
 
     public function resolveEvent(Request $request, string $id, ResolveMonitoringEvent $resolve): JsonResponse

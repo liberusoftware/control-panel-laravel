@@ -23,7 +23,7 @@ final class AutomationCommandResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-command-line';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Automation & Integrations';
 
     public static function form(Schema $schema): Schema
     {

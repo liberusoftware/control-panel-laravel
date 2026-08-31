@@ -26,7 +26,7 @@ final class WebhookEndpointResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-up-on-square';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Automation & Integrations';
 
     public static function form(Schema $schema): Schema
     {

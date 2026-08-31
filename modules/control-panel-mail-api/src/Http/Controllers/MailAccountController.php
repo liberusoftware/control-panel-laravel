@@ -6,6 +6,7 @@ namespace Liberu\ControlPanel\MailApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Liberu\ControlPanel\Mail\Actions\ConfigureMailAuthentication;
 use Liberu\ControlPanel\Mail\Actions\ConfigureMailControls;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAccount;
 use Liberu\ControlPanel\Mail\Actions\CreateMailAlias;
@@ -43,7 +44,7 @@ final class MailAccountController
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = MailAccount::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-mail-account', 'attributes' => $item->toArray()]]);
+        return response()->json(['data' => self::resource($item)]);
     }
 
     public function store(Request $request, CreateMailAccount $create): JsonResponse
@@ -162,10 +163,10 @@ final class MailAccountController
     {
         $teamId = $request->user()?->current_team_id;
         abort_if($teamId === null, 403, 'A current team is required.');
-        $data = $request->validate(['mail_account_id' => ['required', 'uuid'], 'spam_filter_enabled' => ['sometimes', 'boolean'], 'spam_threshold' => ['nullable', 'integer', 'min:1', 'max:30'], 'spam_action' => ['nullable', 'in:tag,quarantine,reject'], 'virus_scan_enabled' => ['sometimes', 'boolean'], 'autoresponder_enabled' => ['sometimes', 'boolean'], 'autoresponder_subject' => ['nullable', 'string', 'max:255'], 'autoresponder_message' => ['nullable', 'string', 'max:10000'], 'keep_copy_on_server' => ['sometimes', 'boolean']]);
+        $data = $request->validate(['mail_account_id' => ['required', 'uuid'], 'spam_filter_enabled' => ['sometimes', 'boolean'], 'spam_threshold' => ['nullable', 'integer', 'min:1', 'max:30'], 'spam_action' => ['nullable', 'in:tag,quarantine,reject'], 'virus_scan_enabled' => ['sometimes', 'boolean'], 'autoresponder_enabled' => ['sometimes', 'boolean'], 'autoresponder_subject' => ['nullable', 'string', 'max:255'], 'autoresponder_message' => ['nullable', 'string', 'max:10000'], 'autoresponder_start_at' => ['nullable', 'date'], 'autoresponder_end_at' => ['nullable', 'date', 'after_or_equal:autoresponder_start_at'], 'keep_copy_on_server' => ['sometimes', 'boolean']]);
         $item = $configure->execute(array_merge($data, ['team_id' => $teamId]));
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-mail-control', 'attributes' => $item->only(['mail_account_id', 'spam_filter_enabled', 'spam_threshold', 'spam_action', 'virus_scan_enabled', 'autoresponder_enabled', 'keep_copy_on_server'])]], 201);
+        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-mail-control', 'attributes' => $item->only(['mail_account_id', 'spam_filter_enabled', 'spam_threshold', 'spam_action', 'virus_scan_enabled', 'autoresponder_enabled', 'autoresponder_subject', 'autoresponder_message', 'autoresponder_start_at', 'autoresponder_end_at', 'keep_copy_on_server']) + ['autoresponder_active' => $item->isAutoresponderActive()]]], 201);
     }
 
     public function diagnostic(Request $request, RecordDeliveryDiagnostic $record): JsonResponse
@@ -191,6 +192,27 @@ final class MailAccountController
             'type' => 'control-panel-mail-dkim-key',
             'attributes' => $key->only(['domain', 'selector', 'active', 'rotated_at']) + ['dns_record' => 'v=DKIM1; k=rsa; p='.$publicKey],
         ]], 201);
+    }
+
+    public function authentication(Request $request, ConfigureMailAuthentication $configure): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $data = $request->validate([
+            'mail_domain_id' => ['required', 'uuid'],
+            'dkim_enabled' => ['sometimes', 'boolean'],
+            'dkim_selector' => ['sometimes', 'string', 'max:63'],
+            'spf_enabled' => ['sometimes', 'boolean'],
+            'spf_record' => ['sometimes', 'string', 'max:1000'],
+            'dmarc_enabled' => ['sometimes', 'boolean'],
+            'dmarc_policy' => ['sometimes', 'in:none,quarantine,reject'],
+            'dmarc_percentage' => ['sometimes', 'integer', 'min:0', 'max:100'],
+            'dmarc_rua_email' => ['sometimes', 'email:rfc', 'max:320'],
+            'dmarc_ruf_email' => ['sometimes', 'email:rfc', 'max:320'],
+        ]);
+        $domain = MailDomain::query()->where('team_id', $teamId)->findOrFail($data['mail_domain_id']);
+
+        return response()->json(['data' => self::domainResource($configure->execute($domain, $data))]);
     }
 
     public function domain(Request $request, RegisterMailDomain $register): JsonResponse

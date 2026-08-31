@@ -27,7 +27,7 @@ final class WorkloadResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cube';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Containers';
 
     public static function form(Schema $schema): Schema
     {
@@ -45,7 +45,7 @@ final class WorkloadResource extends Resource
         return $table->columns([TextColumn::make('name')->searchable()->sortable(), TextColumn::make('image')->searchable(), TextColumn::make('status')->badge(), TextColumn::make('node_id'), TextColumn::make('created_at')->dateTime()])->recordActions([
             Action::make('start')->visible(fn (Workload $record): bool => $record->status !== 'running')->action(fn (Workload $record): Workload => app(StartWorkload::class)->execute($record)),
             Action::make('stop')->requiresConfirmation()->visible(fn (Workload $record): bool => $record->status !== 'stopped')->action(fn (Workload $record): Workload => app(StopWorkload::class)->execute($record)),
-            DeleteAction::make()->visible(fn (Workload $record): bool => $record->team_id === auth()->user()?->current_team_id && $record->status !== 'running')->action(fn (Workload $record): void => app(DeleteWorkload::class)->execute($record)),
+            DeleteAction::make()->visible(fn (Workload $record): bool => $record->team_id === auth()->user()?->current_team_id && $record->status !== 'running')->action(fn (Workload $record) => app(DeleteWorkload::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\Accounts\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Liberu\ControlPanel\Accounts\Enums\AccountStatus;
 use Liberu\ControlPanel\Accounts\Enums\AccountType;
 
@@ -43,6 +44,11 @@ final class Account extends Model
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function hostingPackageAssignments(): HasMany
+    {
+        return $this->hasMany(HostingPackageAssignment::class);
     }
 
     public function isOperational(): bool

@@ -9,12 +9,15 @@ use Illuminate\Http\Request;
 use Liberu\ControlPanel\Files\Actions\CreateHomeDirectory;
 use Liberu\ControlPanel\Files\Actions\CreateSftpAccount;
 use Liberu\ControlPanel\Files\Actions\DeleteFile;
+use Liberu\ControlPanel\Files\Actions\DeleteSftpAccount;
 use Liberu\ControlPanel\Files\Actions\GrantFilePermission;
 use Liberu\ControlPanel\Files\Actions\RecordFileOperation;
+use Liberu\ControlPanel\Files\Actions\RegenerateSftpKeyPair;
 use Liberu\ControlPanel\Files\Actions\RegisterFile;
 use Liberu\ControlPanel\Files\Actions\SetFileQuota;
 use Liberu\ControlPanel\Files\Actions\SetFileRetention;
 use Liberu\ControlPanel\Files\Models\FileEntry;
+use Liberu\ControlPanel\Files\Models\SftpAccount;
 use Liberu\ControlPanel\Files\Queries\ListFiles;
 
 final class FileController
@@ -34,7 +37,7 @@ final class FileController
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = FileEntry::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-file', 'attributes' => $item->toArray()]]);
+        return response()->json(['data' => self::resource($item)]);
     }
 
     public function delete(Request $request, string $id, DeleteFile $delete): JsonResponse
@@ -95,6 +98,31 @@ final class FileController
         $item = $create->execute(array_merge($data, ['team_id' => $teamId]));
 
         return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-sftp-account', 'attributes' => $item->only(['owner_id', 'username', 'home_directory', 'quota_mb', 'bandwidth_limit_mb', 'active', 'ssh_key_auth_enabled'])]], 201);
+    }
+
+    public function deleteSftp(Request $request, string $id, DeleteSftpAccount $delete): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $account = SftpAccount::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $delete->execute($account);
+
+        return response()->json(status: 204);
+    }
+
+    public function regenerateSftpKeys(Request $request, string $id, RegenerateSftpKeyPair $regenerate): JsonResponse
+    {
+        $teamId = $request->user()?->current_team_id;
+        abort_if($teamId === null, 403, 'A current team is required.');
+        $account = SftpAccount::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
+        $data = $request->validate(['ssh_key_bits' => ['sometimes', 'integer', 'in:2048,4096']]);
+        $keys = $regenerate->execute($account, isset($data['ssh_key_bits']) ? (int) $data['ssh_key_bits'] : null);
+
+        return response()->json(['data' => [
+            'id' => $account->getKey(),
+            'type' => 'control-panel-sftp-key-pair',
+            'attributes' => ['username' => $account->username, 'public_key' => $keys['public_key'], 'private_key' => $keys['private_key'], 'one_time_private_key' => true],
+        ]], 201);
     }
 
     public function retention(Request $request, SetFileRetention $set): JsonResponse

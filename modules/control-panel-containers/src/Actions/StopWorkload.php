@@ -12,14 +12,14 @@ final class StopWorkload
 {
     public function execute(Workload $workload): Workload
     {
-        if ($workload->status === 'stopped') {
-            throw ValidationException::withMessages(['workload' => 'The workload is already stopped.']);
-        }
-
         return DB::transaction(function () use ($workload): Workload {
-            $workload->forceFill(['status' => 'stopped'])->save();
+            $locked = Workload::query()->whereKey($workload->getKey())->lockForUpdate()->firstOrFail();
+            if ($locked->status === 'stopped') {
+                throw ValidationException::withMessages(['workload' => 'The workload is already stopped.']);
+            }
+            $locked->forceFill(['status' => 'stopped'])->save();
 
-            return $workload->refresh();
+            return $locked->refresh();
         });
     }
 }

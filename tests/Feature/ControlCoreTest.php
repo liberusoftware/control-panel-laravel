@@ -8,19 +8,26 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ControlCore\Actions\AcquireOperationLock;
+use Liberu\ControlPanel\ControlCore\Actions\CancelOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\ChangeNodeStatus;
 use Liberu\ControlPanel\ControlCore\Actions\CreateOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\DecommissionNode;
 use Liberu\ControlPanel\ControlCore\Actions\ExpireNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\RecordInventory;
+use Liberu\ControlPanel\ControlCore\Actions\RecordOperationTaskCompensation;
+use Liberu\ControlPanel\ControlCore\Actions\RecordOperationTaskStep;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNode;
 use Liberu\ControlPanel\ControlCore\Actions\RegisterNodeCredential;
 use Liberu\ControlPanel\ControlCore\Actions\ReleaseOperationLock;
+use Liberu\ControlPanel\ControlCore\Actions\RequestSshOperation;
+use Liberu\ControlPanel\ControlCore\Actions\RetryOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\SyncNodeCapabilities;
+use Liberu\ControlPanel\ControlCore\Actions\TimeoutOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\TransitionOperationTask;
 use Liberu\ControlPanel\ControlCore\Actions\UpdateDesiredState;
 use Liberu\ControlPanel\ControlCore\Actions\WriteAuditEntry;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
+use Liberu\ControlPanel\ControlCore\Enums\CompensationStatus;
 use Liberu\ControlPanel\ControlCore\Enums\CredentialStatus;
 use Liberu\ControlPanel\ControlCore\Enums\NodeStatus;
 use Liberu\ControlPanel\ControlCore\Enums\TaskStatus;
@@ -105,6 +112,33 @@ it('requires a current team before reading a node through the API', function ():
         ->assertForbidden();
 });
 
+it('returns node etags and rejects stale conditional mutations', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute([
+        'team_id' => $team->getKey(), 'name' => 'Concurrent node', 'hostname' => 'concurrent.test',
+    ]);
+
+    $read = $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey())
+        ->assertOk()
+        ->assertHeader('ETag');
+    $etag = $read->headers->get('ETag');
+
+    $this->actingAs($user, 'sanctum')
+        ->withHeader('If-Match', $etag)
+        ->patchJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey().'/desired-state', ['desired_state' => ['status' => 'active']])
+        ->assertOk()
+        ->assertHeader('ETag');
+
+    $this->actingAs($user, 'sanctum')
+        ->withHeader('If-Match', $etag)
+        ->patchJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey().'/desired-state', ['desired_state' => ['status' => 'draining']])
+        ->assertStatus(412)
+        ->assertJsonPath('status', 412);
+});
+
 it('expires a past-dated credential and rejects invalid repeats', function (): void {
     $node = app(RegisterNode::class)->execute(['team_id' => 'team-1', 'name' => 'Credential node', 'hostname' => 'credential.test']);
     $credential = app(RegisterNodeCredential::class)->execute([
@@ -168,6 +202,244 @@ it('generates an SSH key pair through the tenant-scoped API', function (): void 
         ->assertJsonPath('data.type', 'control-panel-ssh-key-pair')
         ->assertJsonPath('data.attributes.public_key', fn (string $key): bool => str_starts_with($key, 'ssh-rsa '))
         ->assertJsonPath('data.attributes.private_key', fn (string $key): bool => str_contains($key, 'BEGIN ENCRYPTED PRIVATE KEY'));
+});
+
+it('queues idempotent SSH deployment and connection-test operations', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute(['team_id' => $team->getKey(), 'name' => 'SSH node', 'hostname' => 'ssh.test']);
+
+    $deployment = $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey().'/ssh/deploy-key', [
+        'username' => 'deploy', 'public_key' => 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIexample', 'idempotency_key' => 'ssh-deploy-1',
+    ]);
+    $deployment->assertAccepted()->assertJsonPath('data.attributes.operation', 'ssh.deploy-public-key');
+
+    $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey().'/ssh/deploy-key', [
+        'username' => 'deploy', 'public_key' => 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIexample', 'idempotency_key' => 'ssh-deploy-1',
+    ])->assertAccepted()->assertJsonPath('data.id', $deployment->json('data.id'));
+
+    $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey().'/ssh/test-connection', ['idempotency_key' => 'ssh-test-1'])
+        ->assertAccepted()->assertJsonPath('data.attributes.operation', 'ssh.test-connection');
+
+    $this->actingAs($user, 'sanctum')->postJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey().'/ssh/test-connection', ['idempotency_key' => 'ssh-deploy-1'])
+        ->assertConflict()
+        ->assertJsonPath('status', 409);
+
+    expect(OperationTask::query()->where('team_id', $team->getKey())->count())->toBe(2);
+    expect(fn () => app(RequestSshOperation::class)->execute((string) $team->getKey(), (string) $node->getKey(), 'ssh.deploy-public-key', 'bad-key', ['username' => 'deploy', 'public_key' => 'not-a-key']))
+        ->toThrow(ValidationException::class);
+});
+
+it('accepts the standard idempotency header for SSH operations', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $node = app(RegisterNode::class)->execute(['team_id' => $team->getKey(), 'name' => 'Header node', 'hostname' => 'header-ssh.test']);
+
+    $this->actingAs($user, 'sanctum')
+        ->withHeader('Idempotency-Key', 'ssh-header-1')
+        ->postJson('/api/v1/control-panel/control-core/nodes/'.$node->getKey().'/ssh/test-connection')
+        ->assertAccepted()
+        ->assertJsonPath('data.attributes.idempotency_key', 'ssh-header-1');
+});
+
+it('requeues failed tasks without changing their idempotency identity', function (): void {
+    $task = app(CreateOperationTask::class)->execute([
+        'team_id' => 'team-1',
+        'operation' => 'reconcile',
+        'idempotency_key' => 'reconcile-retry-1',
+        'payload' => ['scope' => 'node'],
+    ]);
+    app(TransitionOperationTask::class)->execute($task, TaskStatus::Running);
+    $failed = app(TransitionOperationTask::class)->execute($task->refresh(), TaskStatus::Failed, null, 'agent timeout');
+    $retried = app(RetryOperationTask::class)->execute($failed);
+
+    expect($retried->getKey())->toBe($task->getKey())
+        ->and($retried->status)->toBe(TaskStatus::Pending)
+        ->and($retried->idempotency_key)->toBe('reconcile-retry-1')
+        ->and($retried->error)->toBeNull()
+        ->and($retried->finished_at)->toBeNull();
+
+    expect(fn () => app(RetryOperationTask::class)->execute($retried))
+        ->toThrow(ValidationException::class);
+});
+
+it('replays timeout-based task requests without changing their idempotency identity', function (): void {
+    $attributes = [
+        'team_id' => 'team-1',
+        'operation' => 'reconcile',
+        'idempotency_key' => 'timeout-replay-1',
+        'timeout_seconds' => 60,
+    ];
+
+    $first = app(CreateOperationTask::class)->execute($attributes);
+    $second = app(CreateOperationTask::class)->execute($attributes);
+
+    expect($second->getKey())->toBe($first->getKey())
+        ->and($second->timeout_at)->not->toBeNull();
+});
+
+it('cancels pending tasks and rejects cancellation after a terminal transition', function (): void {
+    $task = app(CreateOperationTask::class)->execute([
+        'team_id' => 'team-1',
+        'operation' => 'reconcile',
+        'idempotency_key' => 'reconcile-cancel-1',
+    ]);
+
+    $cancelled = app(CancelOperationTask::class)->execute($task);
+
+    expect($cancelled->status)->toBe(TaskStatus::Cancelled)
+        ->and($cancelled->error)->toBe('Cancelled by operator.')
+        ->and($cancelled->finished_at)->not->toBeNull();
+
+    expect(fn () => app(CancelOperationTask::class)->execute($cancelled))
+        ->toThrow(ValidationException::class);
+});
+
+it('marks an expired running task as failed and rejects premature timeouts', function (): void {
+    $task = app(CreateOperationTask::class)->execute([
+        'team_id' => 'team-1',
+        'operation' => 'slow-operation',
+        'idempotency_key' => 'timeout-task-1',
+        'timeout_at' => now()->addMinute(),
+    ]);
+    app(TransitionOperationTask::class)->execute($task, TaskStatus::Running);
+
+    expect(fn () => app(TimeoutOperationTask::class)->execute($task->refresh()))
+        ->toThrow(ValidationException::class);
+
+    $task->forceFill(['timeout_at' => now()->subSecond()])->save();
+    $timedOut = app(TimeoutOperationTask::class)->execute($task->refresh());
+
+    expect($timedOut->status)->toBe(TaskStatus::Failed)
+        ->and($timedOut->error)->toBe('Task timed out.');
+});
+
+it('records compensation outcomes only after an operation reaches a terminal state', function (): void {
+    $task = app(CreateOperationTask::class)->execute([
+        'team_id' => 'team-1',
+        'operation' => 'provision',
+        'idempotency_key' => 'compensation-task-1',
+    ]);
+
+    expect(fn () => app(RecordOperationTaskCompensation::class)->execute($task, CompensationStatus::Running))
+        ->toThrow(ValidationException::class);
+
+    app(TransitionOperationTask::class)->execute($task, TaskStatus::Running);
+    $failed = app(TransitionOperationTask::class)->execute($task->refresh(), TaskStatus::Failed, null, 'remote failure');
+    $running = app(RecordOperationTaskCompensation::class)->execute($failed, CompensationStatus::Running);
+    $succeeded = app(RecordOperationTaskCompensation::class)->execute($running, CompensationStatus::Succeeded, ['rolled_back' => true]);
+
+    expect($succeeded->compensation_status)->toBe(CompensationStatus::Succeeded)
+        ->and($succeeded->compensation_result)->toMatchArray(['rolled_back' => true])
+        ->and($succeeded->compensation_finished_at)->not->toBeNull();
+});
+
+it('records compensation through the tenant-scoped API', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $task = app(CreateOperationTask::class)->execute(['team_id' => $team->getKey(), 'operation' => 'provision', 'idempotency_key' => 'api-compensation-1']);
+    app(TransitionOperationTask::class)->execute($task, TaskStatus::Running);
+    app(TransitionOperationTask::class)->execute($task->refresh(), TaskStatus::Failed, null, 'remote failure');
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/control-core/tasks/'.$task->getKey().'/compensation', ['status' => 'succeeded', 'result' => ['rolled_back' => true]])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.compensation_status', 'succeeded');
+});
+
+it('cancels only a current-team task through the API', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $task = app(CreateOperationTask::class)->execute(['team_id' => $team->getKey(), 'operation' => 'reconcile', 'idempotency_key' => 'api-cancel-1']);
+    $otherTask = app(CreateOperationTask::class)->execute(['team_id' => $otherTeam->getKey(), 'operation' => 'reconcile', 'idempotency_key' => 'api-cancel-2']);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/control-core/tasks/'.$task->getKey().'/cancel')
+        ->assertOk()
+        ->assertJsonPath('data.attributes.status', 'cancelled');
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/control-core/tasks/'.$otherTask->getKey().'/cancel')
+        ->assertNotFound();
+});
+
+it('records ordered resumable task steps and keeps them tenant-scoped', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $otherTeam = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $task = app(CreateOperationTask::class)->execute(['team_id' => $team->getKey(), 'operation' => 'provision', 'idempotency_key' => 'step-task-1']);
+    $otherTask = app(CreateOperationTask::class)->execute(['team_id' => $otherTeam->getKey(), 'operation' => 'provision', 'idempotency_key' => 'step-task-2']);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/control-core/tasks/'.$task->getKey().'/steps', [
+            'step_key' => 'connect', 'name' => 'Connect to node', 'status' => 'running', 'input' => ['transport' => 'ssh'],
+        ])->assertCreated()->assertJsonPath('data.attributes.status', 'running');
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/control-core/tasks/'.$task->getKey().'/steps', [
+            'step_key' => 'connect', 'name' => 'Connect to node', 'status' => 'succeeded', 'result' => ['latency_ms' => 12],
+        ])->assertOk()->assertJsonPath('data.attributes.status', 'succeeded');
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/control-core/tasks/'.$task->getKey().'/steps')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.attributes.result.latency_ms', 12);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/control-panel/control-core/tasks/'.$otherTask->getKey().'/steps')
+        ->assertNotFound();
+    expect($task->steps()->count())->toBe(1);
+    expect(fn () => app(RecordOperationTaskStep::class)->execute($task, ['step_key' => '', 'name' => '']))
+        ->toThrow(ValidationException::class);
+});
+
+it('retries a failed task through the tenant-scoped API', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $task = app(CreateOperationTask::class)->execute(['team_id' => $team->getKey(), 'operation' => 'reconcile', 'idempotency_key' => 'api-retry-1']);
+    app(TransitionOperationTask::class)->execute($task, TaskStatus::Running);
+    app(TransitionOperationTask::class)->execute($task->refresh(), TaskStatus::Failed, null, 'agent timeout');
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/control-core/tasks/'.$task->getKey().'/retry')
+        ->assertOk()
+        ->assertJsonPath('data.attributes.status', 'pending')
+        ->assertJsonMissingPath('data.attributes.idempotency_key');
+
+    expect($task->refresh()->status)->toBe(TaskStatus::Pending);
+});
+
+it('accepts the standard idempotency header for queued task requests', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+
+    $this->actingAs($user, 'sanctum')
+        ->withHeader('Idempotency-Key', 'header-task-1')
+        ->postJson('/api/v1/control-panel/control-core/tasks', ['operation' => 'reconcile', 'payload' => ['scope' => 'node']])
+        ->assertCreated()
+        ->assertJsonPath('data.attributes.idempotency_key', 'header-task-1');
+});
+
+it('returns conflict when a task idempotency key is reused for another request', function (): void {
+    app()->register(ControlCoreApiServiceProvider::class);
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+
+    $this->actingAs($user, 'sanctum')->withHeader('Idempotency-Key', 'conflict-task-1')
+        ->postJson('/api/v1/control-panel/control-core/tasks', ['operation' => 'reconcile', 'payload' => ['scope' => 'node']])
+        ->assertCreated();
+    $this->actingAs($user, 'sanctum')->withHeader('Idempotency-Key', 'conflict-task-1')
+        ->postJson('/api/v1/control-panel/control-core/tasks', ['operation' => 'provision', 'payload' => ['scope' => 'node']])
+        ->assertConflict()
+        ->assertJsonPath('status', 409);
 });
 
 it('never exposes credentials through a node query', function (): void {

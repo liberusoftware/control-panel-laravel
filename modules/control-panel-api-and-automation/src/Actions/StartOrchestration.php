@@ -7,6 +7,7 @@ namespace Liberu\ControlPanel\ApiAutomation\Actions;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\ApiAutomation\Enums\AutomationStatus;
+use Liberu\ControlPanel\ApiAutomation\Exceptions\OrchestrationIdempotencyConflict;
 use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
 use Liberu\ControlPanel\ApiAutomation\Models\OrchestrationRun;
 
@@ -21,6 +22,10 @@ final class StartOrchestration
         if ($idempotencyKey !== null) {
             $existing = OrchestrationRun::query()->where('team_id', $teamId)->where('idempotency_key', $idempotencyKey)->first();
             if ($existing !== null) {
+                if ((string) $existing->template_id !== (string) $template->getKey() || ($existing->input ?? []) !== $input) {
+                    throw new OrchestrationIdempotencyConflict();
+                }
+
                 return $existing;
             }
         }

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add authenticated SPF, DKIM, and DMARC configuration endpoint.
+
 All notable changes to this package are documented here.
 
 ## [Unreleased]

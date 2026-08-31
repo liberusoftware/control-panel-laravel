@@ -5,6 +5,7 @@ use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Liberu\Foundation\ModuleManager\Manifest;
 use Liberu\Foundation\ModuleManager\ModuleManagerServiceProvider;
 use Liberu\Foundation\ModuleManager\ModuleRegistry;
+use Liberu\Foundation\ModuleManagerFilament\Pages\FoundationOperations;
 
 it('composes enabled admin plugins from module manifests', function () {
     $ids = collect(app(ModulePlugins::class)->forPanel('admin'))->map->getId()->all();
@@ -20,6 +21,22 @@ it('composes enabled application plugins from module manifests', function () {
     $ids = collect(app(ModulePlugins::class)->forPanel('app'))->map->getId()->all();
 
     expect($ids)->toContain('liberu-sessions-devices');
+});
+
+it('exposes module deployment metadata in foundation operations', function () {
+    $page = new FoundationOperations();
+    $page->mount(app(ModuleRegistry::class));
+
+    $module = collect($page->modules)->firstWhere('name', 'module-manager');
+
+    expect($module)
+        ->toMatchArray([
+            'category' => 'foundation',
+            'enabled' => true,
+            'capabilities' => ['foundation.modules'],
+        ])
+        ->and($module['features'])->toContain('Manifest discovery')
+        ->and($module['dependencies'])->toBeArray();
 });
 
 /**

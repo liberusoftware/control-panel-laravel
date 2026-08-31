@@ -23,7 +23,7 @@ final class PhpConfigurationResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Web Hosting';
 
     public static function form(Schema $schema): Schema
     {

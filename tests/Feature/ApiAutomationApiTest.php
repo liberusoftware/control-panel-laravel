@@ -7,6 +7,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterApiCredential;
 use Liberu\ControlPanel\ApiAutomation\Actions\RegisterWebhook;
 use Liberu\ControlPanel\ApiAutomation\ApiAutomationServiceProvider;
+use Liberu\ControlPanel\ApiAutomation\Models\AutomationTemplate;
 use Liberu\ControlPanel\ApiAutomationApi\ApiAutomationApiServiceProvider;
 use Liberu\Foundation\Organizations\Models\Team;
 
@@ -119,4 +120,28 @@ it('bounds automation pagination', function (): void {
         ->getJson('/api/v1/control-panel/api-and-automation?per_page=1000')
         ->assertOk()
         ->assertJsonPath('meta.per_page', 100);
+});
+
+it('rejects orchestration idempotency-key reuse for a different request', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $template = AutomationTemplate::query()->create([
+        'team_id' => $team->getKey(),
+        'name' => 'Provision',
+        'version' => '1',
+        'inputs' => ['hostname'],
+        'steps' => [['action' => 'provision']],
+        'active' => true,
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->withHeader('Idempotency-Key', 'orchestration-key-1')
+        ->postJson('/api/v1/control-panel/api-and-automation/templates/'.$template->getKey().'/runs', ['input' => ['hostname' => 'one.test']])
+        ->assertAccepted();
+
+    $this->actingAs($user, 'sanctum')
+        ->withHeader('Idempotency-Key', 'orchestration-key-1')
+        ->postJson('/api/v1/control-panel/api-and-automation/templates/'.$template->getKey().'/runs', ['input' => ['hostname' => 'two.test']])
+        ->assertConflict()
+        ->assertJsonPath('status', 409);
 });

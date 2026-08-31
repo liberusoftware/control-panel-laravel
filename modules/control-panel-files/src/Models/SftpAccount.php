@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\Files\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
 final class SftpAccount extends Model
 {
+    use HasUuids;
+
     protected $table = 'control_panel_file_sftp_accounts';
 
     protected $fillable = ['id', 'team_id', 'owner_id', 'username', 'password', 'home_directory', 'quota_mb', 'bandwidth_limit_mb', 'active', 'last_login_at', 'ssh_key_auth_enabled', 'ssh_public_key', 'ssh_private_key', 'ssh_key_type', 'ssh_key_bits'];

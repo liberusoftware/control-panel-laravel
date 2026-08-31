@@ -2,7 +2,9 @@
     <h2>{{ __('Mail domains') }}</h2>
     <ul>
         @forelse ($domains as $domain)
-            <li wire:key="domain-{{ $domain->getKey() }}">{{ $domain->domain }} — {{ $domain->status }}</li>
+            <li wire:key="domain-{{ $domain->getKey() }}">{{ $domain->domain }} — {{ $domain->status }}
+                <button type="button" wire:click="configureAuthentication('{{ $domain->getKey() }}', { spf_enabled: true, dkim_enabled: true, dmarc_enabled: true })">{{ __('Refresh authentication records') }}</button>
+            </li>
         @empty
             <li>{{ __('No mail domains found.') }}</li>
         @endforelse

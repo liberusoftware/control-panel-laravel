@@ -22,7 +22,7 @@ final class HostingPackageResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cube';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'Accounts & Hosting';
 
     public static function form(Schema $schema): Schema
     {

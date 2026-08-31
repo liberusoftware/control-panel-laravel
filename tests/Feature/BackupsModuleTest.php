@@ -13,6 +13,7 @@ use Liberu\ControlPanel\Backups\Actions\DeleteDestination;
 use Liberu\ControlPanel\Backups\Actions\DeletePolicy;
 use Liberu\ControlPanel\Backups\Actions\DeleteSchedule;
 use Liberu\ControlPanel\Backups\Actions\DeleteSnapshot;
+use Liberu\ControlPanel\Backups\Actions\RecordDestinationHealth;
 use Liberu\ControlPanel\Backups\Actions\RequestRestore;
 use Liberu\ControlPanel\Backups\Actions\UpdateDestination;
 use Liberu\ControlPanel\Backups\Actions\UpdatePolicy;
@@ -86,6 +87,27 @@ it('updates and deletes encrypted backup destinations through domain actions', f
     app(DeleteDestination::class)->execute($updated);
 
     expect($destination->newQuery()->whereKey($destination->getKey())->exists())->toBeFalse();
+});
+
+it('keeps backup destination defaults exclusive and protects the default destination', function (): void {
+    $first = app(CreateDestination::class)->execute(['team_id' => 'team-1', 'name' => 'Local', 'driver' => 'local', 'default' => true]);
+    $second = app(CreateDestination::class)->execute(['team_id' => 'team-1', 'name' => 'Remote', 'driver' => 's3', 'default' => true]);
+
+    expect($first->fresh()->default)->toBeFalse()->and($second->fresh()->default)->toBeTrue();
+    expect(fn () => app(DeleteDestination::class)->execute($second))->toThrow(ValidationException::class);
+
+    $updated = app(UpdateDestination::class)->execute($first->fresh(), ['default' => true]);
+    expect($updated->default)->toBeTrue()->and($second->fresh()->default)->toBeFalse();
+});
+
+it('records provider-reported destination health without exposing destination configuration', function (): void {
+    $destination = app(CreateDestination::class)->execute(['team_id' => 'team-1', 'name' => 'Remote', 'driver' => 's3', 'config' => ['secret' => 'hidden']]);
+
+    $updated = app(RecordDestinationHealth::class)->execute($destination, false, 125, 'Connection refused', ['provider' => 'adapter']);
+
+    expect($updated->last_checked_at)->not->toBeNull()
+        ->and($updated->health)->toMatchArray(['healthy' => false, 'latency_ms' => 125, 'message' => 'Connection refused', 'details' => ['provider' => 'adapter']])
+        ->and($updated->toArray())->not->toHaveKey('config');
 });
 
 it('updates and deletes backup schedules through domain actions', function (): void {

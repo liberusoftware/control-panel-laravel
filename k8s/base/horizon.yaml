@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: horizon
-        image: ghcr.io/liberusoftware/boilerplate-laravel:latest
+        image: ghcr.io/liberusoftware/control-panel-laravel:latest
         command: ["php", "artisan", "horizon"]
         envFrom:
         - configMapRef:

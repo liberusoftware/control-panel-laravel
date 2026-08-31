@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Liberu\ControlPanel\Mail\Actions\ConfigureMailAuthentication;
 use Liberu\ControlPanel\Mail\Actions\CreateMailRoute;
 use Liberu\ControlPanel\Mail\Actions\RegisterMailDomain;
 use Liberu\ControlPanel\Mail\MailServiceProvider;
@@ -30,6 +31,29 @@ it('registers normalized tenant mail domains and rejects invalid domains', funct
     expect($domain->domain)->toBe('example.test')->and($domain->status)->toBe('active');
     expect(fn () => app(RegisterMailDomain::class)->execute(['team_id' => 'team-1', 'domain' => 'not a domain']))
         ->toThrow(ValidationException::class);
+});
+
+it('generates tenant mail authentication records without exposing private keys', function (): void {
+    $team = Team::factory()->create();
+    $user = User::factory()->create(['current_team_id' => $team->getKey()]);
+    $domain = app(RegisterMailDomain::class)->execute(['team_id' => $team->getKey(), 'domain' => 'auth.example.test']);
+
+    $configured = app(ConfigureMailAuthentication::class)->execute($domain, [
+        'dkim_selector' => 'mail', 'dmarc_policy' => 'quarantine', 'dmarc_percentage' => 80,
+        'dmarc_rua_email' => 'reports@example.test', 'dmarc_ruf_email' => 'forensics@example.test',
+    ]);
+
+    expect($configured->spf['record'])->toBe('v=spf1 mx a ~all')
+        ->and($configured->dkim['selector'])->toBe('mail')
+        ->and($configured->dkim['dns_record'])->toStartWith('v=DKIM1; k=rsa; p=')
+        ->and($configured->dmarc['record'])->toContain('p=quarantine', 'pct=80')
+        ->and($configured->toArray())->not->toHaveKey('private_key');
+
+    app()->register(MailApiServiceProvider::class);
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/control-panel/mail/authentication/configure', ['mail_domain_id' => $domain->getKey()])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.domain', 'auth.example.test');
 });
 
 it('exposes a current-team mail domain through the API and Livewire inventory', function (): void {

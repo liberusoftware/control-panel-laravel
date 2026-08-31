@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liberu\ControlPanel\Backups\Actions;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Backups\Models\BackupDestination;
 
@@ -19,8 +20,16 @@ final class UpdateDestination
             throw ValidationException::withMessages(['destination' => 'A name, supported storage driver, and positive retention period are required.']);
         }
 
-        $destination->forceFill(['name' => $name, 'driver' => $driver, 'config' => $attributes['config'] ?? $destination->config, 'retention_days' => $retentionDays, 'default' => $attributes['default'] ?? $destination->default, 'active' => $attributes['active'] ?? $destination->active])->save();
+        return DB::transaction(function () use ($destination, $attributes, $name, $driver, $retentionDays): BackupDestination {
+            $isDefault = (bool) ($attributes['default'] ?? $destination->default);
 
-        return $destination->refresh();
+            if ($isDefault) {
+                BackupDestination::query()->where('team_id', $destination->team_id)->whereKeyNot($destination->getKey())->where('default', true)->update(['default' => false]);
+            }
+
+            $destination->forceFill(['name' => $name, 'driver' => $driver, 'config' => $attributes['config'] ?? $destination->config, 'retention_days' => $retentionDays, 'default' => $isDefault, 'active' => $attributes['active'] ?? $destination->active])->save();
+
+            return $destination->refresh();
+        });
     }
 }

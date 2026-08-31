@@ -17,11 +17,21 @@ paths:
     patch: {operationId: control.panel.mail.routes.update, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
     delete: {operationId: control.panel.mail.routes.delete, security: [{sanctum: []}], responses: {'204': {description: Mail route deleted.}}}
   /api/v1/control-panel/mail/controls:
-    post: {operationId: control.panel.mail.controls.configure, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+    post:
+      operationId: control.panel.mail.controls.configure
+      security: [{sanctum: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [mail_account_id]}}}}
+      responses: {'201': {$ref: '#/components/responses/Resource'}, '404': {description: Mail account is outside the current team.}, '422': {description: Invalid autoresponder window or mail controls.}}
   /api/v1/control-panel/mail/delivery-diagnostics:
     post: {operationId: control.panel.mail.delivery.diagnostics.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/mail/dkim/rotate:
     post: {operationId: control.panel.mail.dkim.rotate, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/mail/authentication/configure:
+    post:
+      operationId: control.panel.mail.authentication.configure
+      security: [{sanctum: []}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [mail_domain_id]}}}}
+      responses: {'200': {$ref: '#/components/responses/Resource'}, '404': {description: Mail domain is outside the current team.}, '422': {description: Invalid authentication settings.}}
   /api/v1/control-panel/mail/domains:
     post: {operationId: control.panel.mail.domains.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/mail/{mailAccount}:

@@ -18,6 +18,24 @@ paths:
       operationId: control.panel.accounts.suspend
       security: [{sanctum: []}]
       responses: {'200': {description: Account suspended.}}
+  /api/v1/control-panel/accounts/{account}/hosting-packages:
+    get:
+      operationId: control.panel.accounts.hosting-packages.list
+      security: [{sanctum: []}]
+      responses: {'200': {description: Authorized package assignments.}}
+    post:
+      operationId: control.panel.accounts.hosting-packages.assign
+      security: [{sanctum: []}]
+      responses: {'201': {description: Hosting package assigned.}}
+  /api/v1/control-panel/accounts/hosting-package-assignments/{assignment}:
+    patch:
+      operationId: control.panel.accounts.hosting-packages.update
+      security: [{sanctum: []}]
+      responses: {'200': {description: Hosting package assignment updated.}}
+    delete:
+      operationId: control.panel.accounts.hosting-packages.delete
+      security: [{sanctum: []}]
+      responses: {'204': {description: Hosting package assignment removed.}}
   /api/v1/control-panel/accounts/{account}/delegations:
     post:
       operationId: control.panel.accounts.delegate

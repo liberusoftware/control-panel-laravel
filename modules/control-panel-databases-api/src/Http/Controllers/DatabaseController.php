@@ -118,7 +118,7 @@ final class DatabaseController
         abort_if($teamId === null, 403, 'A current team is required.');
         $item = Database::query()->whereKey($id)->where('team_id', $teamId)->firstOrFail();
 
-        return response()->json(['data' => ['id' => $item->getKey(), 'type' => 'control-panel-database', 'attributes' => $item->toArray()]]);
+        return response()->json(['data' => self::resource($item)]);
     }
 
     public function store(Request $request, CreateDatabase $create): JsonResponse

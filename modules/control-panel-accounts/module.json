@@ -18,7 +18,8 @@
     "Quota management",
     "Account delegation",
     "Account branding",
-    "Account suspension and recovery"
+    "Account suspension and recovery",
+    "Hosting package assignments with validity dates"
   ],
   "default_enabled": false
 }

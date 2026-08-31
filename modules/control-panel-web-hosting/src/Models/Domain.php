@@ -37,4 +37,39 @@ final class Domain extends Model
     {
         return $this->hasOne(PhpConfiguration::class);
     }
+
+    public function resourceUsage(): HasMany
+    {
+        return $this->hasMany(ResourceUsage::class);
+    }
+
+    public function hotlinkProtection(): HasOne
+    {
+        return $this->hasOne(HotlinkProtection::class);
+    }
+
+    public function directoryProtections(): HasMany
+    {
+        return $this->hasMany(DirectoryProtection::class);
+    }
+
+    public function customErrorPages(): HasMany
+    {
+        return $this->hasMany(CustomErrorPage::class);
+    }
+
+    public function mimeTypes(): HasMany
+    {
+        return $this->hasMany(MimeType::class);
+    }
+
+    public function cronJobs(): HasMany
+    {
+        return $this->hasMany(CronJob::class);
+    }
+
+    public function subdomains(): HasMany
+    {
+        return $this->hasMany(Subdomain::class);
+    }
 }

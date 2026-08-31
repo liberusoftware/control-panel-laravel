@@ -25,7 +25,7 @@ final class RecordResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-list-bullet';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Control Panel';
+    protected static string|\UnitEnum|null $navigationGroup = 'DNS';
 
     public static function form(Schema $schema): Schema
     {
@@ -41,7 +41,7 @@ final class RecordResource extends Resource
     {
         return $table->columns([TextColumn::make('zone.domain')->label('Zone')->sortable(), TextColumn::make('name')->searchable(), TextColumn::make('type')->badge(), TextColumn::make('content')->searchable(), TextColumn::make('ttl')->sortable()])->recordActions([
             Action::make('validate')->action(fn (Record $record): array => app(ValidateRecord::class)->execute(['type' => $record->type, 'name' => $record->name, 'content' => $record->content])),
-            DeleteAction::make()->action(fn (Record $record): void => app(DeleteRecord::class)->execute($record)),
+            DeleteAction::make()->action(fn (Record $record) => app(DeleteRecord::class)->execute($record)),
         ])->defaultSort('created_at', 'desc');
     }
 

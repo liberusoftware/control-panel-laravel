@@ -14,12 +14,17 @@ paths:
     get: {operationId: control.panel.os.adapters.services.missing, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
   /api/v1/control-panel/os-adapters/services/stopped:
     get: {operationId: control.panel.os.adapters.services.stopped, security: [{sanctum: []}], responses: {'200': {$ref: '#/components/responses/Collection'}}}
+  /api/v1/control-panel/os-adapters/services/install-commands:
+    get: {operationId: control.panel.os.adapters.services.install.commands, security: [{sanctum: []}], responses: {'200': {description: Tenant-scoped, read-only installation suggestions for missing services.}}}
   /api/v1/control-panel/os-adapters/services/{service}/check:
     get: {operationId: control.panel.os.adapters.services.check, security: [{sanctum: []}], parameters: [{name: service, in: path, required: true, schema: {type: string}}], responses: {'200': {$ref: '#/components/responses/Resource'}}, '404': {description: Service is outside the current team.}}
   /api/v1/control-panel/os-adapters/services/{service}:
     patch: {operationId: control.panel.os.adapters.services.update, security: [{sanctum: []}], parameters: [{name: service, in: path, required: true, schema: {type: string, format: uuid}}], responses: {'200': {$ref: '#/components/responses/Resource'}}, '404': {description: Service is outside the current team.}}
   /api/v1/control-panel/os-adapters/firewall-rules:
     post: {operationId: control.panel.os.adapters.firewall.rules.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
+  /api/v1/control-panel/os-adapters/firewall-rules/{rule}:
+    patch: {operationId: control.panel.os.adapters.firewall.rules.update, security: [{sanctum: []}], parameters: [{name: rule, in: path, required: true, schema: {type: string, format: uuid}}], responses: {'200': {$ref: '#/components/responses/Resource'}}}
+    delete: {operationId: control.panel.os.adapters.firewall.rules.delete, security: [{sanctum: []}], parameters: [{name: rule, in: path, required: true, schema: {type: string, format: uuid}}], responses: {'204': {description: Firewall rule deleted.}}}
   /api/v1/control-panel/os-adapters/users:
     post: {operationId: control.panel.os.adapters.users.create, security: [{sanctum: []}], responses: {'201': {$ref: '#/components/responses/Resource'}}}
   /api/v1/control-panel/os-adapters/filesystems:

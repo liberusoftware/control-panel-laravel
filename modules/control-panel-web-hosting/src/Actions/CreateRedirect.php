@@ -21,6 +21,6 @@ final class CreateRedirect
             throw ValidationException::withMessages(['redirect' => 'A source, destination, and supported redirect status are required.']);
         }
 
-        return Redirect::query()->create(['id' => (string) Str::uuid(), 'team_id' => $domain->team_id, 'domain_id' => $domain->getKey(), 'source' => $source, 'destination' => $destination, 'status_code' => $code, 'active' => true]);
+        return Redirect::query()->create(['id' => (string) Str::uuid(), 'team_id' => $domain->team_id, 'domain_id' => $domain->getKey(), 'source' => $source, 'destination' => $destination, 'status_code' => $code, 'active' => (bool) ($attributes['active'] ?? true), 'source_path' => $source, 'destination_url' => $destination, 'redirect_type' => (string) $code, 'match_query_string' => (bool) ($attributes['match_query_string'] ?? false), 'is_regex' => (bool) ($attributes['is_regex'] ?? false), 'priority' => (int) ($attributes['priority'] ?? 100)]);
     }
 }
