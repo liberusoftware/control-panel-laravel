@@ -39,9 +39,9 @@ class AppPanelProvider extends PanelProvider
                 AccountSetup::class,
             ])
             ->navigationGroups([
-                'Account',
+                'Account & Security',
                 'Workspace',
-                'Settings',
+                'Preferences',
             ])
             ->discoverWidgets(in: app_path('Filament/App/Widgets'), for: 'App\Filament\App\Widgets')
             ->widgets([
