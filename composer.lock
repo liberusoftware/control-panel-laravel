@@ -8816,9 +8816,10 @@
             "dist": {
                 "type": "path",
                 "url": "modules/control-panel-backups",
-                "reference": "6f1433919d1144a3bda5a61663391d384170409d"
+                "reference": "19ceab4d9da18ea284b7c71ddb82f7c7f7b78de3"
             },
             "require": {
+                "dragonmantank/cron-expression": "^3.4",
                 "illuminate/database": "^13.0",
                 "illuminate/events": "^13.0",
                 "illuminate/support": "^13.0",
