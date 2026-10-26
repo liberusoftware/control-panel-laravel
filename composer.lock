@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b2bf75389a5436b01bd5c0c9fe252683",
+    "content-hash": "f8270629cd63968daa8fe0449aa2c407",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -13055,7 +13055,7 @@
             "dist": {
                 "type": "path",
                 "url": "themes/base",
-                "reference": "ee1014f1510a2724ab2572a582860ed194dea371"
+                "reference": "cbb97ebbd5fd6e7a781b05017732e014d7a5c77d"
             },
             "require": {
                 "liberusoftware/theme-support": "^1.0",
@@ -13191,11 +13191,11 @@
         },
         {
             "name": "liberusoftware/theme-default",
-            "version": "1.5.1",
+            "version": "1.6.0",
             "dist": {
                 "type": "path",
                 "url": "themes/default",
-                "reference": "e0dd4fc108a404593b702cc54010b9ac657c7474"
+                "reference": "db616c5305b818a97760785b4f170066eb42926e"
             },
             "require": {
                 "liberusoftware/theme-base": "^2.0",
