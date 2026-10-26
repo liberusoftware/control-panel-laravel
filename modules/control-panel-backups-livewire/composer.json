@@ -4,7 +4,7 @@
   "description": "Livewire adapter for Control Panel Backups.",
   "type": "liberu-module",
   "license": "MIT",
-  "require": {"php": "^8.5", "livewire/livewire": "^4.0", "liberusoftware/module-control-panel-backups": "^1.0"},
+  "require": {"php": "^8.5", "livewire/livewire": "^4.4.8", "liberusoftware/module-control-panel-backups": "^1.0"},
   "autoload": {"psr-4": {"Liberu\\ControlPanel\\BackupsLivewire\\": "src/"}},
   "extra": {"liberu": {"name": "control-panel-backups-livewire"}},
   "version": "1.0.0",

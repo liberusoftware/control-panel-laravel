@@ -6,7 +6,7 @@ namespace Liberu\ControlPanel\Files\Actions;
 
 use Illuminate\Validation\ValidationException;
 use Liberu\ControlPanel\Files\Models\SftpAccount;
-use phpseclib3\Crypt\RSA;
+use phpseclib4\Crypt\RSA;
 
 final class RegenerateSftpKeyPair
 {

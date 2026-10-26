@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Liberu\ControlPanel\ControlCore\Actions;
 
 use Illuminate\Validation\ValidationException;
-use phpseclib3\Crypt\RSA;
+use phpseclib4\Crypt\RSA;
 
 final class GenerateSshKeyPair
 {
