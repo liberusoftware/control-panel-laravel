@@ -35,7 +35,7 @@ jobs:
       - name: Install test dependencies without bootstrapping the application
         run: composer install --no-scripts --no-interaction --prefer-dist
       - name: Test deployment script behavior
-        run: php vendor/bin/pest tests/DeploymentScriptsTest.php --compact
+        run: php vendor/bin/pest tests/DeploymentScriptsTest.php tests/PowerDnsClusterTest.php --compact
 
   install:
     runs-on: ubuntu-latest

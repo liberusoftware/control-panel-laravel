@@ -12,8 +12,8 @@ final readonly class PowerDnsCluster
     public function __construct(private Factory $http, private PowerDnsZone $zones) {}
 
     /**
-     * @param iterable<array<string, mixed>> $records
-     * @param array<string, array{url: string, api_key: string, server_id?: string}> $nodes
+     * @param  iterable<array<string, mixed>>  $records
+     * @param  array<string, array{url: string, api_key: string, server_id?: string}>  $nodes
      * @return array{verified: bool, dry_run: bool, nodes: array<string, array{status: string}>}
      */
     public function synchronize(string $domain, string $owner, iterable $records, array $nodes, bool $dryRun = false): array
@@ -30,7 +30,7 @@ final readonly class PowerDnsCluster
             $parts = parse_url($url);
             if (! is_string($alias) || ! preg_match('/^[a-z0-9-]{1,63}$/D', $alias)
                 || ! is_array($parts) || ($parts['scheme'] ?? null) !== 'https' || empty($parts['host'])
-                || isset($parts['user'], $parts['pass']) || isset($parts['user']) || isset($parts['query']) || isset($parts['fragment'])
+                || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])
                 || preg_match('/[\x00-\x20\x7f]/', $url) || in_array(strtolower($url), $urls, true)
                 || ! is_string($node['api_key'] ?? null) || $node['api_key'] === '' || preg_match('/[\r\n]/', $node['api_key'])) {
                 throw new InvalidArgumentException('Configure distinct HTTPS node endpoints and private API keys.');

@@ -24,6 +24,7 @@ final class PowerDnsZone
     {
         $domain = $this->domain($domain);
         $sets = [];
+        $ownerTypes = [];
         $count = 0;
         foreach ($records as $record) {
             $this->ensure(++$count <= 10000, 'A zone may contain at most 10000 inventory records.');
@@ -37,6 +38,7 @@ final class PowerDnsZone
             $ttl = $record['ttl'] ?? null;
             $this->ensure(is_int($ttl) && $ttl >= 60 && $ttl <= 2147483647, 'Record TTL must be between 60 and 2147483647.');
             $content = $this->content($type, (string) ($record['content'] ?? ''), $record['priority'] ?? null);
+            $ownerTypes[$name][$type] = true;
             $key = $name.'|'.$type;
             $this->ensure(! isset($sets[$key]) || $sets[$key]['ttl'] === $ttl, 'All records in an RRset must have the same TTL.');
             $sets[$key] ??= ['name' => $name, 'type' => $type, 'ttl' => $ttl, 'records' => []];
@@ -46,9 +48,7 @@ final class PowerDnsZone
         foreach ($sets as $set) {
             if ($set['type'] === 'CNAME') {
                 $this->ensure($set['name'] !== $domain && count($set['records']) === 1, 'A CNAME must have one target and cannot be at the zone apex.');
-                foreach ($sets as $other) {
-                    $this->ensure($other['name'] !== $set['name'] || $other['type'] === 'CNAME', 'A CNAME cannot coexist with other record types.');
-                }
+                $this->ensure(count($ownerTypes[$set['name']]) === 1, 'A CNAME cannot coexist with other record types.');
             }
         }
         ksort($sets);
