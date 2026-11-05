@@ -13,7 +13,7 @@ final readonly class PowerDnsCluster
 
     /**
      * @param  iterable<array<string, mixed>>  $records
-     * @param  array<string, array{url: string, api_key: string, server_id?: string}>  $nodes
+     * @param  array<array-key, array<string, mixed>>  $nodes
      * @return array{verified: bool, dry_run: bool, nodes: array<string, array{status: string}>}
      */
     public function synchronize(string $domain, string $owner, iterable $records, array $nodes, bool $dryRun = false): array

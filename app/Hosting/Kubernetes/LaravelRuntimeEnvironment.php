@@ -42,7 +42,7 @@ final class LaravelRuntimeEnvironment
         $port = $database['port'] ?? ($database['connection'] === 'pgsql' ? 5432 : 3306);
         $this->ensure(is_int($port) && $port > 0 && $port <= 65535, 'Use a valid database port.');
         foreach ($values as $name => $value) {
-            $this->ensure(is_string($name) && (bool) preg_match('/^[A-Z][A-Z0-9_]*$/D', $name)
+            $this->ensure((bool) preg_match('/^[A-Z][A-Z0-9_]*$/D', $name)
                 && is_string($value) && ! str_contains($value, "\0"), 'Use uppercase dotenv keys and string values.');
             $this->ensure(! preg_match('/^(?:GITHUB_|GITLAB_|CI_|KUBE|HOSTING_KUBERNETES_|DB_ROOT_|MYSQL_ROOT_)/', $name), 'Do not import CI, cluster-administrator or database-root credentials into tenant applications.');
         }

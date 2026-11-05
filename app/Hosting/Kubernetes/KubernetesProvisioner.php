@@ -101,6 +101,9 @@ final readonly class KubernetesProvisioner
      */
     public function deployDataCluster(string $teamId, string $databaseId, string $driver, array $settings, array $connection, bool $dryRun = false): array
     {
+        if (! in_array($driver, ['postgresql', 'redis', 'valkey'], true)) {
+            throw new InvalidArgumentException('Select a supported database cluster driver.');
+        }
         $plan = $this->dataPlans->build($teamId, $databaseId, $driver, $settings);
         $client = $this->client($connection);
         $resource = $plan[array_key_last($plan)];

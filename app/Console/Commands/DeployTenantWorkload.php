@@ -37,8 +37,8 @@ class DeployTenantWorkload extends Command
         $cluster = Cluster::query()->whereKey($source['cluster_id'])->where('team_id', $source['team_id'])->first();
         $workload = KubernetesWorkload::query()->whereKey($source['workload_id'])->where('team_id', $source['team_id'])->where('cluster_id', $source['cluster_id'])->first();
         $connection = config('hosting-kubernetes.connections.'.$source['connection']);
-        if ($cluster === null || $workload === null || $workload->kind !== 'Deployment' || ! is_array($connection)
-            || rtrim((string) $cluster->endpoint, '/') !== rtrim((string) ($connection['url'] ?? ''), '/')) {
+        if ($cluster === null || $workload === null || $workload->getAttribute('kind') !== 'Deployment' || ! is_array($connection)
+            || rtrim((string) $cluster->getAttribute('endpoint'), '/') !== rtrim((string) ($connection['url'] ?? ''), '/')) {
             $this->error('Workload ownership, kind or cluster endpoint does not match the operator allowlist.');
 
             return self::FAILURE;
@@ -56,13 +56,13 @@ class DeployTenantWorkload extends Command
 
                 return self::FAILURE;
             }
-            $image = $workload->image;
-            $result = $provisioner->deploy((string) $workload->team_id, (string) $workload->getKey(), $image, $source['settings'], $connection, (bool) $this->option('dry-run'));
+            $image = $workload->getAttribute('image');
+            $result = $provisioner->deploy((string) $workload->getAttribute('team_id'), (string) $workload->getKey(), $image, $source['settings'], $connection, (bool) $this->option('dry-run'));
             $fresh = $workload->fresh();
-            $unchanged = $fresh !== null && $fresh->team_id === $workload->team_id && $fresh->cluster_id === $workload->cluster_id && $fresh->image === $image && $fresh->kind === $workload->kind;
+            $unchanged = $fresh !== null && $fresh->getAttribute('team_id') === $workload->getAttribute('team_id') && $fresh->getAttribute('cluster_id') === $workload->getAttribute('cluster_id') && $fresh->getAttribute('image') === $image && $fresh->getAttribute('kind') === $workload->getAttribute('kind');
             $result['ready'] = $result['ready'] && $unchanged;
             $result['inventory_unchanged'] = $unchanged;
-            $audit->execute('hosting.workload.provisioned', (string) $workload->team_id, null, 'kubernetes-workload', (string) $workload->getKey(), $result);
+            $audit->execute('hosting.workload.provisioned', (string) $workload->getAttribute('team_id'), null, 'kubernetes-workload', (string) $workload->getKey(), $result);
             $this->table(['Kind', 'Name', 'Result'], array_map(fn (array $resource): array => [$resource['kind'], $resource['name'], $resource['status']], $result['resources']));
             if ($result['dry_run'] && $unchanged) {
                 $this->info('Plan and ownership checks passed. No resources were changed; admission and runtime isolation still require live validation.');
@@ -82,7 +82,7 @@ class DeployTenantWorkload extends Command
 
             return self::FAILURE;
         } catch (Throwable) {
-            $this->recordFailure($audit, (string) $workload->team_id, 'kubernetes-workload', (string) $workload->getKey(), 'hosting.workload.failed');
+            $this->recordFailure($audit, (string) $workload->getAttribute('team_id'), 'kubernetes-workload', (string) $workload->getKey(), 'hosting.workload.failed');
             $this->error('Workload provisioning failed. Inspect ownership, API permissions, sandbox availability and partial namespace state. Existing data was not deleted.');
 
             return self::FAILURE;

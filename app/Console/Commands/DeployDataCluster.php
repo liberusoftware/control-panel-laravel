@@ -39,12 +39,12 @@ class DeployDataCluster extends Command
             return self::FAILURE;
         }
         $database = Database::query()->whereKey($source['database_id'])->where('team_id', $source['team_id'])->first();
-        $engine = $database === null ? null : DatabaseEngine::query()->whereKey($database->engine_id)->where('team_id', $source['team_id'])->where('active', true)->first();
+        $engine = $database === null ? null : DatabaseEngine::query()->whereKey($database->getAttribute('engine_id'))->where('team_id', $source['team_id'])->where('active', true)->first();
         $cluster = Cluster::query()->whereKey($source['cluster_id'])->where('team_id', $source['team_id'])->first();
         $connection = config('hosting-kubernetes.connections.'.$source['connection']);
         if ($database === null || $engine === null || $cluster === null || ! is_array($connection)
-            || ! in_array($database->status, [DatabaseStatus::Provisioning, DatabaseStatus::Active], true)
-            || rtrim((string) $cluster->endpoint, '/') !== rtrim((string) ($connection['url'] ?? ''), '/')) {
+            || ! in_array($database->getAttribute('status'), [DatabaseStatus::Provisioning, DatabaseStatus::Active], true)
+            || rtrim((string) $cluster->getAttribute('endpoint'), '/') !== rtrim((string) ($connection['url'] ?? ''), '/')) {
             $this->error('Database and cluster ownership, lifecycle or endpoint does not match the operator allowlist.');
 
             return self::FAILURE;
@@ -62,13 +62,13 @@ class DeployDataCluster extends Command
 
                 return self::FAILURE;
             }
-            $driver = $engine->driver === 'pgsql' ? 'postgresql' : $engine->driver;
-            $result = $provisioner->deployDataCluster((string) $database->team_id, (string) $database->getKey(), $driver, [...$source['settings'], 'database' => $database->name], $connection, (bool) $this->option('dry-run'));
+            $driver = $engine->getAttribute('driver') === 'pgsql' ? 'postgresql' : $engine->getAttribute('driver');
+            $result = $provisioner->deployDataCluster((string) $database->getAttribute('team_id'), (string) $database->getKey(), $driver, [...$source['settings'], 'database' => $database->getAttribute('name')], $connection, (bool) $this->option('dry-run'));
             $fresh = $database->fresh();
-            $unchanged = $fresh !== null && $fresh->team_id === $database->team_id && $fresh->engine_id === $database->engine_id && $fresh->name === $database->name && $fresh->status === $database->status;
+            $unchanged = $fresh !== null && $fresh->getAttribute('team_id') === $database->getAttribute('team_id') && $fresh->getAttribute('engine_id') === $database->getAttribute('engine_id') && $fresh->getAttribute('name') === $database->getAttribute('name') && $fresh->getAttribute('status') === $database->getAttribute('status');
             $result['ready'] = $result['ready'] && $unchanged;
             $result['inventory_unchanged'] = $unchanged;
-            $audit->execute('hosting.data-cluster.provisioned', (string) $database->team_id, null, 'database', (string) $database->getKey(), $result);
+            $audit->execute('hosting.data-cluster.provisioned', (string) $database->getAttribute('team_id'), null, 'database', (string) $database->getKey(), $result);
             $this->table(['Kind', 'Name', 'Result'], array_map(fn (array $resource): array => [$resource['kind'], $resource['name'], $resource['status']], $result['resources']));
             if ($result['dry_run'] && $unchanged) {
                 $this->info('Operator discovery and ownership preflight passed. No resources were changed.');
@@ -88,7 +88,7 @@ class DeployDataCluster extends Command
 
             return self::FAILURE;
         } catch (Throwable) {
-            $this->recordFailure($audit, (string) $database->team_id, 'database', (string) $database->getKey(), 'hosting.data-cluster.failed');
+            $this->recordFailure($audit, (string) $database->getAttribute('team_id'), 'database', (string) $database->getKey(), 'hosting.data-cluster.failed');
             $this->error('Database cluster provisioning failed. Inspect operator availability, ownership, credentials and partial state. Persistent volumes were not deleted.');
 
             return self::FAILURE;

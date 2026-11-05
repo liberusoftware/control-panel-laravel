@@ -15,7 +15,7 @@ final readonly class StalwartCluster
     public function __construct(private Factory $http) {}
 
     /**
-     * @param  array<string, array{url: string, token: string}>  $nodes
+     * @param  array<array-key, array<string, mixed>>  $nodes
      * @param  array<string, mixed>  $dataStore
      * @param  array<string, mixed>  $memoryStore
      * @return array{verified: bool, dry_run: bool, nodes: array<string, array{status: string}>}

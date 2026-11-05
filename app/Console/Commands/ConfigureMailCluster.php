@@ -52,10 +52,10 @@ class ConfigureMailCluster extends Command
             }
             $result = $mail->configure($source['nodes'], $store, $source['memory_store'], (bool) $this->option('dry-run'));
             $fresh = $domain->fresh();
-            $unchanged = $fresh !== null && $fresh->team_id === $domain->team_id && $fresh->domain === $domain->domain && $fresh->status === $domain->status;
+            $unchanged = $fresh !== null && $fresh->getAttribute('team_id') === $domain->getAttribute('team_id') && $fresh->getAttribute('domain') === $domain->getAttribute('domain') && $fresh->getAttribute('status') === $domain->getAttribute('status');
             $result['verified'] = $result['verified'] && $unchanged;
             $result['inventory_unchanged'] = $unchanged;
-            $audit->execute('hosting.mail-cluster.configured', (string) $domain->team_id, null, 'mail-domain', (string) $domain->getKey(), $result);
+            $audit->execute('hosting.mail-cluster.configured', (string) $domain->getAttribute('team_id'), null, 'mail-domain', (string) $domain->getKey(), $result);
             $this->table(['Node', 'Result'], collect($result['nodes'])->map(fn (array $node, string $name): array => [$name, $node['status']])->values()->all());
             $preflightPassed = count(array_filter($result['nodes'], fn (array $node): bool => $node['status'] === 'preflight-passed')) === count($result['nodes']);
             if ($result['dry_run'] && $preflightPassed && $unchanged) {

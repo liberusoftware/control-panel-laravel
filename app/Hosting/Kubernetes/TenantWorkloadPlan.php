@@ -113,6 +113,7 @@ final class TenantWorkloadPlan
             $imagePullSecrets = [['name' => 'app-registry']];
         }
         $environment = [];
+        $environmentName = null;
         if (isset($settings['laravel'])) {
             $this->ensure(is_array($settings['laravel']), 'Laravel runtime configuration must be operator controlled.');
             $runtimeEnvironment = (new LaravelRuntimeEnvironment())->build($settings['laravel']);
@@ -156,7 +157,7 @@ final class TenantWorkloadPlan
         if ($replicas > 1) {
             $podSpec['topologySpreadConstraints'] = [['maxSkew' => 1, 'minDomains' => 2, 'topologyKey' => 'kubernetes.io/hostname', 'whenUnsatisfiable' => 'DoNotSchedule', 'labelSelector' => ['matchLabels' => $labels]]];
         }
-        if (isset($settings['laravel'])) {
+        if ($environmentName !== null) {
             $policy = $settings['laravel']['migration_policy'] ?? 'never';
             $this->ensure(in_array($policy, ['never', 'first-create', 'each-release'], true), 'Choose an explicit Laravel migration seeding policy.');
             $seeder = $settings['laravel']['seeder'] ?? 'Database\\Seeders\\DatabaseSeeder';

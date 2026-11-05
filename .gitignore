@@ -57,3 +57,7 @@ docs/superpowers
 .cursor/skills/
 .github/skills/
 .junie/skills/
+
+# Python installer and test bytecode
+__pycache__/
+*.py[cod]

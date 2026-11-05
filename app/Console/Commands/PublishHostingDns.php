@@ -34,7 +34,7 @@ class PublishHostingDns extends Command
             return self::FAILURE;
         }
         $zone = Zone::query()->whereKey($source['zone_id'])->where('team_id', $source['team_id'])->first();
-        if ($zone === null || $zone->dnssec_enabled || ! in_array($zone->status, [ZoneStatus::Draft, ZoneStatus::Active], true)) {
+        if ($zone === null || $zone->getAttribute('dnssec_enabled') || ! in_array($zone->getAttribute('status'), [ZoneStatus::Draft, ZoneStatus::Active], true)) {
             $this->error('An unsigned draft or active zone belonging to the configured team is required.');
 
             return self::FAILURE;
@@ -46,13 +46,13 @@ class PublishHostingDns extends Command
         }
         $lock = null;
         try {
-            if ($names->domain($zone->domain) !== $names->domain($source['domain'])) {
+            if ($names->domain($zone->getAttribute('domain')) !== $names->domain($source['domain'])) {
                 $this->error('The inventory domain does not match the operator allowlist.');
 
                 return self::FAILURE;
             }
-            $owner = 'liberu-'.substr(hash('sha256', $zone->team_id.':'.$zone->getKey()), 0, 32);
-            $lock = Cache::lock('hosting:dns:'.hash('sha256', $names->domain($zone->domain)), 600);
+            $owner = 'liberu-'.substr(hash('sha256', $zone->getAttribute('team_id').':'.$zone->getKey()), 0, 32);
+            $lock = Cache::lock('hosting:dns:'.hash('sha256', $names->domain($zone->getAttribute('domain'))), 600);
             if (! $lock->get()) {
                 $this->error('This zone is already being published. Retry after the running publication finishes.');
 
@@ -60,10 +60,10 @@ class PublishHostingDns extends Command
             }
             $records = $this->records($zone);
             $dryRun = (bool) $this->option('dry-run');
-            $result = $cluster->synchronize($zone->domain, $owner, $records, config('hosting-dns.clusters.'.$source['cluster'], []), $dryRun);
+            $result = $cluster->synchronize($zone->getAttribute('domain'), $owner, $records, config('hosting-dns.clusters.'.$source['cluster'], []), $dryRun);
             $fresh = $zone->fresh();
-            $unchanged = $fresh !== null && $fresh->domain === $zone->domain && $fresh->team_id === $zone->team_id
-                && $fresh->status === $zone->status && $fresh->dnssec_enabled === $zone->dnssec_enabled
+            $unchanged = $fresh !== null && $fresh->getAttribute('domain') === $zone->getAttribute('domain') && $fresh->getAttribute('team_id') === $zone->getAttribute('team_id')
+                && $fresh->getAttribute('status') === $zone->getAttribute('status') && $fresh->getAttribute('dnssec_enabled') === $zone->getAttribute('dnssec_enabled')
                 && $this->records($fresh) === $records;
             $result['verified'] = $result['verified'] && $unchanged;
             $result['inventory_unchanged'] = $unchanged;
@@ -71,7 +71,7 @@ class PublishHostingDns extends Command
             $result['driver'] = 'powerdns';
             $result['operation'] = $dryRun ? 'preflight' : 'publication';
             $checks->execute([
-                'team_id' => $zone->team_id, 'zone_id' => $zone->getKey(),
+                'team_id' => $zone->getAttribute('team_id'), 'zone_id' => $zone->getKey(),
                 'kind' => 'validation',
                 'status' => ($dryRun ? $ready : $result['verified']) ? 'passed' : 'failed',
                 'result' => $result,
