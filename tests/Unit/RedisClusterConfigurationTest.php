@@ -1,8 +1,10 @@
 <?php
 
+use Pdo\Mysql;
+
 beforeEach(function (): void {
     $this->clusterEnvironment = [];
-    foreach (['REDIS_CACHE_CLUSTER_NODES', 'REDIS_CACHE_CLUSTER_PASSWORD'] as $key) {
+    foreach (['REDIS_CACHE_CLUSTER_NODES', 'REDIS_CACHE_CLUSTER_PASSWORD', 'REDIS_SCHEME', 'REDIS_TLS_CA'] as $key) {
         $this->clusterEnvironment[$key] = [$_ENV[$key] ?? null, $_SERVER[$key] ?? null];
         unset($_ENV[$key], $_SERVER[$key]);
     }
@@ -49,3 +51,18 @@ it('rejects unsafe cluster seed URLs before attempting connections', function (s
     'tls://one.example:6379/1,tls://two.example:6379',
     'tls://one.example:6379?verify_peer=false,tls://two.example:6379',
 ]);
+
+it('verifies replicated queue Redis TLS separately from cache cluster TLS', function (): void {
+    $_ENV['REDIS_SCHEME'] = $_SERVER['REDIS_SCHEME'] = 'tls';
+    $_ENV['REDIS_TLS_CA'] = $_SERVER['REDIS_TLS_CA'] = '/run/hosting-service-ca/redis.pem';
+    $config = require base_path('config/database.php');
+    foreach (['default', 'cache'] as $connection) {
+        expect($config['redis'][$connection]['scheme'])->toBe('tls')
+            ->and($config['redis'][$connection]['context']['ssl'])->toBe([
+                'verify_peer' => true, 'verify_peer_name' => true, 'cafile' => '/run/hosting-service-ca/redis.pem',
+            ]);
+    }
+    if (extension_loaded('pdo_mysql')) {
+        expect($config['connections']['mysql']['options'][Mysql::ATTR_SSL_VERIFY_SERVER_CERT])->toBeTrue();
+    }
+});

@@ -15,7 +15,7 @@ beforeEach(function (): void {
         $process = new Process(['bash', $this->projectRoot.'/'.$script, ...$arguments], $this->sandbox, [
             'PATH' => $this->sandbox.'/bin:'.getenv('PATH'),
             'CONTAINER_MODE' => false,
-            'CI' => false, 'GITHUB_ACTIONS' => false, 'KUBE_CONTEXT' => false, 'APP_ENV_FILE' => false,
+            'PANEL_SERVICES' => false, 'CI' => false, 'GITHUB_ACTIONS' => false, 'KUBE_CONTEXT' => false, 'APP_ENV_FILE' => false,
             ...$environment,
         ]);
         $process->run();
@@ -239,4 +239,39 @@ it('keeps live validation read-only and fails when its cluster is unavailable', 
         SH);
     $result = ($this->runScript)('k8s/validate.sh');
     expect($result->isSuccessful())->toBeFalse()->and(file_exists($this->sandbox.'/cluster-was-mutated'))->toBeFalse();
+});
+
+function externalPanelDeploymentEnvironment(object $test): array
+{
+    $key = openssl_pkey_new(['private_key_bits' => 2048]);
+    $request = openssl_csr_new(['commonName' => 'service-test'], $key, ['digest_alg' => 'sha256']);
+    $certificate = openssl_csr_sign($request, null, $key, 1, ['digest_alg' => 'sha256']);
+    $ca = $test->sandbox.'/service-ca.pem';
+    openssl_x509_export_to_file($certificate, $ca);
+    chmod($ca, 0600);
+
+    return [...panelDeploymentEnvironment($test), 'PANEL_SERVICES' => 'external', 'DB_ROOT_PASSWORD' => false,
+        'DB_HOST' => 'database.example.test', 'DB_DATABASE' => 'panel', 'DB_USERNAME' => 'panel', 'DB_PASSWORD' => str_repeat('d', 40),
+        'DB_CA_FILE' => $ca, 'DB_NAMESPACE' => 'database-system', 'REDIS_HOST' => 'queue.example.test',
+        'REDIS_PASSWORD' => str_repeat('r', 40), 'REDIS_CA_FILE' => $ca, 'REDIS_NAMESPACE' => 'queue-system', 'REDIS_TOPOLOGY' => 'replicated'];
+}
+
+it('deploys the external profile without bundled root credentials or bundled service rollouts and still gates migrations', function (): void {
+    stubPanelDeploymentKubectl($this);
+    $environment = externalPanelDeploymentEnvironment($this);
+    $result = ($this->runScript)('k8s/deploy.sh', [], [...$environment, 'FAIL_MIGRATION' => 'true']);
+    $commands = file_get_contents($this->sandbox.'/commands.log');
+    expect($result->getErrorOutput())->toBe('');
+    expect($result->getExitCode())->toBe(31)
+        ->and($commands)->toContain('create secret generic boilerplate-service-ca', 'component=migration')
+        ->not->toContain('create secret generic boilerplate-database-admin', 'rollout status statefulset/boilerplate-mysql',
+            'rollout status deployment/boilerplate-redis', str_repeat('d', 40), str_repeat('r', 40), 'component in (application,horizon,reverb,scheduler)');
+});
+
+it('rejects a sharded Horizon endpoint before mutating any Kubernetes resources', function (): void {
+    stubPanelDeploymentKubectl($this);
+    $result = ($this->runScript)('k8s/deploy.sh', [], [...externalPanelDeploymentEnvironment($this), 'REDIS_TOPOLOGY' => 'cluster']);
+    $commands = file_get_contents($this->sandbox.'/commands.log');
+    expect($result->isSuccessful())->toBeFalse()->and($commands)->not->toContain('create ', 'apply ', 'patch ')
+        ->and($result->getErrorOutput())->not->toContain(str_repeat('d', 40), str_repeat('r', 40));
 });

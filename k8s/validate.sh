@@ -103,8 +103,15 @@ check_namespace() {
 
 validate_deployment() {
     local namespace="${1:-boilerplate-laravel}"
-    local workload
-    for workload in statefulset/boilerplate-mysql deployment/boilerplate-redis deployment/boilerplate-laravel deployment/boilerplate-horizon deployment/boilerplate-reverb; do
+    local workload profile
+    profile="$(kubectl get configmap boilerplate-config -n "$namespace" -o 'jsonpath={.data.HOSTING_SERVICE_PROFILE}')" || return 1
+    local workloads=(deployment/boilerplate-laravel deployment/boilerplate-horizon deployment/boilerplate-reverb)
+    case "${profile:-bundled}" in
+        bundled) workloads+=(statefulset/boilerplate-mysql deployment/boilerplate-redis) ;;
+        external) : ;;
+        *) log_error "Unknown deployed panel service profile"; return 1 ;;
+    esac
+    for workload in "${workloads[@]}"; do
         kubectl rollout status "$workload" -n "$namespace" --timeout=60s || return 1
     done
     log_success "Current-generation panel workloads are ready; service failover and external DNS/mail/TLS require separate verification"

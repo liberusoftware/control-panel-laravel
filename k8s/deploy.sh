@@ -6,7 +6,11 @@ if (($#)); then
         cat <<'HELP'
 Usage: ./install.sh kubernetes
 
-Required environment: DOMAIN, APP_KEY, DB_PASSWORD, DB_ROOT_PASSWORD, IMAGE_TAG.
+Required environment: DOMAIN, APP_KEY, DB_PASSWORD, IMAGE_TAG.
+Bundled services additionally require DB_ROOT_PASSWORD.
+PANEL_SERVICES=external requires DB_HOST, DB_DATABASE, DB_USERNAME, DB_CA_FILE,
+REDIS_HOST, REDIS_PASSWORD, REDIS_CA_FILE, REDIS_TOPOLOGY=replicated and
+DB_NAMESPACE/DB_CIDRS plus REDIS_NAMESPACE/REDIS_CIDRS (choose one per service).
 Optional environment: ENVIRONMENT=production|development, NAMESPACE, KUBE_CONTEXT,
 APP_ENV_FILE (protected production dotenv file), IMAGE_DIGEST,
 CREATE_NAMESPACE=true|false, MIGRATION_SEED_POLICY=never|first-create|each-release.
@@ -29,7 +33,13 @@ NAMESPACE="${NAMESPACE:-$default_namespace}"
 DOMAIN="${DOMAIN:?Set DOMAIN to the panel hostname}"
 APP_KEY="${APP_KEY:?Set APP_KEY to the existing installation key or a new Laravel key}"
 DB_PASSWORD="${DB_PASSWORD:?Set DB_PASSWORD}"
-DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD}"
+PANEL_SERVICES="${PANEL_SERVICES:-bundled}"
+case "$PANEL_SERVICES" in
+    bundled) DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD}" ;;
+    external) DB_ROOT_PASSWORD='' ;;
+    *) printf 'PANEL_SERVICES must be bundled or external.\n' >&2; exit 2 ;;
+esac
+export PANEL_SERVICES
 IMAGE_TAG="${IMAGE_TAG:?Set IMAGE_TAG to a published release tag}"
 [[ "$NAMESPACE" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ && ${#NAMESPACE} -le 63 ]] || { printf 'Invalid namespace.\n' >&2; exit 2; }
 [[ "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ && "$DOMAIN" == *.* && ${#DOMAIN} -le 250 ]] || { printf 'Invalid hostname.\n' >&2; exit 2; }
@@ -100,10 +110,13 @@ cat >> "$render_dir/base/configmap.yaml" <<YAML
 YAML
 # Split root credentials from application credentials. Never inject DB_ROOT_PASSWORD into app pods.
 printf 'APP_KEY=%s\nDB_USERNAME=liberu\nDB_PASSWORD=%s\nREDIS_PASSWORD=\n' "$APP_KEY" "$DB_PASSWORD" > "$render_dir/secrets.env"
-printf 'DB_ROOT_PASSWORD=%s\n' "$DB_ROOT_PASSWORD" > "$render_dir/admin-secrets.env"
+if [[ "$PANEL_SERVICES" == bundled ]]; then
+    printf 'DB_ROOT_PASSWORD=%s\n' "$DB_ROOT_PASSWORD" > "$render_dir/admin-secrets.env"
+fi
 # Read-only key check happens before namespace/secret/workload mutation.
 kubectl get secret boilerplate-secrets --namespace="$NAMESPACE" --ignore-not-found -o json > "$render_dir/existing-secret.json"
 kubectl get secret boilerplate-database-admin --namespace="$NAMESPACE" --ignore-not-found -o json > "$render_dir/existing-admin-secret.json"
+kubectl get configmap boilerplate-config --namespace="$NAMESPACE" --ignore-not-found -o json > "$render_dir/existing-config.json"
 python3 "$root/render-runtime.py" "$render_dir" "$overlay" "${IMAGE_DIGEST:-$IMAGE_TAG}" "${MIGRATION_SEED_POLICY:-never}"
 kubectl kustomize "$overlay" > "$render_dir/manifests.yaml"
 case "${CREATE_NAMESPACE:-true}" in
@@ -111,8 +124,13 @@ case "${CREATE_NAMESPACE:-true}" in
     false) : ;; # A namespace-scoped deployment identity uses an operator-created namespace.
     *) printf 'CREATE_NAMESPACE must be true or false.\n' >&2; exit 2 ;;
 esac
-kubectl create secret generic boilerplate-database-admin --from-env-file="$render_dir/admin-secrets.env" \
-    --namespace="$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+if [[ "$PANEL_SERVICES" == bundled ]]; then
+    kubectl create secret generic boilerplate-database-admin --from-env-file="$render_dir/admin-secrets.env" \
+        --namespace="$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+else
+    kubectl create secret generic boilerplate-service-ca --from-file="mysql.pem=$render_dir/db-ca.pem" --from-file="redis.pem=$render_dir/redis-ca.pem" \
+        --namespace="$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+fi
 if python3 - "$render_dir/existing-secret.json" <<'PYCODE'
 import json, sys
 sys.exit(0 if 'DB_ROOT_PASSWORD' in json.loads(open(sys.argv[1]).read() or '{}').get('data', {}) else 1)
@@ -128,8 +146,10 @@ if [[ -f "$render_dir/production.env" ]]; then
         --namespace="$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 fi
 kubectl apply -f "$render_dir/manifests.yaml" -l 'component notin (application,horizon,reverb,scheduler,migration)'
-kubectl rollout status statefulset/boilerplate-mysql -n "$NAMESPACE" --timeout=300s
-kubectl rollout status deployment/boilerplate-redis -n "$NAMESPACE" --timeout=300s
+if [[ "$PANEL_SERVICES" == bundled ]]; then
+    kubectl rollout status statefulset/boilerplate-mysql -n "$NAMESPACE" --timeout=300s
+    kubectl rollout status deployment/boilerplate-redis -n "$NAMESPACE" --timeout=300s
+fi
 kubectl apply -f "$render_dir/manifests.yaml" -l component=migration
 migration_name="$(cat "$render_dir/migration-name")"
 kubectl wait --for=condition=complete "job/$migration_name" -n "$NAMESPACE" --timeout=1800s

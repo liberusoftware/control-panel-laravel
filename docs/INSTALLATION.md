@@ -601,3 +601,82 @@ any retained copy, and remove staging after review. The command does not validat
 provider archive contents, convert accounts, provision services, change DNS or
 claim a completed migration. No source server or live target was contacted during
 this code/test-only implementation.
+
+
+### External panel database and queue
+
+Use `PANEL_SERVICES=external` with the production overlay for a fresh installation
+using a preprovisioned MySQL-compatible database (including reviewed MariaDB Galera
+endpoints) and an **unsharded replicated** Redis/Valkey write endpoint. Horizon cannot
+use a Redis Cluster endpoint; tenant/cache cluster support is separate. Configure
+Redis persistence, replication, failover routing and backup on that service before
+using it for queues. An asynchronous replica can lose recently acknowledged writes;
+choose and test the service's recovery guarantees explicitly.
+
+The profile needs at least three eligible application nodes, a highly available RWX
+StorageClass, ingress and TLS issuer. It renders three web replicas, two Horizon
+replicas and two Reverb replicas with topology spreading and disruption budgets.
+The production Horizon autoscaler's minimum becomes two. The scheduler remains a
+single CronJob with concurrency prevention. Reverb enables cross-node publication
+through verified TLS and authenticates the configured ACL username before selecting
+its database. Neither generated pod counts nor API readiness prove a failover test.
+
+Supply stable secrets through your manager/CI, never command arguments. For example,
+with `APP_KEY`, `DB_PASSWORD` and `REDIS_PASSWORD` already exported:
+
+```bash
+export PANEL_SERVICES=external
+export ENVIRONMENT=production
+export DB_HOST=panel-db.database-system.svc.cluster.local
+export DB_DATABASE=panel
+export DB_USERNAME=panel
+export DB_PORT=3306
+export DB_CA_FILE=/protected/database-ca.pem
+export DB_NAMESPACE=database-system
+export REDIS_HOST=queue-primary.queue-system.svc.cluster.local
+export REDIS_PORT=6379
+export REDIS_USERNAME=panel-queue
+export REDIS_CA_FILE=/protected/queue-ca.pem
+export REDIS_NAMESPACE=queue-system
+export REDIS_TOPOLOGY=replicated
+# Set DOMAIN, KUBE_CONTEXT, NAMESPACE, image digest/tag and APP_ENV_FILE as above.
+./install.sh kubernetes
+```
+
+`DB_ROOT_PASSWORD` is neither required nor injected in external mode. Database and
+queue passwords must be 32–1000 characters without whitespace; provision matching
+credentials on the services first. Create a database-scoped user with only the
+permissions needed for application queries and reviewed schema migrations. The
+installer rejects root/admin database usernames. Give the Redis ACL user the
+commands/keyspaces required by Horizon, queues, cache, session locks and Reverb
+pub/sub; validate that ACL with the real services before use.
+
+CA inputs must be operator-owned 0600/0400 regular files, with canonical paths,
+no hard/symbolic links, and valid PEM CA bundles. Verify service certificate hostnames
+against the configured hosts. Kubernetes mounts the bundles read-only in every
+application, worker, scheduler and migration consumer. MySQL enables server-certificate
+verification; queue/cache Redis and Reverb verify both peer trust and hostname.
+Configuring the CA does not itself prove the target services are reachable.
+
+For each endpoint, choose **one** egress scope: `DB_NAMESPACE`/`REDIS_NAMESPACE` for
+in-cluster services, or comma-separated `DB_CIDRS`/`REDIS_CIDRS` for externally routed
+services. Use exact addresses/subnets, never `0.0.0.0/0` or `::/0`. Match the CNI's
+service-DNAT enforcement behavior and test the effective policy. Credentials and CA
+content stay out of generated ConfigMaps, patches and process arguments; the renderer
+uses a private temporary tree and deletes it on exit.
+
+Existing APP_KEY, database credentials, Redis password, service hosts/ports, database
+name and service profile are checked before mutation. Changing them requires a
+reviewed backup/migration/credential rotation; this installer does not silently move
+an existing bundled installation. The same explicit migration Job gates application
+rollout in both modes. `k8s/validate.sh` reads the deployed profile and skips bundled
+service rollouts only when external services were selected.
+
+The GitHub production workflow accepts the same settings as environment variables:
+set the non-secret values as production environment variables, the Redis password as
+`REDIS_PASSWORD`, and PEM bundles as `DATABASE_CA_PEM`/`REDIS_CA_PEM` environment
+secrets. It writes protected temporary files and removes them after deployment.
+GitLab or other trusted CI can inject these variables and protected files and call
+the same installer; always select `KUBE_CONTEXT` explicitly in CI and use a reviewed
+immutable application digest. No live database, queue or node failover was exercised
+in this code/test-only checkout.

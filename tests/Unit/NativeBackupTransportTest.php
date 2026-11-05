@@ -115,11 +115,11 @@ it('refuses malformed, duplicated or oversized source manifests', function (stri
 })->with(['duplicate', 'wrong-format', 'unbounded-archive', 'false-import-claim']);
 
 it('stops an overflowing stream promptly and never publishes partial data', function (): void {
-    $transport = new NativeBackupTransport(fn (array $arguments): Process => new Process([PHP_BINARY, '-r', 'while (true) { fwrite(STDOUT, str_repeat("x", 65536)); }']));
+    $process = new Process([PHP_BINARY, '-r', 'while (true) { fwrite(STDOUT, str_repeat("x", 65536)); }']);
+    $transport = new NativeBackupTransport(fn (array $arguments): Process => $process);
     $this->connection['timeout'] = 1;
     $destination = $this->workspace.'/oversized.native';
-    $started = microtime(true);
     expect(fn () => $transport->download($this->connection, $this->archive, $destination))->toThrow(RuntimeException::class);
-    expect(microtime(true) - $started)->toBeLessThan(4)
+    expect($process->isRunning())->toBeFalse()
         ->and(file_exists($destination))->toBeFalse()->and(glob($this->workspace.'/.receiving-*'))->toBe([]);
 });

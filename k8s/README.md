@@ -62,8 +62,8 @@ populated claim. Horizon is the only queue worker deployment; remove an obsolete
 
 The bundled MySQL and queue Redis are **single-instance** services. They do not make
 the panel highly available. Independent clustered tenant services use the operator
-adapters above; the panel itself still needs a supported external-DB/queue deployment
-profile before it can be described as fully highly available.
+adapters above. Use the explicit external-service profile below for separately
+managed database and queue endpoints; verify their failover and recovery separately.
 
 ## Validation
 
@@ -76,3 +76,19 @@ also checks live connectivity and current-generation workload rollouts. It remai
 read-only and returns failure for missing/unready services. No live deployment,
 failover, certificate issuance or source-panel migration has been verified in this
 code/test-only checkout.
+
+## External database and replicated queue profile
+
+For a production panel backed by separately managed durable services, set
+`PANEL_SERVICES=external`. This profile removes bundled MySQL and Redis resources,
+requires verified TLS and non-administrator credentials, spreads application replicas
+across at least three nodes, runs two Horizon and Reverb replicas, and adds disruption
+budgets. Reverb scaling authenticates its Redis ACL user over verified TLS.
+
+See [external-service configuration](../docs/INSTALLATION.md#external-panel-database-and-queue)
+for the required variables, CA files and network scopes. This is a deployment profile,
+not automatic conversion of an existing bundled database. Changing an existing
+service binding or credentials is rejected; back up and migrate data explicitly.
+The external services, shared RWX storage and ingress must themselves provide the
+availability and recovery guarantees your installation needs. A successful render or
+rollout does not prove failover or eliminate asynchronous-replication data loss.

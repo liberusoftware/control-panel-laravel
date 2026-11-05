@@ -54,6 +54,22 @@ jobs:
           APP_KEY: ${{ secrets.APP_KEY }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          PANEL_SERVICES: ${{ vars.PANEL_SERVICES || 'bundled' }}
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_PORT: ${{ vars.DB_PORT || '3306' }}
+          DB_DATABASE: ${{ vars.DB_DATABASE }}
+          DB_USERNAME: ${{ vars.DB_USERNAME }}
+          DB_NAMESPACE: ${{ vars.DB_NAMESPACE }}
+          DB_CIDRS: ${{ vars.DB_CIDRS }}
+          REDIS_HOST: ${{ vars.REDIS_HOST }}
+          REDIS_PORT: ${{ vars.REDIS_PORT || '6379' }}
+          REDIS_USERNAME: ${{ vars.REDIS_USERNAME || 'default' }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          REDIS_NAMESPACE: ${{ vars.REDIS_NAMESPACE }}
+          REDIS_CIDRS: ${{ vars.REDIS_CIDRS }}
+          REDIS_TOPOLOGY: ${{ vars.REDIS_TOPOLOGY }}
+          DATABASE_CA_PEM: ${{ secrets.DATABASE_CA_PEM }}
+          REDIS_CA_PEM: ${{ secrets.REDIS_CA_PEM }}
           DOMAIN: ${{ vars.DOMAIN }}
           NAMESPACE: ${{ vars.KUBERNETES_NAMESPACE }}
           KUBE_CONTEXT: ${{ vars.KUBERNETES_CONTEXT }}
@@ -67,10 +83,15 @@ jobs:
           umask 077
           export APP_ENV_FILE="$RUNNER_TEMP/control-panel-production.env"
           export KUBECONFIG="$RUNNER_TEMP/control-panel-kubeconfig"
+          export DB_CA_FILE="$RUNNER_TEMP/control-panel-db-ca.pem"
+          export REDIS_CA_FILE="$RUNNER_TEMP/control-panel-redis-ca.pem"
           python3 - <<'PY'
           import os
           from pathlib import Path
-          for source, target in [('PRODUCTION_ENV', 'APP_ENV_FILE'), ('PRODUCTION_KUBECONFIG', 'KUBECONFIG')]:
+          files = [('PRODUCTION_ENV', 'APP_ENV_FILE'), ('PRODUCTION_KUBECONFIG', 'KUBECONFIG')]
+          if os.environ['PANEL_SERVICES'] == 'external':
+              files.extend([('DATABASE_CA_PEM', 'DB_CA_FILE'), ('REDIS_CA_PEM', 'REDIS_CA_FILE')])
+          for source, target in files:
               value = os.environ[source]
               if not value:
                   raise SystemExit('Required protected deployment secret is missing.')
@@ -79,9 +100,9 @@ jobs:
               with os.fdopen(descriptor, 'w') as output:
                   output.write(value)
           PY
-          unset PRODUCTION_ENV PRODUCTION_KUBECONFIG
+          unset PRODUCTION_ENV PRODUCTION_KUBECONFIG DATABASE_CA_PEM REDIS_CA_PEM
           bash install.sh kubernetes
       - name: Remove temporary credentials
         if: always()
         shell: bash
-        run: rm -f -- "$RUNNER_TEMP/control-panel-production.env" "$RUNNER_TEMP/control-panel-kubeconfig"
+        run: rm -f -- "$RUNNER_TEMP/control-panel-production.env" "$RUNNER_TEMP/control-panel-kubeconfig" "$RUNNER_TEMP/control-panel-db-ca.pem" "$RUNNER_TEMP/control-panel-redis-ca.pem"
