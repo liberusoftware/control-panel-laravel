@@ -1,35 +1,19 @@
 #!/usr/bin/env sh
+set -eu
 
-set -e
-
-container_mode=${CONTAINER_MODE:-"http"}
-
-if [ "${container_mode}" = "http" ]; then
-    php "${ROOT}/artisan" octane:status
-elif [ "${container_mode}" = "horizon" ]; then
-    php "${ROOT}/artisan" horizon:status
-elif [ "${container_mode}" = "reverb" ]; then
-    if [ "$(supervisorctl status reverb:reverb_0 | awk '{print tolower($2)}')" = "running" ]; then
-        exit 0
-    else
-        echo "Healthcheck failed."
-        exit 1
-    fi
-elif [ "${container_mode}" = "scheduler" ]; then
-    if [ "$(supervisorctl status scheduler:scheduler_0 | awk '{print tolower($2)}')" = "running" ]; then
-        exit 0
-    else
-        echo "Healthcheck failed."
-        exit 1
-    fi
-elif [ "${container_mode}" = "worker" ]; then
-    if [ "$(supervisorctl status worker:worker_0 | awk '{print tolower($2)}')" = "running" ]; then
-        exit 0
-    else
-        echo "Healthcheck failed."
-        exit 1
-    fi
-else
-    echo "Container mode mismatched."
-    exit 1
-fi
+case "${CONTAINER_MODE:-http}" in
+    http)
+        exec curl --fail --silent --max-time 4 http://127.0.0.1:8000/up
+        ;;
+    horizon)
+        exec supervisorctl -s http://127.0.0.1:9001 status horizon:horizon_0
+        ;;
+    reverb)
+        exec php -r '$socket = @fsockopen("127.0.0.1", (int) (getenv("REVERB_SERVER_PORT") ?: 8080), $errno, $error, 4); if (! $socket) { exit(1); } fclose($socket);'
+        ;;
+    worker|scheduler)
+        mode="${CONTAINER_MODE}"
+        exec supervisorctl -s http://127.0.0.1:9001 status "$mode:${mode}_0"
+        ;;
+    *) exit 1 ;;
+esac

@@ -52,5 +52,6 @@ spec:
       - name: storage
         persistentVolumeClaim:
           claimName: boilerplate-storage
+      terminationGracePeriodSeconds: 300
       securityContext:
         fsGroup: 1000

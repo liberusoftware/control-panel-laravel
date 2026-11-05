@@ -15,12 +15,14 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          name: ingress-nginx
+          kubernetes.io/metadata.name: ingress-nginx
     ports:
     - protocol: TCP
       port: 80
     - protocol: TCP
       port: 8000
+    - protocol: TCP
+      port: 6001
   - from:
     - podSelector:
         matchLabels:
@@ -29,6 +31,8 @@ spec:
     - protocol: TCP
       port: 8000
     - protocol: TCP
+      port: 6001
+    - protocol: TCP
       port: 6379
     - protocol: TCP
       port: 3306
@@ -36,9 +40,11 @@ spec:
   - to:
     - namespaceSelector:
         matchLabels:
-          name: kube-system
+          kubernetes.io/metadata.name: kube-system
     ports:
     - protocol: UDP
+      port: 53
+    - protocol: TCP
       port: 53
   - to:
     - podSelector:

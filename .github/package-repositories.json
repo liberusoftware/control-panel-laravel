@@ -1,0 +1,907 @@
+{
+  "module-activity-comments": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-activity-comments-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-activity-comments-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-activity-comments-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-core": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-core-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-core-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-core-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-google": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-google-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-google-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-google-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-meta": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-meta-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-meta-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-analytics-meta-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-api-access": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-api-access-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-api-access-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-api-access-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-application": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-application-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-application-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-application-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-audit": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-audit-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-audit-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-audit-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-accounts": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-accounts-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-accounts-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-accounts-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-api-and-automation": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-api-and-automation-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-api-and-automation-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-api-and-automation-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-backups": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-backups-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-backups-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-backups-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-certificates": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-certificates-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-certificates-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-certificates-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-containers": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-containers-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-containers-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-containers-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-control-core": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-control-core-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-control-core-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-control-core-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-databases": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-databases-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-databases-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-databases-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-dns": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-dns-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-dns-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-dns-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-files": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-files-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-files-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-files-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-kubernetes": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-kubernetes-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-kubernetes-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-kubernetes-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-mail": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-mail-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-mail-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-mail-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-monitoring": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-monitoring-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-monitoring-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-monitoring-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-os-adapters": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-os-adapters-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-os-adapters-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-os-adapters-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-security": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-security-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-security-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-security-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-web-hosting": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-web-hosting-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-web-hosting-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-control-panel-web-hosting-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-currency-context": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-currency-context-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-currency-context-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-currency-context-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-developer-experience": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-developer-experience-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-developer-experience-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-developer-experience-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-feature-flags": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-feature-flags-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-feature-flags-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-feature-flags-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-files-media": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-files-media-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-files-media-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-files-media-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-identity-core": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-identity-core-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-identity-core-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-identity-core-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-identity-socialstream": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-import-export": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-import-export-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-import-export-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-import-export-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-integrations": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-integrations-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-integrations-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-integrations-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-jetstream-bridge": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-jetstream-bridge-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-jetstream-bridge-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-jetstream-bridge-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-localization-core": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-localization-core-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-localization-core-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-localization-core-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-localization-mymemory": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-module-manager": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-module-manager-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-module-manager-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-module-manager-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-notifications": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-notifications-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-notifications-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-notifications-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-observability": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-observability-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-observability-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-observability-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-organizations-teams": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-organizations-teams-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-organizations-teams-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-organizations-teams-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-profiles": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-profiles-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-profiles-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-profiles-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-roles-permissions": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-roles-permissions-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-roles-permissions-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-roles-permissions-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-scheduler-queues": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-scheduler-queues-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-scheduler-queues-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-scheduler-queues-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-search": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-search-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-search-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-search-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-sessions-devices": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-sessions-devices-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-sessions-devices-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-sessions-devices-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-settings": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-settings-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-settings-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-settings-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-theme-support": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-theme-support-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-two-factor-authentication": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-two-factor-authentication-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-two-factor-authentication-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-two-factor-authentication-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-users-roles": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-webhooks": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-webhooks-api": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-webhooks-filament": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "module-webhooks-livewire": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "theme-base": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "theme-clear-signal": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "theme-dark": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  },
+  "theme-default": {
+    "archived": false,
+    "default_branch": "main",
+    "private": false
+  }
+}

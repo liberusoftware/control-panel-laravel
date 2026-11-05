@@ -1,79 +1,3 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: boilerplate-queue
-  labels:
-    app: boilerplate-laravel
-    component: queue
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: boilerplate-laravel
-      component: queue
-  template:
-    metadata:
-      labels:
-        app: boilerplate-laravel
-        component: queue
-    spec:
-      containers:
-      - name: queue-worker
-        image: ghcr.io/liberusoftware/control-panel-laravel:latest
-        command:
-        - php
-        - artisan
-        - horizon
-        envFrom:
-        - configMapRef:
-            name: boilerplate-config
-        - secretRef:
-            name: boilerplate-secrets
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          exec:
-            command:
-            - php
-            - artisan
-            - horizon:status
-          initialDelaySeconds: 30
-          periodSeconds: 60
-          timeoutSeconds: 10
-          failureThreshold: 3
-        readinessProbe:
-          exec:
-            command:
-            - php
-            - artisan
-            - horizon:status
-          initialDelaySeconds: 15
-          periodSeconds: 30
-          timeoutSeconds: 10
-          failureThreshold: 3
-        lifecycle:
-          preStop:
-            exec:
-              command:
-              - php
-              - artisan
-              - horizon:terminate
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 1000
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - ALL
-      securityContext:
-        fsGroup: 1000
-      terminationGracePeriodSeconds: 300
----
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -107,6 +31,9 @@ spec:
                 name: boilerplate-config
             - secretRef:
                 name: boilerplate-secrets
+            volumeMounts:
+            - name: storage
+              mountPath: /var/www/html/storage
             resources:
               requests:
                 memory: "64Mi"
@@ -121,5 +48,9 @@ spec:
               capabilities:
                 drop:
                 - ALL
+          volumes:
+          - name: storage
+            persistentVolumeClaim:
+              claimName: boilerplate-storage
           securityContext:
             fsGroup: 1000

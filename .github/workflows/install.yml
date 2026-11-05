@@ -7,6 +7,36 @@ on:
     branches: [main]
 
 jobs:
+  installer-interface:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate installer entry points
+        shell: bash
+        run: |
+          bash -n install.sh scripts/setup.sh k8s/deploy.sh
+          sh -n .docker/start-container .docker/healthcheck
+          cd /tmp
+          bash "$GITHUB_WORKSPACE/install.sh" --help
+          bash "$GITHUB_WORKSPACE/scripts/setup.sh" --help
+          if bash "$GITHUB_WORKSPACE/install.sh" </dev/null; then
+            echo "Unattended installation must require an explicit deployment mode"
+            exit 1
+          fi
+
+      - name: Setup PHP for deployment tests
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.5'
+          extensions: mbstring, bcmath, pdo, pdo_sqlite, sqlite3, dom, curl, intl, gd, pcntl, sockets, zip
+      - name: Install test dependencies without bootstrapping the application
+        run: composer install --no-scripts --no-interaction --prefer-dist
+      - name: Test deployment script behavior
+        run: php vendor/bin/pest tests/DeploymentScriptsTest.php --compact
+
   install:
     runs-on: ubuntu-latest
 

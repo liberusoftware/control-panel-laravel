@@ -5,6 +5,12 @@
          colors="true"
 >
     <testsuites>
+        <testsuite name="Deployment">
+            <file>tests/DeploymentScriptsTest.php</file>
+        </testsuite>
+        <testsuite name="Hosting DNS">
+            <file>tests/PowerDnsClusterTest.php</file>
+        </testsuite>
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>

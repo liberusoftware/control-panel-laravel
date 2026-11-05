@@ -1,6 +1,6 @@
 # Liberu Control Panel
 
-> Production-ready Laravel control panel for hosting, infrastructure, and operations.
+> Laravel control panel for hosting, infrastructure, and operations.
 
 [Software](https://liberusoftware.com) · [Hosting](https://liberuhosting.com) · [Services](https://liberuservices.com) · [Liberu Group](https://liberugroup.com)
 
@@ -49,7 +49,7 @@ php artisan migrate
 php artisan serve
 ```
 
-Review `.env` before migrating. Use `php artisan migrate --seed` only when example data is wanted. The optional interactive `install.sh` supports local, Docker, and Kubernetes-oriented setup.
+Review `.env` before migrating. Use `php artisan migrate --seed` only when example data is wanted. `./install.sh` provides interactive and unattended standalone, Docker Compose, and Kubernetes setup. See [installation and platform requirements](docs/INSTALLATION.md) for configuration, upgrades, and deployment limitations.
 
 For Docker Compose, the application is served by Laravel Octane on container port `8000` and is published at `http://localhost:${APP_PORT:-8000}`. Set `APP_PORT` to change the host port; the container port must remain `8000`.
 

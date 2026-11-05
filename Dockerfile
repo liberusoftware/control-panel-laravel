@@ -1,4 +1,4 @@
-# Supported PHP versions: 8.2, 8.3, 8.5
+# Application runtime: PHP 8.5
 ARG PHP_VERSION=8.5
 # PHP 8.5 support requires compatible extension builds (check install-php-extensions)
 
@@ -34,6 +34,19 @@ RUN composer install \
     --no-scripts \
     --prefer-dist \
     --ignore-platform-req=ext-pcntl
+
+###########################################
+# Frontend assets from the committed lockfile
+###########################################
+FROM node:26-alpine AS frontend
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY resources ./resources
+COPY themes ./themes
+COPY modules ./modules
+COPY vite.config.js ./
+RUN npm run build
 
 ###########################################
 # Main application stage
@@ -120,7 +133,7 @@ RUN addgroup -g ${WWWGROUP} ${USER} \
 
 RUN mkdir -p /var/log/supervisor /var/run/supervisor \
     && chown -R ${USER}:${USER} ${ROOT} /var/log /var/run \
-    && chmod -R a+rw ${ROOT} /var/log /var/run
+    && chmod -R u+rwX,go-rwx ${ROOT} /var/log/supervisor /var/run/supervisor
 
 RUN cp ${PHP_INI_DIR}/php.ini-production ${PHP_INI_DIR}/php.ini
 
@@ -140,7 +153,11 @@ COPY --chown=${USER}:${USER} . .
 
 # Generate optimized autoloader now that all app files are present
 RUN composer dump-autoload --classmap-authoritative --no-dev && \
+    php vendor/bin/rr get-binary --no-interaction && \
+    touch .rr.yaml && \
     composer clear-cache
+
+COPY --chown=${USER}:${USER} --from=frontend /app/public/build ./public/build
 
 # Create necessary Laravel directories
 RUN mkdir -p \
@@ -150,22 +167,24 @@ RUN mkdir -p \
     storage/framework/testing \
     storage/logs \
     bootstrap/cache && \
-    chmod -R a+rw storage
+    chmod -R u+rwX,go-rwx storage
 
 # Copy configuration files
 COPY --chown=${USER}:${USER} .docker/supervisord.conf /etc/supervisor/
 COPY --chown=${USER}:${USER} .docker/octane/RoadRunner/supervisord.roadrunner.conf /etc/supervisor/conf.d/
+COPY --chown=${USER}:${USER} .docker/supervisord.services.conf /etc/supervisor/conf.d/
 COPY --chown=${USER}:${USER} .docker/supervisord.horizon.conf /etc/supervisor/conf.d/
 COPY --chown=${USER}:${USER} .docker/supervisord.reverb.conf /etc/supervisor/conf.d/
 COPY --chown=${USER}:${USER} .docker/supervisord.scheduler.conf /etc/supervisor/conf.d/
 COPY --chown=${USER}:${USER} .docker/supervisord.worker.conf /etc/supervisor/conf.d/
 COPY --chown=${USER}:${USER} .docker/php.ini ${PHP_INI_DIR}/conf.d/99-octane.ini
 COPY --chown=${USER}:${USER} .docker/start-container /usr/local/bin/start-container
+COPY --chown=${USER}:${USER} .docker/healthcheck /usr/local/bin/healthcheck
 
 # Copy environment file
 COPY --chown=${USER}:${USER} .env.example ./.env
 
-RUN chmod +x /usr/local/bin/start-container && \
+RUN chmod +x /usr/local/bin/start-container /usr/local/bin/healthcheck && \
     cat .docker/utilities.sh >> ~/.bashrc
 
 EXPOSE 8000
@@ -173,4 +192,4 @@ EXPOSE 8080
 
 ENTRYPOINT ["start-container"]
 
-HEALTHCHECK --start-period=5s --interval=2s --timeout=5s --retries=8 CMD php artisan octane:status || exit 1
+HEALTHCHECK --start-period=30s --interval=10s --timeout=5s --retries=3 CMD ["healthcheck"]

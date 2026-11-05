@@ -38,6 +38,8 @@ node_modules/
 public/hot
 public/storage
 public/build/
+# Tenant uploads and backups must never enter the image build context.
+storage/app/*
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*

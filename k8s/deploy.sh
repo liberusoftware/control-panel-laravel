@@ -1,71 +1,97 @@
 #!/usr/bin/env bash
-# Kubernetes Deployment Script for Liberu Control Panel Laravel
+# Render all deployment settings before applying workloads.
+set -euo pipefail
+if (($#)); then
+    if [[ "$#" == 1 && ( "$1" == "--help" || "$1" == "-h" ) ]]; then
+        cat <<'HELP'
+Usage: ./install.sh kubernetes
 
-set -e
-
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-NAMESPACE="${NAMESPACE:-boilerplate-laravel}"
-ENVIRONMENT="${ENVIRONMENT:-production}"
-DOMAIN="${DOMAIN:-control-panel.example.com}"
-APP_KEY="${APP_KEY:-}"
-DB_PASSWORD="${DB_PASSWORD:-}"
-DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-}"
-IMAGE_TAG="${IMAGE_TAG:-}"
-
-info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
-warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error() { echo -e "${RED}[ERROR]${NC} $1"; }
-
-echo -e "${GREEN}=== Liberu Control Panel Kubernetes Deployment ===${NC}"
-
-command -v kubectl >/dev/null 2>&1 || { error "kubectl not installed"; exit 1; }
-
-[ -z "$APP_KEY" ]          && { error "APP_KEY is required (php artisan key:generate --show)"; exit 1; }
-[ -z "$DB_PASSWORD" ]      && { error "DB_PASSWORD is required"; exit 1; }
-[ -z "$DB_ROOT_PASSWORD" ] && { error "DB_ROOT_PASSWORD is required"; exit 1; }
-[[ "$DOMAIN" =~ ^[A-Za-z0-9.-]+$ ]] || { error "DOMAIN must be a valid hostname"; exit 1; }
-
-info "Creating namespace: $NAMESPACE"
-kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-
-info "Updating secrets..."
-kubectl create secret generic boilerplate-secrets \
-    --from-literal=APP_KEY="$APP_KEY" \
-    --from-literal=DB_USERNAME="liberu" \
-    --from-literal=DB_PASSWORD="$DB_PASSWORD" \
-    --from-literal=DB_ROOT_PASSWORD="$DB_ROOT_PASSWORD" \
-    --from-literal=REDIS_PASSWORD="" \
-    --namespace="$NAMESPACE" \
-    --dry-run=client -o yaml | kubectl apply -f -
-
-info "Deploying to $ENVIRONMENT..."
-kubectl apply -k "k8s/overlays/$ENVIRONMENT"
-
-info "Configuring ingress for $DOMAIN..."
-kubectl patch ingress boilerplate-laravel -n "$NAMESPACE" --type=json \
-    -p="[{\"op\":\"replace\",\"path\":\"/spec/tls/0/hosts/0\",\"value\":\"$DOMAIN\"},{\"op\":\"replace\",\"path\":\"/spec/rules/0/host\",\"value\":\"$DOMAIN\"}]"
-kubectl patch ingress boilerplate-reverb -n "$NAMESPACE" --type=json \
-    -p="[{\"op\":\"replace\",\"path\":\"/spec/tls/0/hosts/0\",\"value\":\"ws.$DOMAIN\"},{\"op\":\"replace\",\"path\":\"/spec/rules/0/host\",\"value\":\"ws.$DOMAIN\"}]"
-
-if [ -n "$IMAGE_TAG" ]; then
-    info "Updating workloads to image tag: $IMAGE_TAG"
-    image="ghcr.io/liberusoftware/control-panel-laravel:$IMAGE_TAG"
-    kubectl set image deployment/boilerplate-laravel "app=$image" -n "$NAMESPACE"
-    kubectl set image deployment/boilerplate-queue "queue-worker=$image" -n "$NAMESPACE"
-    kubectl set image deployment/boilerplate-horizon "horizon=$image" -n "$NAMESPACE"
-    kubectl set image deployment/boilerplate-reverb "reverb=$image" -n "$NAMESPACE"
+Required environment: DOMAIN, APP_KEY, DB_PASSWORD, DB_ROOT_PASSWORD, IMAGE_TAG.
+Optional environment: ENVIRONMENT=production|development, NAMESPACE.
+Uses the current kubectl context. Preserve credentials and APP_KEY on upgrades.
+Requires shared ReadWriteMany storage, an ingress controller, and TLS management.
+HELP
+        exit 0
+    fi
+    printf 'Unknown deployment argument. Use --help for configuration.\n' >&2
+    exit 2
 fi
+root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ENVIRONMENT="${ENVIRONMENT:-production}"
+case "$ENVIRONMENT" in
+    production) default_namespace=boilerplate-laravel ;;
+    development) default_namespace=boilerplate-dev ;;
+    *) printf 'ENVIRONMENT must be production or development.\n' >&2; exit 2 ;;
+esac
+NAMESPACE="${NAMESPACE:-$default_namespace}"
+DOMAIN="${DOMAIN:?Set DOMAIN to the panel hostname}"
+APP_KEY="${APP_KEY:?Set APP_KEY to the existing installation key or a new Laravel key}"
+DB_PASSWORD="${DB_PASSWORD:?Set DB_PASSWORD}"
+DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD}"
+IMAGE_TAG="${IMAGE_TAG:?Set IMAGE_TAG to a published release tag}"
+[[ "$NAMESPACE" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ && ${#NAMESPACE} -le 63 ]] || { printf 'Invalid namespace.\n' >&2; exit 2; }
+[[ "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ && "$DOMAIN" == *.* && ${#DOMAIN} -le 253 ]] || { printf 'Invalid hostname.\n' >&2; exit 2; }
+IFS='.' read -r -a hostname_labels <<< "$DOMAIN"
+for label in "${hostname_labels[@]}"; do
+    [[ ${#label} -le 63 && "$label" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$ ]] || { printf 'Invalid hostname label.\n' >&2; exit 2; }
+done
+[[ "$IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$ && ${#IMAGE_TAG} -le 128 ]] || { printf 'Invalid image tag.\n' >&2; exit 2; }
+# Newlines cannot be represented safely in an env-file value.
+for value in "$APP_KEY" "$DB_PASSWORD" "$DB_ROOT_PASSWORD"; do
+    [[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] || { printf 'Credentials must be single-line values.\n' >&2; exit 2; }
+done
 
-info "Waiting for deployment..."
-kubectl wait --for=condition=available --timeout=300s \
-    deployment/boilerplate-laravel -n "$NAMESPACE" || warn "Timeout waiting for deployment"
+command -v kubectl >/dev/null || { printf 'kubectl is required.\n' >&2; exit 1; }
 
-info "Deployment complete!"
-echo ""
-echo "  Status:  kubectl get pods -n $NAMESPACE"
-echo "  Logs:    kubectl logs -n $NAMESPACE -l app=boilerplate-laravel"
-echo "  URL:     https://$DOMAIN"
+# Render from a private copy; never edit the checkout or write credentials to it.
+umask 077
+render_dir="$(mktemp -d)"
+trap 'rm -rf -- "$render_dir"' EXIT
+cp -R "$root/base" "$root/overlays" "$render_dir/"
+overlay="$render_dir/overlays/$ENVIRONMENT"
+# Overlays already declare namespace/image. Replace only those scalar values.
+sed "s/^namespace: .*/namespace: $NAMESPACE/; s/  newTag: .*/  newTag: $IMAGE_TAG/" "$overlay/kustomization.yaml" > "$overlay/rendered.yaml"
+mv "$overlay/rendered.yaml" "$overlay/kustomization.yaml"
+cat >> "$overlay/kustomization.yaml" <<YAML
+
+patchesJson6902:
+- target:
+    group: networking.k8s.io
+    version: v1
+    kind: Ingress
+    name: boilerplate-laravel
+  patch: |-
+    - op: replace
+      path: /spec/tls/0/hosts/0
+      value: $DOMAIN
+    - op: replace
+      path: /spec/rules/0/host
+      value: $DOMAIN
+- target:
+    group: networking.k8s.io
+    version: v1
+    kind: Ingress
+    name: boilerplate-reverb
+  patch: |-
+    - op: replace
+      path: /spec/tls/0/hosts/0
+      value: ws.$DOMAIN
+    - op: replace
+      path: /spec/rules/0/host
+      value: ws.$DOMAIN
+YAML
+# Add APP_URL to the existing generated ConfigMap, before any pods are started.
+cat >> "$render_dir/base/configmap.yaml" <<YAML
+  APP_URL: "https://$DOMAIN"
+YAML
+kubectl kustomize "$overlay" > "$render_dir/manifests.yaml"
+kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+# Use a protected env file so passwords do not appear in kubectl process arguments.
+printf 'APP_KEY=%s\nDB_USERNAME=liberu\nDB_PASSWORD=%s\nDB_ROOT_PASSWORD=%s\nREDIS_PASSWORD=\n' "$APP_KEY" "$DB_PASSWORD" "$DB_ROOT_PASSWORD" > "$render_dir/secrets.env"
+kubectl create secret generic boilerplate-secrets --from-env-file="$render_dir/secrets.env" \
+    --namespace="$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -f "$render_dir/manifests.yaml"
+for workload in boilerplate-laravel boilerplate-horizon boilerplate-reverb; do
+    kubectl rollout status "deployment/$workload" -n "$NAMESPACE" --timeout=300s
+done
+printf 'Deployment ready: https://%s\nNamespace: %s\n' "$DOMAIN" "$NAMESPACE"

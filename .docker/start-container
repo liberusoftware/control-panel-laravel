@@ -4,28 +4,32 @@ set -e
 container_mode=${CONTAINER_MODE:-"http"}
 running_migrations_and_seeders=${RUNNING_MIGRATIONS_AND_SEEDERS:-"false"}
 
+# Volumes can hide the directories created while building the image.
+mkdir -p storage/app/public storage/framework/cache/data storage/framework/sessions \
+    storage/framework/views storage/logs bootstrap/cache
+
 initialStuff() {
     echo "Container mode: $container_mode"
 
     if [ "${running_migrations_and_seeders}" = "true" ]; then
-        echo "Running migrations and seeding database ..."
-        php artisan migrate --isolated --seed --force || php artisan migrate --seed --force
+        echo "Running migrations ..."
+        php artisan migrate --isolated=75 --force --no-interaction
     fi
 
-    php artisan storage:link
-    php artisan optimize
+    php artisan storage:link --no-interaction
+    php artisan optimize --no-interaction
 }
 
-if [ "$1" != "" ]; then
+if [ "$#" -gt 0 ]; then
     exec "$@"
 elif [ "${container_mode}" = "http" ]; then
     initialStuff
-    echo "Octane Server: $OCTANE_SERVER"
-    if [ "${OCTANE_SERVER}" = "frankenphp" ]; then
+    echo "Octane Server: ${OCTANE_SERVER:-roadrunner}"
+    if [ "${OCTANE_SERVER:-roadrunner}" = "frankenphp" ]; then
         exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.frankenphp.conf
-    elif [ "${OCTANE_SERVER}" = "swoole" ]; then
+    elif [ "${OCTANE_SERVER:-roadrunner}" = "swoole" ]; then
         exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.swoole.conf
-    elif [ "${OCTANE_SERVER}" = "roadrunner" ]; then
+    elif [ "${OCTANE_SERVER:-roadrunner}" = "roadrunner" ]; then
         exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.roadrunner.conf
     else
         echo "Invalid Octane server supplied."
@@ -41,7 +45,7 @@ elif [ "${container_mode}" = "scheduler" ]; then
     initialStuff
     exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.scheduler.conf
 elif [ "${container_mode}" = "worker" ]; then
-    if [ -z "${WORKER_COMMAND}" ]; then
+    if [ -z "${WORKER_COMMAND:-}" ]; then
         echo "WORKER_COMMAND is undefined."
         exit 1
     fi

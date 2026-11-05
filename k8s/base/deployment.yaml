@@ -28,7 +28,7 @@ spec:
         command: ["sh", "-c", "until nc -z boilerplate-mysql 3306; do echo 'Waiting for MySQL...'; sleep 2; done"]
       - name: migrations
         image: ghcr.io/liberusoftware/control-panel-laravel:latest
-        command: ["sh", "-c", "php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache"]
+        command: ["sh", "-c", "php artisan migrate --isolated=75 --force --no-interaction"]
         envFrom:
         - configMapRef:
             name: boilerplate-config

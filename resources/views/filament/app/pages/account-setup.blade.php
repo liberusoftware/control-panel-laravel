@@ -1,10 +1,11 @@
 <x-filament-panels::page>
     <x-filament::section heading="Workspace setup" icon="heroicon-o-sparkles">
         <x-slot name="description">Save your team profile, review optional credentials, and plan your first website. Only the team owner can change these settings.</x-slot>
-        <p>{{ count($completedSteps) }} of 3 setup steps complete</p>
-        <nav aria-label="Setup progress">
+        <p role="status" aria-live="polite">Step {{ $step }} of 3 · {{ count($completedSteps) }} completed</p>
+        <progress class="w-full" value="{{ count($completedSteps) }}" max="3" aria-label="Workspace setup progress">{{ count($completedSteps) }} of 3</progress>
+        <nav class="flex flex-wrap gap-2" aria-label="Setup progress">
             @foreach ([1 => 'Workspace profile', 2 => 'Optional credentials', 3 => 'Review and next steps'] as $number => $label)
-                <x-filament::button wire:key="setup-step-{{ $number }}" type="button" wire:click="goToStep({{ $number }})"
+                <x-filament::button wire:key="setup-step-{{ $number }}" type="button" wire:click="goToStep({{ $number }})" wire:loading.attr="disabled"
                     :color="$step === $number ? 'primary' : 'gray'"
                     :disabled="$number > 1 && count(array_diff(range(1, $number - 1), $completedSteps)) > 0"
                     :aria-current="$step === $number ? 'step' : null">
@@ -29,17 +30,19 @@
             <x-filament::section heading="Tell us about your team">
                 <x-filament::fieldset label="Team name" required>
                     <x-filament::input.wrapper :valid="! $errors->has('teamName')">
-                        <x-filament::input id="setup-team-name" aria-label="Team name" wire:model="teamName" required maxlength="255" />
+                        <x-filament::input id="setup-team-name" aria-label="Team name" aria-describedby="setup-team-name-error" :aria-invalid="$errors->has('teamName') ? 'true' : 'false'" wire:model="teamName" required maxlength="255" autocomplete="organization" />
                     </x-filament::input.wrapper>
+                    <p id="setup-team-name-error">@error('teamName'){{ $message }}@enderror</p>
                 </x-filament::fieldset>
                 <x-filament::fieldset label="Workspace timezone" required>
                     <x-filament::input.wrapper :valid="! $errors->has('timezone')">
-                        <x-filament::input.select aria-label="Workspace timezone" wire:model="timezone" required>
+                        <x-filament::input.select id="setup-timezone" aria-label="Workspace timezone" aria-describedby="setup-timezone-error" :aria-invalid="$errors->has('timezone') ? 'true' : 'false'" wire:model="timezone" required>
                             @foreach ($this->timezoneOptions() as $value => $label)
                                 <option wire:key="timezone-{{ $value }}" value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </x-filament::input.select>
                     </x-filament::input.wrapper>
+                    <p id="setup-timezone-error">@error('timezone'){{ $message }}@enderror</p>
                 </x-filament::fieldset>
                 <x-slot name="footer">
                     <x-filament::button type="submit" wire:loading.attr="disabled">Save and continue</x-filament::button>
@@ -57,26 +60,31 @@
         <form wire:submit="saveIntegrations">
             <x-filament::section heading="Optional team credential storage">
                 <x-slot name="description">Provide a complete OAuth ID/secret pair. Blank fields preserve stored values. Changing a client ID requires its new secret. Saved secrets are never loaded back into this form.</x-slot>
-                @foreach ([
-                    'GitHub OAuth' => ['githubClientId' => ['Client ID', 'text', 255], 'githubClientSecret' => ['Client secret', 'password', 1000]],
-                    'Google OAuth' => ['googleClientId' => ['Client ID', 'text', 255], 'googleClientSecret' => ['Client secret', 'password', 1000]],
-                    'Stripe API' => ['stripeSecret' => ['Secret key', 'password', 1000]],
-                ] as $provider => $fields)
-                    <x-filament::fieldset wire:key="provider-{{ $provider }}" :label="$provider">
-                        <x-filament::badge color="gray">{{ ($this->integrationStatus[$provider] ?? false) ? 'Stored — not verified or connected' : 'Not stored — optional' }}</x-filament::badge>
-                        @foreach ($fields as $field => [$label, $type, $maxLength])
-                            <div wire:key="credential-{{ $field }}">
-                                <label for="{{ $field }}">{{ $label }}</label>
-                                <x-filament::input.wrapper :valid="! $errors->has($field)">
-                                    <x-filament::input :id="$field" wire:model="{{ $field }}" :type="$type" :maxlength="$maxLength" autocomplete="off" />
-                                </x-filament::input.wrapper>
-                            </div>
-                        @endforeach
-                    </x-filament::fieldset>
-                @endforeach
+                <details @if ($errors->any()) open @endif>
+                    <summary class="cursor-pointer py-2 font-medium">Advanced: store team credentials (optional)</summary>
+                    <p>You can leave these fields blank and continue. Your hosting administrator can help configure integrations later.</p>
+                    @foreach ([
+                        'GitHub OAuth' => ['githubClientId' => ['Client ID', 'text', 255], 'githubClientSecret' => ['Client secret', 'password', 1000]],
+                        'Google OAuth' => ['googleClientId' => ['Client ID', 'text', 255], 'googleClientSecret' => ['Client secret', 'password', 1000]],
+                        'Stripe API' => ['stripeSecret' => ['Secret key', 'password', 1000]],
+                    ] as $provider => $fields)
+                        <x-filament::fieldset wire:key="provider-{{ $provider }}" :label="$provider">
+                            <x-filament::badge color="gray">{{ ($this->integrationStatus[$provider] ?? false) ? 'Stored — not verified or connected' : 'Not stored — optional' }}</x-filament::badge>
+                            @foreach ($fields as $field => [$label, $type, $maxLength])
+                                <div wire:key="credential-{{ $field }}">
+                                    <label for="{{ $field }}">{{ $label }}</label>
+                                    <x-filament::input.wrapper :valid="! $errors->has($field)">
+                                        <x-filament::input :id="$field" :aria-describedby="$field . '-error'" :aria-invalid="$errors->has($field) ? 'true' : 'false'" wire:model="{{ $field }}" :type="$type" :maxlength="$maxLength" autocomplete="off" />
+                                    </x-filament::input.wrapper>
+                                    <p id="{{ $field }}-error">@error($field){{ $message }}@enderror</p>
+                                </div>
+                            @endforeach
+                        </x-filament::fieldset>
+                    @endforeach
+                </details>
                 <x-slot name="footer">
                     <x-filament::button type="button" wire:click="goToStep(1)" color="gray">Back</x-filament::button>
-                    <x-filament::button type="submit" wire:loading.attr="disabled">Save optional credentials and continue</x-filament::button>
+                    <x-filament::button type="submit" wire:loading.attr="disabled">Continue to review</x-filament::button>
                 </x-slot>
             </x-filament::section>
         </form>
@@ -106,5 +114,5 @@
             @endif
         </x-filament::section>
     @endif
-    <p wire:loading role="status">Updating setup…</p>
+    <p wire:loading.delay role="status" aria-live="polite">Saving your changes…</p>
 </x-filament-panels::page>

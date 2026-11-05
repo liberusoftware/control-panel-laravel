@@ -17,7 +17,10 @@
             "url": "modules/*",
             "options": {
                 "symlink": false
-            }
+            },
+            "exclude": [
+                "liberusoftware/tenancy"
+            ]
         },
         {
             "type": "path",
@@ -902,7 +905,10 @@
                     "liberusoftware/audit-livewire": "1.0.1",
                     "liberusoftware/currency-context-api": "1.0.0"
                 }
-            }
+            },
+            "exclude": [
+                "liberusoftware/tenancy"
+            ]
         },
         {
             "type": "path",
@@ -1117,6 +1123,7 @@
         "liberusoftware/settings-api": "^1.0",
         "liberusoftware/settings-filament": "^1.0",
         "liberusoftware/settings-livewire": "^1.0",
+        "liberusoftware/tenancy": "^1.0.1",
         "liberusoftware/theme-base": "^2.0",
         "liberusoftware/theme-clear-signal": "^1.0",
         "liberusoftware/theme-dark": "^1.0",

@@ -1,16 +1,39 @@
+x-panel-environment: &panel-environment
+  APP_KEY: '${APP_KEY:?Set APP_KEY in .env}'
+  APP_ENV: production
+  APP_URL: '${APP_URL:?Set APP_URL in .env}'
+  CACHE_STORE: redis
+  SESSION_DRIVER: redis
+  QUEUE_CONNECTION: redis
+  APP_DEBUG: 'false'
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: '3306'
+  DB_DATABASE: '${DB_DATABASE:-liberu}'
+  DB_USERNAME: '${DB_USERNAME:-liberu}'
+  DB_PASSWORD: '${DB_PASSWORD:?Set DB_PASSWORD in .env}'
+  REDIS_HOST: redis
+  REDIS_PORT: '6379'
+
 services:
   app:
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     build:
       context: .
       dockerfile: Dockerfile
       args:
         PHP_VERSION: '8.5'
-        USER_ID: '${WWWUSER:-1000}'
-        GROUP_ID: '${WWWGROUP:-1000}'
+        WWWUSER: '${WWWUSER:-1000}'
+        WWWGROUP: '${WWWGROUP:-1000}'
     image: control-panel-laravel:latest
     ports:
       - '${APP_PORT:-8000}:8000'
     environment:
+      <<: *panel-environment
       CONTAINER_MODE: http
       OCTANE_SERVER: roadrunner
       WITH_SCHEDULER: 'true'
@@ -30,6 +53,11 @@ services:
       - appnet
 
   reverb:
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     build:
       context: .
       dockerfile: Dockerfile
@@ -37,6 +65,7 @@ services:
         PHP_VERSION: '8.5'
     image: control-panel-laravel:latest
     environment:
+      <<: *panel-environment
       CONTAINER_MODE: reverb
     env_file:
       - .env
@@ -54,6 +83,11 @@ services:
       - reverb
 
   worker:
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     build:
       context: .
       dockerfile: Dockerfile
@@ -61,8 +95,8 @@ services:
         PHP_VERSION: '8.5'
     image: control-panel-laravel:latest
     environment:
-      CONTAINER_MODE: worker
-      WORKER_COMMAND: 'php /var/www/html/artisan queue:work --sleep=3 --tries=3 --max-time=3600'
+      <<: *panel-environment
+      CONTAINER_MODE: horizon
     env_file:
       - .env
     volumes:
@@ -75,18 +109,18 @@ services:
         condition: service_healthy
     networks:
       - appnet
-    profiles:
-      - worker
+    stop_grace_period: 5m
 
   mysql:
+    restart: unless-stopped
     image: mysql:8.0
     ports:
-      - '${FORWARD_DB_PORT:-3306}:3306'
+      - '127.0.0.1:${FORWARD_DB_PORT:-3306}:3306'
     environment:
-      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-secret}'
+      MYSQL_ROOT_PASSWORD: '${DB_ROOT_PASSWORD:?Set a separate DB_ROOT_PASSWORD in .env}'
       MYSQL_DATABASE: '${DB_DATABASE:-liberu}'
       MYSQL_USER: '${DB_USERNAME:-liberu}'
-      MYSQL_PASSWORD: '${DB_PASSWORD:-secret}'
+      MYSQL_PASSWORD: '${DB_PASSWORD:?Set DB_PASSWORD in .env}'
     volumes:
       - mysql:/var/lib/mysql
     networks:
@@ -98,9 +132,10 @@ services:
       retries: 5
 
   redis:
+    restart: unless-stopped
     image: redis:7-alpine
     ports:
-      - '${FORWARD_REDIS_PORT:-6379}:6379'
+      - '127.0.0.1:${FORWARD_REDIS_PORT:-6379}:6379'
     volumes:
       - redis:/data
     networks:
@@ -112,10 +147,11 @@ services:
       retries: 5
 
   mailpit:
+    profiles: [development]
     image: axllent/mailpit:latest
     ports:
-      - '${FORWARD_MAIL_PORT:-1025}:1025'
-      - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
+      - '127.0.0.1:${FORWARD_MAIL_PORT:-1025}:1025'
+      - '127.0.0.1:${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
     networks:
       - appnet
 

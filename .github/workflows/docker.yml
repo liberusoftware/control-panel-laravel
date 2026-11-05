@@ -27,11 +27,20 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && vars.PUBLISH_DOCKER == 'true'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: liberusoftware/boilerplate
+          images: |
+            liberusoftware/boilerplate
+            ghcr.io/liberusoftware/control-panel-laravel
           tags: |
             type=ref,event=branch
             type=ref,event=pr
