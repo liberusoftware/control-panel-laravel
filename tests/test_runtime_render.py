@@ -25,8 +25,8 @@ class RuntimeRenderTest(unittest.TestCase):
         self.overlay = self.root / 'overlays/production'
         (self.root / 'existing-secret.json').write_text('{}')
         (self.root / 'existing-admin-secret.json').write_text('{}')
-        (self.root / 'secrets.env').write_text('APP_KEY=private-key\nDB_PASSWORD=private-password\n')
-        self.environment = {'APP_KEY': 'private-key', 'DB_PASSWORD': 'private-password', 'DB_ROOT_PASSWORD': 'private-root', 'APP_ENV_FILE': '', 'PANEL_SERVICES': 'bundled'}
+        (self.root / 'secrets.env').write_text('APP_KEY=' + 'k' * 32 + '\nDB_PASSWORD=private-password\n')
+        self.environment = {'APP_KEY': 'k' * 32, 'DB_PASSWORD': 'private-password', 'DB_ROOT_PASSWORD': 'private-root', 'APP_ENV_FILE': '', 'PANEL_SERVICES': 'bundled', 'REVERB_APP_ID': '', 'REVERB_APP_KEY': '', 'REVERB_APP_SECRET': '', 'DOMAIN': 'panel.example.test'}
         self.environment_patch = patch.dict(os.environ, self.environment)
         self.environment_patch.start()
         self.addCleanup(self.environment_patch.stop)
@@ -41,7 +41,7 @@ class RuntimeRenderTest(unittest.TestCase):
         self.assertIn(name, (self.root / 'base/migration-job.yaml').read_text())
         for container in ['app', 'horizon', 'reverb', 'scheduler', 'migration']:
             patch_body = json.loads((self.overlay / f'runtime-{container}.json').read_text())
-            self.assertNotIn('private-key', json.dumps(patch_body))
+            self.assertNotIn('k' * 32, json.dumps(patch_body))
             self.assertIn('runtime-digest', json.dumps(patch_body))
         self.assertNotIn('initContainers', (self.root / 'base/deployment.yaml').read_text())
 
@@ -186,6 +186,58 @@ class RuntimeRenderTest(unittest.TestCase):
         (self.root / 'existing-secret.json').write_text(json.dumps({'data': {'REDIS_PASSWORD': base64.b64encode(b'old-password').decode()}}))
         with self.assertRaises(ValueError):
             self.render()
+
+
+
+    def test_initial_reverb_credentials_are_private_and_reused_without_implicit_rotation(self):
+        self.render()
+        values = dict(line.split('=', 1) for line in (self.root / 'secrets.env').read_text().splitlines())
+        self.assertEqual(len(values['REVERB_APP_SECRET']), 64)
+        self.assertEqual(len(values['REVERB_APP_KEY']), 32)
+        (self.root / 'existing-secret.json').write_text(json.dumps({'metadata': {'name': 'boilerplate-secrets'},
+            'data': {key: base64.b64encode(value.encode()).decode() for key, value in values.items()}}))
+        # Simulate the deployer's new render tree inputs, not appending to an old render.
+        (self.root / 'secrets.env').write_text('APP_KEY=' + 'k' * 32 + '\nDB_PASSWORD=private-password\n')
+        runtime.reverb_credentials(self.root, json.loads((self.root / 'existing-secret.json').read_text()), b'')
+        replay = dict(line.split('=', 1) for line in (self.root / 'secrets.env').read_text().splitlines())
+        self.assertEqual(replay['REVERB_APP_SECRET'], values['REVERB_APP_SECRET'])
+        self.assertEqual(replay['REVERB_APP_KEY'], values['REVERB_APP_KEY'])
+        data = json.loads((self.overlay / 'panel-services.json').read_text())['data']
+        self.assertEqual(data['REVERB_HOST'], 'ws.panel.example.test')
+        self.assertEqual(data['REVERB_ALLOWED_ORIGINS'], 'panel.example.test')
+        self.assertNotIn(values['REVERB_APP_SECRET'], json.dumps(data))
+
+    def test_existing_reverb_keys_are_never_partially_replaced_or_silently_generated_on_upgrade(self):
+        existing = {'metadata': {'name': 'boilerplate-secrets'}, 'data': {}}
+        with self.assertRaises(ValueError):
+            runtime.reverb_credentials(self.root, existing, b'')
+        existing['data']['REVERB_APP_SECRET'] = base64.b64encode(b'old-secret').decode()
+        with self.assertRaises(ValueError):
+            runtime.reverb_credentials(self.root, existing, b'')
+        with self.assertRaises(ValueError):
+            runtime.reverb_credentials(self.root, {}, b'REVERB_APP_KEY=old-imported-key\n')
+
+    def test_complete_explicit_reverb_credentials_preserve_legacy_applications_and_refuse_rotation(self):
+        values = {'REVERB_APP_ID': '12345', 'REVERB_APP_KEY': 'k' * 20, 'REVERB_APP_SECRET': 's' * 32}
+        existing = {'metadata': {'name': 'boilerplate-secrets'}}
+        with patch.dict(os.environ, values):
+            runtime.reverb_credentials(self.root, existing, b'')
+            existing['data'] = {name: base64.b64encode(value.encode()).decode() for name, value in values.items()}
+            with patch.dict(os.environ, {'REVERB_APP_SECRET': 'r' * 32}):
+                with self.assertRaises(ValueError):
+                    runtime.reverb_credentials(self.root, existing, b'')
+            with patch.dict(os.environ, {'REVERB_APP_KEY': ''}):
+                with self.assertRaises(ValueError):
+                    runtime.reverb_credentials(self.root, existing, b'')
+
+
+
+    def test_rejects_invalid_laravel_keys_before_rendering_or_generating_credentials(self):
+        for key in ['short', 'base64:not-base64', 'base64:' + base64.b64encode(b'wrong-length').decode()]:
+            with self.subTest(key=key), patch.dict(os.environ, {'APP_KEY': key}):
+                with self.assertRaises(ValueError):
+                    self.render()
+        self.assertFalse((self.root / 'migration-name').exists())
 
 
 if __name__ == '__main__':

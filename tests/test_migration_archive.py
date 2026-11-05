@@ -87,6 +87,18 @@ class MigrationArchiveTest(unittest.TestCase):
         self.assertEqual(stat.S_IMODE(payload.parent.stat().st_mode), 0o700)
         self.assertEqual(stat.S_IMODE((self.output / 'preparation.json').stat().st_mode), 0o600)
 
+
+    def test_all_implicit_and_empty_parent_directories_are_private_even_under_a_permissive_umask(self):
+        self.collection_archive([('public_html/assets/deep/file', b'private', tarfile.REGTYPE, ''),
+            ('empty/child/deep', b'', tarfile.DIRTYPE, '')])
+        previous = os.umask(0)
+        try:
+            self.prepare(output=self.output)
+        finally:
+            os.umask(previous)
+        for path in self.output.rglob('*'):
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o700 if path.is_dir() or path.name == 'file' else 0o600)
+
     def test_refuses_foreign_team_cluster_digest_length_or_provider_without_staging(self):
         filename = self.collection_archive()
         for change in ['team', 'cluster', 'digest', 'length', 'provider']:

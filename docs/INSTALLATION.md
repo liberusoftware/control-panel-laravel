@@ -733,3 +733,30 @@ above when appropriate. The installer renders settings privately, refuses implic
 credential/service rebinding, waits for its release migration receipt and validates
 rollouts and TLS in either CI system. The example is a deployment contract tested
 through local process fixtures; no GitLab production job was run from this checkout.
+
+### Stable Reverb credentials and publishing settings
+
+Kubernetes enables Reverb broadcasting and now supplies the complete runtime binding:
+`REVERB_HOST=ws.DOMAIN`, HTTPS port 443, the internal server listener, and the panel
+hostname as the allowed browser origin. Hostnames are normalized to lowercase before
+rendering. A fresh installation without imported Reverb credentials generates a
+cryptographically random application ID/key/secret in the private render tree and
+stores them in the application Secret. Later deployments reuse those exact values;
+partial credentials or implicit rotation are rejected before cluster mutation.
+
+For an older installation whose Secret does not yet contain Reverb credentials,
+supply its **existing** `REVERB_APP_ID`, `REVERB_APP_KEY` and `REVERB_APP_SECRET` as a
+complete set through protected environment variables. Do the same when the imported
+production dotenv already declares Reverb credentials. The installer will not guess
+or generate replacement keys over an existing application. The GitHub deployment
+workflow accepts the three matching optional production secrets; GitLab can inject
+the same protected variables. Once recorded, preserve them for subsequent upgrades.
+No key values are printed or placed in ConfigMaps or process arguments.
+
+The panel `APP_KEY` must encode a valid 32-byte Laravel AES-256 key (the usual
+`base64:` form or an existing 32-byte raw key). Invalid keys fail rendering before
+secrets/workloads are applied. Generate a new key only for a new installation and
+back up the existing key with the database before upgrades. Reverb listener/TLS
+configuration and stable keys are required settings, not proof of application-level
+WebSocket delivery; test publication and subscriptions through your real ingress
+before declaring a production rollout verified.

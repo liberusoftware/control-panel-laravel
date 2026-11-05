@@ -10,6 +10,7 @@ import sys
 import ipaddress
 import ssl
 import stat
+import secrets
 
 
 
@@ -133,9 +134,41 @@ def external_services(root, overlay):
     return profile, paths
 
 
+
+def reverb_credentials(root, existing, contents):
+    names = ['REVERB_APP_ID', 'REVERB_APP_KEY', 'REVERB_APP_SECRET']
+    supplied = {name: os.environ.get(name, '') for name in names}
+    previous = {name: existing.get('data', {}).get(name) for name in names}
+    if any(previous.values()):
+        if not all(previous.values()):
+            raise ValueError('Existing Reverb credentials are incomplete; repair the approved binding explicitly.')
+        values = {name: base64.b64decode(previous[name], validate=True).decode('ascii') for name in names}
+        if any(supplied.values()) and supplied != values:
+            raise ValueError('Existing Reverb credentials differ; rotate them explicitly.')
+    elif any(supplied.values()):
+        if not all(supplied.values()):
+            raise ValueError('Provide the complete stable Reverb application ID, key and secret.')
+        values = supplied
+    else:
+        imported = re.search(rb'(?m)^\s*(?:export\s+)?REVERB_APP_(?:ID|KEY|SECRET)\s*=', contents)
+        if existing.get('metadata', {}).get('name') or imported:
+            raise ValueError('A legacy installation or imported dotenv needs its stable Reverb credentials supplied explicitly.')
+        values = {'REVERB_APP_ID': secrets.token_hex(12), 'REVERB_APP_KEY': secrets.token_hex(16), 'REVERB_APP_SECRET': secrets.token_hex(32)}
+    for name, value in values.items():
+        minimum = 1 if name == 'REVERB_APP_ID' else (16 if name == 'REVERB_APP_KEY' else 20)
+        if not isinstance(value, str) or not minimum <= len(value) <= 256 or value.lower() in {'null', 'empty', 'true', 'false'} or not re.fullmatch('[A-Za-z0-9_.-]+', value):
+            raise ValueError('Use valid stable Reverb application credentials without whitespace.')
+    with (root / 'secrets.env').open('a') as output:
+        output.write(''.join(name + '=' + values[name] + '\n' for name in names))
+
+
 def render(root, overlay, image, seed_policy):
     if seed_policy not in {'never', 'first-create', 'each-release'}:
         raise ValueError('Unsupported migration seed policy.')
+    application_key = os.environ['APP_KEY']
+    key_bytes = base64.b64decode(application_key[7:], validate=True) if application_key.startswith('base64:') else application_key.encode('utf-8')
+    if len(key_bytes) != 32:
+        raise ValueError('Supply a valid stable 32-byte Laravel AES-256 application key.')
     profile, service_paths = external_services(root, overlay)
     existing = json.loads((root / 'existing-secret.json').read_text() or '{}')
     previous_key = existing.get('data', {}).get('APP_KEY')
@@ -165,6 +198,16 @@ def render(root, overlay, image, seed_policy):
             raise ValueError('Production dotenv imports must exclude CI and administrator credentials.')
         (root / 'production.env').write_bytes(contents)
         (root / 'production.env').chmod(0o600)
+    reverb_credentials(root, existing, contents)
+    domain = os.environ.get('DOMAIN', '').lower()
+    if domain:
+        if len(domain) > 250 or not all(re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?', label) for label in domain.split('.')):
+            raise ValueError('Invalid panel hostname.')
+        services = overlay / 'panel-services.json'
+        body = json.loads(services.read_text())
+        body['data'].update({'REVERB_HOST': 'ws.' + domain, 'REVERB_PORT': '443', 'REVERB_SCHEME': 'https',
+            'REVERB_SERVER_HOST': '0.0.0.0', 'REVERB_SERVER_PORT': '6001', 'REVERB_ALLOWED_ORIGINS': domain})
+        services.write_text(json.dumps(body))
     runtime_inputs = contents + (root / 'secrets.env').read_bytes() + (overlay / 'panel-services.json').read_bytes()
     if profile == 'external':
         runtime_inputs += (root / 'db-ca.pem').read_bytes() + (root / 'redis-ca.pem').read_bytes()
@@ -236,5 +279,5 @@ if __name__ == '__main__':
     try:
         render(Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3], sys.argv[4])
     except (OSError, ValueError, KeyError, IndexError):
-        print('Runtime configuration validation failed; inspect private file permissions, existing APP_KEY and seed policy. No credentials were printed.', file=sys.stderr)
+        print('Runtime configuration validation failed; inspect private file permissions, existing APP_KEY, Reverb credentials, service bindings and seed policy. No credentials were printed.', file=sys.stderr)
         sys.exit(1)

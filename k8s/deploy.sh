@@ -13,6 +13,7 @@ REDIS_HOST, REDIS_PASSWORD, REDIS_CA_FILE, REDIS_TOPOLOGY=replicated and
 DB_NAMESPACE/DB_CIDRS plus REDIS_NAMESPACE/REDIS_CIDRS (choose one per service).
 Optional environment: ENVIRONMENT=production|development, NAMESPACE, KUBE_CONTEXT,
 APP_ENV_FILE (protected production dotenv file), IMAGE_DIGEST,
+REVERB_APP_ID/REVERB_APP_KEY/REVERB_APP_SECRET (existing keys on legacy upgrades),
 CREATE_NAMESPACE=true|false, MIGRATION_SEED_POLICY=never|first-create|each-release.
 Uses the current kubectl context. Preserve credentials and APP_KEY on upgrades.
 Requires shared ReadWriteMany storage, an ingress controller, and TLS management.
@@ -47,6 +48,7 @@ IFS='.' read -r -a hostname_labels <<< "$DOMAIN"
 for label in "${hostname_labels[@]}"; do
     [[ ${#label} -le 63 && "$label" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$ ]] || { printf 'Invalid hostname label.\n' >&2; exit 2; }
 done
+DOMAIN="$(printf '%s' "$DOMAIN" | tr '[:upper:]' '[:lower:]')"
 [[ "$IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$ && ${#IMAGE_TAG} -le 128 ]] || { printf 'Invalid image tag.\n' >&2; exit 2; }
 if [[ -n "${IMAGE_DIGEST:-}" && ! "$IMAGE_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; then
     printf 'IMAGE_DIGEST must be a sha256 digest.\n' >&2; exit 2

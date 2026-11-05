@@ -98,6 +98,17 @@ def private_directory(path):
     return path
 
 
+
+def private_parents(root, relative):
+    current = root
+    for part in PurePosixPath(relative).parts:
+        current = current / part
+        current.mkdir(mode=0o700, exist_ok=True)
+        metadata = current.lstat()
+        require(stat.S_ISDIR(metadata.st_mode) and metadata.st_uid == os.geteuid() and metadata.st_mode & 0o077 == 0,
+                'Staging parents must remain private operator-owned directories.')
+
+
 def validate_links(entries):
     def resolve(path, seen):
         require(len(seen) < 40, 'Symbolic link chain exceeds its limit.')
@@ -286,7 +297,7 @@ def scan_archive(filename, descriptor, maximum_bytes, maximum_entries, deadline,
                             if destination is not None:
                                 require(shutil.disk_usage(destination).free >= member.size + 64 * 1024 * 1024, 'Insufficient private staging capacity.')
                                 target = destination / path
-                                target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                                private_parents(destination, posixpath.dirname(path))
                                 output = target.open('xb')
                                 os.fchmod(output.fileno(), 0o700 if member.mode & 0o111 else 0o600)
                             checksum = hashlib.sha256()
@@ -323,7 +334,7 @@ def scan_archive(filename, descriptor, maximum_bytes, maximum_entries, deadline,
             if destination is not None:
                 for path, item in entries.items():
                     if item['kind'] == 'directory':
-                        (destination / path).mkdir(parents=True, exist_ok=True, mode=0o700)
+                        private_parents(destination, path)
                 for path, item in entries.items():
                     if item['kind'] == 'symlink':
                         os.symlink(item['target'], destination / path)

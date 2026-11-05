@@ -52,6 +52,9 @@ jobs:
           PRODUCTION_ENV: ${{ secrets.PRODUCTION_ENV }}
           PRODUCTION_KUBECONFIG: ${{ secrets.PRODUCTION_KUBECONFIG }}
           APP_KEY: ${{ secrets.APP_KEY }}
+          REVERB_APP_ID: ${{ secrets.REVERB_APP_ID }}
+          REVERB_APP_KEY: ${{ secrets.REVERB_APP_KEY }}
+          REVERB_APP_SECRET: ${{ secrets.REVERB_APP_SECRET }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           PANEL_SERVICES: ${{ vars.PANEL_SERVICES || 'bundled' }}

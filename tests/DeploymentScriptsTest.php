@@ -109,7 +109,7 @@ it('offers Kubernetes configuration help without credentials or cluster tools', 
 it('rejects malformed Kubernetes hostnames before touching the cluster', function (string $hostname): void {
     ($this->stubCommand)('kubectl', 'touch cluster-was-touched');
     $result = ($this->runScript)('k8s/deploy.sh', [], [
-        'DOMAIN' => $hostname, 'APP_KEY' => 'private-app-key',
+        'DOMAIN' => $hostname, 'APP_KEY' => 'base64:'.base64_encode(str_repeat('k', 32)),
         'DB_PASSWORD' => 'private-db-password', 'DB_ROOT_PASSWORD' => 'private-root-password',
         'IMAGE_TAG' => 'release-1',
     ]);
@@ -130,7 +130,7 @@ it('propagates Kubernetes rollout failures and keeps credentials out of command 
         SH);
     $result = ($this->runScript)('k8s/deploy.sh', [], [
         'COMMAND_LOG' => $this->sandbox.'/commands.log',
-        'DOMAIN' => 'panel.example.com', 'APP_KEY' => 'private-app-key',
+        'DOMAIN' => 'panel.example.com', 'APP_KEY' => 'base64:'.base64_encode(str_repeat('k', 32)),
         'DB_PASSWORD' => 'private-db-password', 'DB_ROOT_PASSWORD' => 'private-root-password',
         'IMAGE_TAG' => 'release-1',
     ]);
@@ -138,7 +138,7 @@ it('propagates Kubernetes rollout failures and keeps credentials out of command 
 
     expect($result->getExitCode())->toBe(9)
         ->and($result->getOutput())->not->toContain('Deployment ready')
-        ->and($commands)->not->toContain('private-app-key', 'private-db-password', 'private-root-password');
+        ->and($commands)->not->toContain('base64:'.base64_encode(str_repeat('k', 32)), 'private-db-password', 'private-root-password');
     preg_match('/--from-env-file=([^\s]+)/', $commands, $matches);
     expect($matches)->toHaveCount(2)
         ->and(file_exists($matches[1]))->toBeFalse();
@@ -160,7 +160,7 @@ it('does not start services when another container holds the migration lock', fu
 
 function panelDeploymentEnvironment(object $test): array
 {
-    return ['DOMAIN' => 'panel.example.com', 'APP_KEY' => 'private-app-key',
+    return ['DOMAIN' => 'panel.example.com', 'APP_KEY' => 'base64:'.base64_encode(str_repeat('k', 32)),
         'DB_PASSWORD' => 'private-db-password', 'DB_ROOT_PASSWORD' => 'private-root-password',
         'IMAGE_TAG' => 'release-1', 'COMMAND_LOG' => $test->sandbox.'/commands.log'];
 }
