@@ -10,6 +10,7 @@
         </testsuite>
         <testsuite name="Hosting DNS">
             <file>tests/PowerDnsClusterTest.php</file>
+            <file>tests/PublishHostingDnsTest.php</file>
         </testsuite>
         <testsuite name="Unit">
             <directory>tests/Unit</directory>

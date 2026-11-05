@@ -1,0 +1,87 @@
+name: Deploy Kubernetes release
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Published, reviewed control-panel image tag
+        required: true
+        type: string
+      image_digest:
+        description: Reviewed immutable image digest (sha256 followed by 64 hex digits)
+        required: true
+        type: string
+      seed_policy:
+        description: Migration seeding policy (seeders must be production-safe)
+        type: choice
+        default: never
+        options: [never, first-create, each-release]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: control-panel-production-kubernetes
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install independently pinned kubectl
+        env:
+          KUBECTL_VERSION: ${{ vars.KUBECTL_VERSION }}
+          KUBECTL_SHA256: ${{ vars.KUBECTL_SHA256 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$KUBECTL_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$KUBECTL_SHA256" =~ ^[a-f0-9]{64}$ ]]
+          mkdir -p "$RUNNER_TEMP/control-panel-bin"
+          curl --fail --silent --show-error --proto '=https' --tlsv1.2 \
+            "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl" \
+            --location --proto-redir '=https' --output "$RUNNER_TEMP/control-panel-bin/kubectl"
+          printf '%s  %s\n' "$KUBECTL_SHA256" "$RUNNER_TEMP/control-panel-bin/kubectl" | sha256sum --check --status
+          chmod 700 "$RUNNER_TEMP/control-panel-bin/kubectl"
+          echo "$RUNNER_TEMP/control-panel-bin" >> "$GITHUB_PATH"
+      - name: Deploy using explicitly selected production secrets
+        env:
+          PRODUCTION_ENV: ${{ secrets.PRODUCTION_ENV }}
+          PRODUCTION_KUBECONFIG: ${{ secrets.PRODUCTION_KUBECONFIG }}
+          APP_KEY: ${{ secrets.APP_KEY }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          DOMAIN: ${{ vars.DOMAIN }}
+          NAMESPACE: ${{ vars.KUBERNETES_NAMESPACE }}
+          KUBE_CONTEXT: ${{ vars.KUBERNETES_CONTEXT }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          MIGRATION_SEED_POLICY: ${{ inputs.seed_policy }}
+          CREATE_NAMESPACE: 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          export APP_ENV_FILE="$RUNNER_TEMP/control-panel-production.env"
+          export KUBECONFIG="$RUNNER_TEMP/control-panel-kubeconfig"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          for source, target in [('PRODUCTION_ENV', 'APP_ENV_FILE'), ('PRODUCTION_KUBECONFIG', 'KUBECONFIG')]:
+              value = os.environ[source]
+              if not value:
+                  raise SystemExit('Required protected deployment secret is missing.')
+              destination = Path(os.environ[target])
+              descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+              with os.fdopen(descriptor, 'w') as output:
+                  output.write(value)
+          PY
+          unset PRODUCTION_ENV PRODUCTION_KUBECONFIG
+          bash install.sh kubernetes
+      - name: Remove temporary credentials
+        if: always()
+        shell: bash
+        run: rm -f -- "$RUNNER_TEMP/control-panel-production.env" "$RUNNER_TEMP/control-panel-kubeconfig"

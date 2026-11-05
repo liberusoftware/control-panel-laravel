@@ -7,7 +7,9 @@ if (($#)); then
 Usage: ./install.sh kubernetes
 
 Required environment: DOMAIN, APP_KEY, DB_PASSWORD, DB_ROOT_PASSWORD, IMAGE_TAG.
-Optional environment: ENVIRONMENT=production|development, NAMESPACE.
+Optional environment: ENVIRONMENT=production|development, NAMESPACE, KUBE_CONTEXT,
+APP_ENV_FILE (protected production dotenv file), IMAGE_DIGEST,
+CREATE_NAMESPACE=true|false, MIGRATION_SEED_POLICY=never|first-create|each-release.
 Uses the current kubectl context. Preserve credentials and APP_KEY on upgrades.
 Requires shared ReadWriteMany storage, an ingress controller, and TLS management.
 HELP
@@ -30,17 +32,26 @@ DB_PASSWORD="${DB_PASSWORD:?Set DB_PASSWORD}"
 DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD}"
 IMAGE_TAG="${IMAGE_TAG:?Set IMAGE_TAG to a published release tag}"
 [[ "$NAMESPACE" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ && ${#NAMESPACE} -le 63 ]] || { printf 'Invalid namespace.\n' >&2; exit 2; }
-[[ "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ && "$DOMAIN" == *.* && ${#DOMAIN} -le 253 ]] || { printf 'Invalid hostname.\n' >&2; exit 2; }
+[[ "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$ && "$DOMAIN" == *.* && ${#DOMAIN} -le 250 ]] || { printf 'Invalid hostname.\n' >&2; exit 2; }
 IFS='.' read -r -a hostname_labels <<< "$DOMAIN"
 for label in "${hostname_labels[@]}"; do
     [[ ${#label} -le 63 && "$label" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$ ]] || { printf 'Invalid hostname label.\n' >&2; exit 2; }
 done
 [[ "$IMAGE_TAG" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_.-]*$ && ${#IMAGE_TAG} -le 128 ]] || { printf 'Invalid image tag.\n' >&2; exit 2; }
+if [[ -n "${IMAGE_DIGEST:-}" && ! "$IMAGE_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+    printf 'IMAGE_DIGEST must be a sha256 digest.\n' >&2; exit 2
+fi
 # Newlines cannot be represented safely in an env-file value.
 for value in "$APP_KEY" "$DB_PASSWORD" "$DB_ROOT_PASSWORD"; do
     [[ "$value" != *$'\n'* && "$value" != *$'\r'* ]] || { printf 'Credentials must be single-line values.\n' >&2; exit 2; }
 done
 
+command -v python3 >/dev/null || { printf 'Python 3 is required.\n' >&2; exit 1; }
+if [[ -n "${KUBE_CONTEXT:-}" ]]; then
+    kubectl() { command kubectl --context "$KUBE_CONTEXT" "$@"; }
+elif [[ "${GITHUB_ACTIONS:-}" == true || "${CI:-}" == true ]]; then
+    printf 'Set an explicit KUBE_CONTEXT for CI deployment.\n' >&2; exit 2
+fi
 command -v kubectl >/dev/null || { printf 'kubectl is required.\n' >&2; exit 1; }
 
 # Render from a private copy; never edit the checkout or write credentials to it.
@@ -52,6 +63,9 @@ overlay="$render_dir/overlays/$ENVIRONMENT"
 # Overlays already declare namespace/image. Replace only those scalar values.
 sed "s/^namespace: .*/namespace: $NAMESPACE/; s/  newTag: .*/  newTag: $IMAGE_TAG/" "$overlay/kustomization.yaml" > "$overlay/rendered.yaml"
 mv "$overlay/rendered.yaml" "$overlay/kustomization.yaml"
+if [[ -n "${IMAGE_DIGEST:-}" ]]; then
+    printf '  digest: %s\n' "$IMAGE_DIGEST" >> "$overlay/kustomization.yaml"
+fi
 cat >> "$overlay/kustomization.yaml" <<YAML
 
 patchesJson6902:
@@ -84,14 +98,66 @@ YAML
 cat >> "$render_dir/base/configmap.yaml" <<YAML
   APP_URL: "https://$DOMAIN"
 YAML
+# Split root credentials from application credentials. Never inject DB_ROOT_PASSWORD into app pods.
+printf 'APP_KEY=%s\nDB_USERNAME=liberu\nDB_PASSWORD=%s\nREDIS_PASSWORD=\n' "$APP_KEY" "$DB_PASSWORD" > "$render_dir/secrets.env"
+printf 'DB_ROOT_PASSWORD=%s\n' "$DB_ROOT_PASSWORD" > "$render_dir/admin-secrets.env"
+# Read-only key check happens before namespace/secret/workload mutation.
+kubectl get secret boilerplate-secrets --namespace="$NAMESPACE" --ignore-not-found -o json > "$render_dir/existing-secret.json"
+kubectl get secret boilerplate-database-admin --namespace="$NAMESPACE" --ignore-not-found -o json > "$render_dir/existing-admin-secret.json"
+python3 "$root/render-runtime.py" "$render_dir" "$overlay" "${IMAGE_DIGEST:-$IMAGE_TAG}" "${MIGRATION_SEED_POLICY:-never}"
 kubectl kustomize "$overlay" > "$render_dir/manifests.yaml"
-kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-# Use a protected env file so passwords do not appear in kubectl process arguments.
-printf 'APP_KEY=%s\nDB_USERNAME=liberu\nDB_PASSWORD=%s\nDB_ROOT_PASSWORD=%s\nREDIS_PASSWORD=\n' "$APP_KEY" "$DB_PASSWORD" "$DB_ROOT_PASSWORD" > "$render_dir/secrets.env"
+case "${CREATE_NAMESPACE:-true}" in
+    true) kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - ;;
+    false) : ;; # A namespace-scoped deployment identity uses an operator-created namespace.
+    *) printf 'CREATE_NAMESPACE must be true or false.\n' >&2; exit 2 ;;
+esac
+kubectl create secret generic boilerplate-database-admin --from-env-file="$render_dir/admin-secrets.env" \
+    --namespace="$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+if python3 - "$render_dir/existing-secret.json" <<'PYCODE'
+import json, sys
+sys.exit(0 if 'DB_ROOT_PASSWORD' in json.loads(open(sys.argv[1]).read() or '{}').get('data', {}) else 1)
+PYCODE
+then
+    kubectl patch secret boilerplate-secrets --namespace="$NAMESPACE" --type=json \
+        -p '[{"op":"remove","path":"/data/DB_ROOT_PASSWORD"}]' >/dev/null
+fi
 kubectl create secret generic boilerplate-secrets --from-env-file="$render_dir/secrets.env" \
     --namespace="$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -f "$render_dir/manifests.yaml"
+if [[ -f "$render_dir/production.env" ]]; then
+    kubectl create secret generic boilerplate-runtime-env --from-file=".env=$render_dir/production.env" \
+        --namespace="$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+fi
+kubectl apply -f "$render_dir/manifests.yaml" -l 'component notin (application,horizon,reverb,scheduler,migration)'
+kubectl rollout status statefulset/boilerplate-mysql -n "$NAMESPACE" --timeout=300s
+kubectl rollout status deployment/boilerplate-redis -n "$NAMESPACE" --timeout=300s
+kubectl apply -f "$render_dir/manifests.yaml" -l component=migration
+migration_name="$(cat "$render_dir/migration-name")"
+kubectl wait --for=condition=complete "job/$migration_name" -n "$NAMESPACE" --timeout=1800s
+kubectl apply -f "$render_dir/manifests.yaml" -l 'component in (application,horizon,reverb,scheduler)'
 for workload in boilerplate-laravel boilerplate-horizon boilerplate-reverb; do
     kubectl rollout status "deployment/$workload" -n "$NAMESPACE" --timeout=300s
 done
+kubectl wait --for=condition=Ready certificate/boilerplate-tls certificate/boilerplate-reverb-tls -n "$NAMESPACE" --timeout=300s
+kubectl get certificate boilerplate-tls boilerplate-reverb-tls -n "$NAMESPACE" -o json > "$render_dir/certificates.json"
+kubectl get ingress boilerplate-laravel boilerplate-reverb -n "$NAMESPACE" -o json > "$render_dir/ingresses.json"
+python3 - "$render_dir" "$DOMAIN" "${CLUSTER_ISSUER:-letsencrypt-prod}" <<'PYCODE'
+import datetime, json, pathlib, sys
+try:
+    root = pathlib.Path(sys.argv[1])
+    certificates = {item['metadata']['name']: item for item in json.loads((root / 'certificates.json').read_text())['items']}
+    ingresses = {item['metadata']['name']: item for item in json.loads((root / 'ingresses.json').read_text())['items']}
+    for certificate, ingress, host in [('boilerplate-tls', 'boilerplate-laravel', sys.argv[2]), ('boilerplate-reverb-tls', 'boilerplate-reverb', 'ws.' + sys.argv[2])]:
+        cert, route = certificates[certificate], ingresses[ingress]
+        if host not in cert['spec']['dnsNames'] or cert['spec']['issuerRef']['name'] != sys.argv[3]:
+            raise ValueError()
+        if not any(item.get('type') == 'Ready' and item.get('status') == 'True' and item.get('observedGeneration', 0) >= cert['metadata']['generation'] for item in cert['status']['conditions']):
+            raise ValueError()
+        expiry = datetime.datetime.fromisoformat(cert['status']['notAfter'].replace('Z', '+00:00'))
+        if expiry <= datetime.datetime.now(datetime.timezone.utc) or not route['status']['loadBalancer']['ingress']:
+            raise ValueError()
+        if not any(rule.get('host') == host for rule in route['spec']['rules']):
+            raise ValueError()
+except (ValueError, KeyError, TypeError, OSError):
+    raise SystemExit('TLS or ingress readiness is not verified for the current hostname and certificate generation. Inspect issuer/challenge status and rerun; no successful HTTPS deployment was reported.')
+PYCODE
 printf 'Deployment ready: https://%s\nNamespace: %s\n' "$DOMAIN" "$NAMESPACE"

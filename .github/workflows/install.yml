@@ -27,6 +27,9 @@ jobs:
             exit 1
           fi
 
+      - name: Test Kubernetes onboarding planners
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+
       - name: Setup PHP for deployment tests
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
         with:
@@ -35,7 +38,7 @@ jobs:
       - name: Install test dependencies without bootstrapping the application
         run: composer install --no-scripts --no-interaction --prefer-dist
       - name: Test deployment script behavior
-        run: php vendor/bin/pest tests/DeploymentScriptsTest.php tests/PowerDnsClusterTest.php --compact
+        run: php vendor/bin/pest tests/DeploymentScriptsTest.php tests/PowerDnsClusterTest.php tests/PublishHostingDnsTest.php --compact
 
   install:
     runs-on: ubuntu-latest

@@ -4,11 +4,15 @@ set -euo pipefail
 root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 usage() {
     cat <<'HELP'
-Usage: ./install.sh [standalone|compose|docker|kubernetes] [options]
+Usage: ./install.sh [standalone|compose|docker|kubernetes|kubernetes-node|kubernetes-services] [options]
 
 standalone  Forward options to scripts/setup.sh (--environment, --migrate, --no-build).
 compose     Validate configuration, build and start Docker Compose services.
 kubernetes  Deploy using k8s/deploy.sh; credentials are supplied via environment.
+
+kubernetes-node      Plan secure node onboarding; pass --apply to install on a node.
+kubernetes-services  Plan checksum-pinned service charts; pass --apply to install.
+See k8s/ONBOARDING.md for prerequisites and profiles.
 
 With no mode, show an interactive menu. Unattended callers must select a mode.
 Existing .env files and application keys are preserved. No seed data is installed.
@@ -36,6 +40,8 @@ case "$mode" in
     kubernetes|3)
         exec bash "$root/k8s/deploy.sh" "$@"
         ;;
+    kubernetes-node) exec python3 "$root/k8s/node-onboard.py" "$@" ;;
+    kubernetes-services) exec python3 "$root/k8s/service-setup.py" "$@" ;;
     --help|-h) usage ;;
     4) exit 0 ;;
     *) usage >&2; exit 2 ;;

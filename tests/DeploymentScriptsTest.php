@@ -15,6 +15,7 @@ beforeEach(function (): void {
         $process = new Process(['bash', $this->projectRoot.'/'.$script, ...$arguments], $this->sandbox, [
             'PATH' => $this->sandbox.'/bin:'.getenv('PATH'),
             'CONTAINER_MODE' => false,
+            'CI' => false, 'GITHUB_ACTIONS' => false, 'KUBE_CONTEXT' => false, 'APP_ENV_FILE' => false,
             ...$environment,
         ]);
         $process->run();
@@ -154,4 +155,88 @@ it('does not start services when another container holds the migration lock', fu
     expect($result->getExitCode())->toBe(75)
         ->and($result->getOutput())->toContain('migrate --isolated=75 --force --no-interaction')
         ->and($result->getOutput())->not->toContain('Octane Server:', '--seed');
+});
+
+function panelDeploymentEnvironment(object $test): array
+{
+    return ['DOMAIN' => 'panel.example.com', 'APP_KEY' => 'private-app-key',
+        'DB_PASSWORD' => 'private-db-password', 'DB_ROOT_PASSWORD' => 'private-root-password',
+        'IMAGE_TAG' => 'release-1', 'COMMAND_LOG' => $test->sandbox.'/commands.log'];
+}
+
+function stubPanelDeploymentKubectl(object $test): void
+{
+    ($test->stubCommand)('kubectl', <<<'SH'
+        printf '%s\n' "$*" >> "$COMMAND_LOG"
+        case "$1" in
+            kustomize) cat "$2/kustomization.yaml" ;;
+            get) case "$2" in
+                certificate) cat "$CERTIFICATES_FILE" ;;
+                ingress) cat "$INGRESSES_FILE" ;;
+                *) printf '{}\n' ;;
+                esac ;;
+            create) printf '{}\n' ;;
+            apply) if [ "$3" = '-' ]; then cat > /dev/null; fi ;;
+            wait) if [ "${FAIL_MIGRATION:-false}" = true ] && [ "$2" = '--for=condition=complete' ]; then exit 31; fi ;;
+        esac
+        SH);
+}
+
+it('blocks application rollout when the release migration job fails', function (): void {
+    stubPanelDeploymentKubectl($this);
+    $result = ($this->runScript)('k8s/deploy.sh', [], [...panelDeploymentEnvironment($this), 'FAIL_MIGRATION' => 'true']);
+    $commands = file_get_contents($this->sandbox.'/commands.log');
+    expect($result->getExitCode())->toBe(31)
+        ->and($commands)->toContain('component=migration')
+        ->not->toContain('component in (application,horizon,reverb,scheduler)')
+        ->and($result->getOutput())->not->toContain('Deployment ready');
+});
+
+it('requires an explicit Kubernetes context in CI before contacting a cluster', function (): void {
+    ($this->stubCommand)('kubectl', 'touch cluster-was-touched');
+    $result = ($this->runScript)('k8s/deploy.sh', [], [...panelDeploymentEnvironment($this), 'CI' => 'true']);
+    expect($result->getExitCode())->toBe(2)->and(file_exists($this->sandbox.'/cluster-was-touched'))->toBeFalse();
+});
+
+it('refuses an exposed production dotenv file before changing the cluster', function (): void {
+    ($this->stubCommand)('kubectl', <<<'SH'
+        if [ "$1" = get ]; then printf '{}\n'; else touch cluster-was-mutated; fi
+        SH);
+    $path = $this->sandbox.'/production.env';
+    file_put_contents($path, 'STRIPE_SECRET=private-stripe');
+    chmod($path, 0644);
+    $result = ($this->runScript)('k8s/deploy.sh', [], [...panelDeploymentEnvironment($this), 'APP_ENV_FILE' => $path]);
+    expect($result->isSuccessful())->toBeFalse()
+        ->and(file_exists($this->sandbox.'/cluster-was-mutated'))->toBeFalse()
+        ->and($result->getErrorOutput())->not->toContain('private-stripe');
+});
+
+it('only reports successful deployment after verifying current certificates and ingress addresses', function (bool $expired): void {
+    stubPanelDeploymentKubectl($this);
+    $certificates = [];
+    $ingresses = [];
+    foreach (['boilerplate-tls' => ['boilerplate-laravel', 'panel.example.com'], 'boilerplate-reverb-tls' => ['boilerplate-reverb', 'ws.panel.example.com']] as $name => [$route, $host]) {
+        $certificates[] = ['metadata' => ['name' => $name, 'generation' => 2],
+            'spec' => ['dnsNames' => [$host], 'issuerRef' => ['name' => 'letsencrypt-prod']],
+            'status' => ['notAfter' => gmdate(DATE_ATOM, time() + ($expired ? -86400 : 86400)), 'conditions' => [['type' => 'Ready', 'status' => 'True', 'observedGeneration' => 2]]]];
+        $ingresses[] = ['metadata' => ['name' => $route], 'spec' => ['rules' => [['host' => $host]]], 'status' => ['loadBalancer' => ['ingress' => [['ip' => '192.0.2.10']]]]];
+    }
+    file_put_contents($this->sandbox.'/certificates.json', json_encode(['items' => $certificates], JSON_THROW_ON_ERROR));
+    file_put_contents($this->sandbox.'/ingresses.json', json_encode(['items' => $ingresses], JSON_THROW_ON_ERROR));
+    $result = ($this->runScript)('k8s/deploy.sh', [], [...panelDeploymentEnvironment($this),
+        'CERTIFICATES_FILE' => $this->sandbox.'/certificates.json', 'INGRESSES_FILE' => $this->sandbox.'/ingresses.json']);
+    expect($result->isSuccessful())->toBe(! $expired);
+    if ($expired) {
+        expect($result->getOutput())->not->toContain('Deployment ready');
+    } else {
+        expect($result->getOutput())->toContain('Deployment ready');
+    }
+})->with([false, true]);
+
+it('keeps live validation read-only and fails when its cluster is unavailable', function (): void {
+    ($this->stubCommand)('kubectl', <<<'SH'
+        case "$1" in kustomize) exit 0 ;; cluster-info) exit 1 ;; *) touch cluster-was-mutated ;; esac
+        SH);
+    $result = ($this->runScript)('k8s/validate.sh');
+    expect($result->isSuccessful())->toBeFalse()->and(file_exists($this->sandbox.'/cluster-was-mutated'))->toBeFalse();
 });

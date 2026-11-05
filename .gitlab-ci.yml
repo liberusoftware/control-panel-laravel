@@ -1,0 +1,59 @@
+stages:
+  - validate
+  - build
+
+installer-interface:
+  stage: validate
+  image: bash:5.3
+  script:
+    - bash -n install.sh scripts/setup.sh k8s/deploy.sh
+    - sh -n .docker/start-container .docker/healthcheck
+    - bash install.sh --help
+    - bash install.sh kubernetes --help
+
+container-build:
+  stage: build
+  image:
+    name: moby/buildkit:v0.34.2-rootless
+    entrypoint: ['']
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  script:
+    - >-
+      buildctl-daemonless.sh build
+      --frontend dockerfile.v0
+      --local context=.
+      --local dockerfile=.
+      --output type=oci,dest=/tmp/control-panel-image.tar
+
+publish-container:
+  stage: build
+  image:
+    name: moby/buildkit:v0.34.2-rootless
+    entrypoint: ['']
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+    DOCKER_CONFIG: /tmp/control-panel-registry-auth
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG'
+      when: manual
+  before_script:
+    - umask 077
+    - mkdir -p "$DOCKER_CONFIG"
+    - registry_auth="$(printf '%s:%s' "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" | base64 | tr -d '\n')"
+    - printf '{"auths":{"%s":{"auth":"%s"}}}\n' "$CI_REGISTRY" "$registry_auth" > "$DOCKER_CONFIG/config.json"
+  script:
+    - >-
+      buildctl-daemonless.sh build
+      --frontend dockerfile.v0
+      --local context=.
+      --local dockerfile=.
+      --output "type=image,name=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA,push=true"
+      --metadata-file image-metadata.json
+  after_script:
+    - rm -f -- /tmp/control-panel-registry-auth/config.json
+    - rmdir -- /tmp/control-panel-registry-auth
+  artifacts:
+    paths:
+      - image-metadata.json
+    expire_in: 7 days

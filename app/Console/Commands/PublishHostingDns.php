@@ -8,10 +8,10 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
+use InvalidArgumentException;
+use Liberu\ControlPanel\Dns\Actions\RecordDnsCheck;
 use Liberu\ControlPanel\Dns\DnsServiceProvider;
 use Liberu\ControlPanel\Dns\Enums\ZoneStatus;
-use Liberu\ControlPanel\Dns\Models\DnsCheck;
 use Liberu\ControlPanel\Dns\Models\Zone;
 use Throwable;
 
@@ -19,7 +19,7 @@ use Throwable;
 #[Description('Publish an allowlisted zone to PowerDNS nodes and verify API read-back on every node')]
 class PublishHostingDns extends Command
 {
-    public function handle(PowerDnsCluster $cluster, PowerDnsZone $names): int
+    public function handle(PowerDnsCluster $cluster, PowerDnsZone $names, RecordDnsCheck $checks): int
     {
         if (! app()->providerIsLoaded(DnsServiceProvider::class)) {
             $this->error('Enable the control-panel-dns module before publishing DNS.');
@@ -68,11 +68,13 @@ class PublishHostingDns extends Command
             $result['verified'] = $result['verified'] && $unchanged;
             $result['inventory_unchanged'] = $unchanged;
             $ready = $unchanged && count(array_filter($result['nodes'], fn (array $node): bool => str_starts_with($node['status'], 'ready-'))) === count($result['nodes']);
-            DnsCheck::query()->create([
-                'id' => (string) Str::uuid(), 'team_id' => $zone->team_id, 'zone_id' => $zone->getKey(),
-                'kind' => $dryRun ? 'powerdns-preflight' : 'powerdns-publication',
+            $result['driver'] = 'powerdns';
+            $result['operation'] = $dryRun ? 'preflight' : 'publication';
+            $checks->execute([
+                'team_id' => $zone->team_id, 'zone_id' => $zone->getKey(),
+                'kind' => 'validation',
                 'status' => ($dryRun ? $ready : $result['verified']) ? 'passed' : 'failed',
-                'result' => $result, 'checked_at' => now(),
+                'result' => $result,
             ]);
             $this->table(['Node', 'Result'], collect($result['nodes'])->map(fn (array $node, string $alias): array => [$alias, $node['status']])->values()->all());
             if ($dryRun && $ready) {
@@ -88,6 +90,10 @@ class PublishHostingDns extends Command
             $this->info('DNS API records verified on every configured node. Check delegation and live DNS responses separately.');
 
             return self::SUCCESS;
+        } catch (InvalidArgumentException $exception) {
+            $this->error($exception->getMessage());
+
+            return self::FAILURE;
         } catch (Throwable) {
             $this->error('DNS publication failed. Check the allowlist, record validation, Redis and node connectivity. No cluster-wide success was recorded.');
 

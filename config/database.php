@@ -3,6 +3,30 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+$cacheClusterUrls = array_values(array_filter(array_map('trim', explode(',', (string) env('REDIS_CACHE_CLUSTER_NODES', '')))));
+$cacheClusterSeeds = [];
+if ($cacheClusterUrls !== []) {
+    if (count(array_unique($cacheClusterUrls)) < 2) {
+        throw new InvalidArgumentException('Configure at least two distinct TLS Redis/Valkey cluster seed URLs.');
+    }
+    foreach ($cacheClusterUrls as $url) {
+        $parts = parse_url($url);
+        if (! is_array($parts) || ($parts['scheme'] ?? '') !== 'tls' || empty($parts['host'])
+            || isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])
+            || ! in_array($parts['path'] ?? '', ['', '/'], true) || preg_match('/[\x00-\x20\x7f]/', $url)) {
+            throw new InvalidArgumentException('Cluster seeds must be tls://host:port URLs without credentials, database paths or query parameters.');
+        }
+        $port = $parts['port'] ?? 6379;
+        if ($port < 1 || $port > 65535) {
+            throw new InvalidArgumentException('Invalid Redis/Valkey cluster seed port.');
+        }
+        $cacheClusterSeeds[] = ['scheme' => 'tls', 'host' => $parts['host'], 'port' => $port, 'database' => 0];
+    }
+    if (count(array_unique(array_map(fn (array $seed): string => strtolower($seed['host']).':'.$seed['port'], $cacheClusterSeeds))) < 2) {
+        throw new InvalidArgumentException('Configure at least two distinct Redis/Valkey cluster seed endpoints.');
+    }
+}
+
 return [
 
     /*
@@ -146,6 +170,19 @@ return [
     'redis' => [
 
         'client' => env('REDIS_CLIENT', 'phpredis'),
+
+        // Horizon and queue workers keep the non-clustered default connection.
+        'clusters' => $cacheClusterSeeds === [] ? [] : [
+            'cache-cluster' => [...$cacheClusterSeeds, 'options' => [
+                'username' => env('REDIS_CACHE_CLUSTER_USERNAME', 'default'),
+                'password' => env('REDIS_CACHE_CLUSTER_PASSWORD'),
+                'timeout' => 3, 'read_timeout' => 3,
+                'context' => ['ssl' => array_filter([
+                    'verify_peer' => true, 'verify_peer_name' => true,
+                    'cafile' => env('REDIS_CACHE_CLUSTER_CA'),
+                ], fn (mixed $value): bool => $value !== null && $value !== '')],
+            ]],
+        ],
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),

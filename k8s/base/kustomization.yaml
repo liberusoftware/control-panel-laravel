@@ -9,6 +9,7 @@ resources:
 - redis.yaml
 - nginx-configmap.yaml
 - deployment.yaml
+- migration-job.yaml
 - queue-worker.yaml
 - service.yaml
 - horizon.yaml

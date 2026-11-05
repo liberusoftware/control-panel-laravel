@@ -10,6 +10,9 @@ NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 K8S_DIR="${SCRIPT_DIR}"
+if [[ -n "${KUBE_CONTEXT:-}" ]]; then
+    kubectl() { command kubectl --context "$KUBE_CONTEXT" "$@"; }
+fi
 
 log_info()    { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
@@ -93,38 +96,18 @@ check_namespace() {
         log_success "Namespace '$namespace' exists"
         return 0
     else
-        log_warning "Namespace '$namespace' does not exist"
-        read -p "Create namespace? (y/N) " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            kubectl create namespace "$namespace" && log_success "Namespace created"
-        fi
+        log_error "Namespace '$namespace' does not exist; validation does not create resources"
+        return 1
     fi
 }
 
 validate_deployment() {
     local namespace="${1:-boilerplate-laravel}"
-    log_info "Checking deployment status in namespace: $namespace..."
-    if ! kubectl get namespace "$namespace" &> /dev/null; then
-        log_error "Namespace '$namespace' does not exist"
-        return 1
-    fi
-    if kubectl get deployment -n "$namespace" boilerplate-laravel &> /dev/null; then
-        local replicas ready available
-        replicas=$(kubectl get deployment -n "$namespace" boilerplate-laravel -o jsonpath='{.status.replicas}')
-        ready=$(kubectl get deployment -n "$namespace" boilerplate-laravel -o jsonpath='{.status.readyReplicas}')
-        available=$(kubectl get deployment -n "$namespace" boilerplate-laravel -o jsonpath='{.status.availableReplicas}')
-        log_info "Deployment: replicas=$replicas ready=${ready:-0} available=${available:-0}"
-        if [ "${ready:-0}" -eq "$replicas" ] && [ "${available:-0}" -eq "$replicas" ]; then
-            log_success "Deployment is healthy"
-        else
-            log_warning "Deployment is not fully ready"
-            kubectl get pods -n "$namespace" -l app=boilerplate-laravel
-            kubectl get events -n "$namespace" --sort-by='.lastTimestamp' | tail -10
-        fi
-    else
-        log_warning "Deployment 'boilerplate-laravel' not found in namespace '$namespace'"
-    fi
+    local workload
+    for workload in statefulset/boilerplate-mysql deployment/boilerplate-redis deployment/boilerplate-laravel deployment/boilerplate-horizon deployment/boilerplate-reverb; do
+        kubectl rollout status "$workload" -n "$namespace" --timeout=60s || return 1
+    done
+    log_success "Current-generation panel workloads are ready; service failover and external DNS/mail/TLS require separate verification"
 }
 
 main() {
@@ -148,13 +131,13 @@ main() {
     if [ "$skip_cluster" = "false" ]; then
         echo ""
         check_cluster_connectivity || {
-            log_warning "Cluster not reachable — skipping live checks (set SKIP_CLUSTER_CHECKS=true to suppress)"
-            exit 0
+            log_error "Cluster not reachable; use SKIP_CLUSTER_CHECKS=true only for explicit offline rendering"
+            exit 1
         }
         echo ""
-        check_namespace "$namespace"
+        check_namespace "$namespace" || exit 1
         echo ""
-        validate_deployment "$namespace"
+        validate_deployment "$namespace" || exit 1
     else
         log_info "Skipping cluster checks (SKIP_CLUSTER_CHECKS=true)"
     fi

@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: boilerplate-migration
+  labels:
+    app: boilerplate-laravel
+    component: migration
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800
+  template:
+    metadata:
+      labels:
+        app: boilerplate-laravel
+        component: migration
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      containers:
+      - name: migration
+        image: ghcr.io/liberusoftware/control-panel-laravel:latest
+        command: ["/usr/local/bin/start-container", "php", "artisan", "hosting:bootstrap", "--isolated=75", "--no-interaction", "--seed-policy=never"]
+        envFrom:
+        - configMapRef:
+            name: boilerplate-config
+        - secretRef:
+            name: boilerplate-secrets
+        volumeMounts:
+        - name: storage
+          mountPath: /var/www/html/storage
+        - name: cache
+          mountPath: /var/www/html/bootstrap/cache
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+      volumes:
+      - name: storage
+        persistentVolumeClaim:
+          claimName: boilerplate-storage
+      - name: cache
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000

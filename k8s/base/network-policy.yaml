@@ -15,7 +15,7 @@ spec:
   - from:
     - namespaceSelector:
         matchLabels:
-          kubernetes.io/metadata.name: ingress-nginx
+          kubernetes.io/metadata.name: ingress-traefik
     ports:
     - protocol: TCP
       port: 80

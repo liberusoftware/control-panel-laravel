@@ -43,7 +43,7 @@ spec:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: boilerplate-secrets
+              name: boilerplate-database-admin
               key: DB_ROOT_PASSWORD
         volumeMounts:
         - name: mysql-data
