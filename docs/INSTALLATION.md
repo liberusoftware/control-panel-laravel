@@ -680,3 +680,56 @@ GitLab or other trusted CI can inject these variables and protected files and ca
 the same installer; always select `KUBE_CONTEXT` explicitly in CI and use a reviewed
 immutable application digest. No live database, queue or node failover was exercised
 in this code/test-only checkout.
+
+### Native archive preparation
+
+After collection, use the [migration preparation guide](MIGRATION_PREPARATION.md)
+for bounded tar/gzip inspection and optional private staging. It verifies the
+collection's team/cluster binding and artifact checksums, rejects unsafe archive
+members, and records file digests and recognized Virtualmin/cPanel component paths.
+This adds archive safety and layout evidence; provider conversion, service import,
+domain ownership verification and DNS cutover remain unimplemented.
+
+### GitLab production deployment
+
+Use a protected, dedicated shell runner with reviewed Bash, Python 3 and kubectl
+installed. Give it a namespace-scoped kubeconfig and require protected-environment
+approval for production. Set `APP_ENV_FILE`, `KUBECONFIG` and, for external services,
+`DB_CA_FILE`/`REDIS_CA_FILE` as **protected file-type CI variables** containing only
+the intended dotenv, kubeconfig and PEM data. Supply `APP_KEY`, database/queue
+passwords and other application secrets as protected masked variables; supply the
+non-secret installer settings, including `KUBE_CONTEXT`, as protected variables.
+Do not build a production dotenv file from `env`, `printenv` or every CI variable.
+CI job/deploy tokens, GitHub/GitLab CLI tokens, Kubernetes administrator credentials
+and database root keys are refused in application dotenv imports.
+
+A minimal job in an existing GitLab pipeline can use the same installer:
+
+```yaml
+deploy-hosting-production:
+  stage: deploy
+  tags: [hosting-deployer]
+  environment: production
+  resource_group: hosting-production
+  interruptible: false
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+    - when: never
+  script:
+    - test -n "$KUBE_CONTEXT"
+    - test -n "$IMAGE_DIGEST"
+    - test -f "$APP_ENV_FILE"
+    - test -f "$KUBECONFIG"
+    - export CREATE_NAMESPACE=false
+    - ./install.sh kubernetes
+```
+
+Configure the `hosting-deployer` runner tag and pipeline `deploy` stage before use.
+Pin the runner's tool versions and verify their checksums independently; the installer
+does not download a replacement kubectl. Use the same immutable image and migrations
+that passed CI. Select `PANEL_SERVICES=external` plus the external-service settings
+above when appropriate. The installer renders settings privately, refuses implicit
+credential/service rebinding, waits for its release migration receipt and validates
+rollouts and TLS in either CI system. The example is a deployment contract tested
+through local process fixtures; no GitLab production job was run from this checkout.

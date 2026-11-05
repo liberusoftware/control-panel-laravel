@@ -163,3 +163,38 @@ it('requires authentication', function (): void {
     expect(Websites::canAccess())->toBeFalse();
     Livewire::test(Websites::class)->assertForbidden();
 });
+
+it('shows an actionable next step for each website without asserting live availability', function (string $status, bool $host, ?int $expiryDays, bool $failed, string $message): void {
+    $domain = websiteForTeam($this->team);
+    $domain->update(['status' => $status]);
+    if ($host) {
+        $domain->virtualHosts()->create(['server' => 'nginx', 'document_root' => '/srv/site', 'active' => true]);
+    }
+    if ($expiryDays !== null) {
+        SslCertificate::query()->create(['team_id' => $this->team->getKey(), 'domain_id' => $domain->getKey(),
+            'issuer' => 'test', 'status' => 'issued', 'expires_at' => now()->addDays($expiryDays)]);
+    }
+    if ($failed) {
+        GitDeployment::query()->create(['team_id' => $this->team->getKey(), 'domain_id' => $domain->getKey(),
+            'repository_url' => 'https://example.test/repo.git', 'repository_type' => 'other', 'deploy_path' => '/srv/site', 'status' => 'failed']);
+    }
+    Livewire::test(Websites::class)->assertSee($message);
+})->with([
+    ['archived', true, 90, true, 'Archived. Ask your administrator about recovery or a new website.'],
+    ['suspended', true, 90, true, 'Suspended. Contact your team administrator before deploying.'],
+    ['pending', false, null, false, 'Next: complete account and hosting configuration.'],
+    ['active', true, 90, true, 'Next: review failed deployments before publishing another release.'],
+    ['active', false, null, false, 'Next: configure hosting, or ask your team administrator.'],
+    ['active', true, null, false, 'Next: record or request HTTPS, then verify the live website.'],
+    ['active', true, -1, false, 'Next: renew the recorded HTTPS certificate and check installation.'],
+    ['active', true, 10, false, 'Next: check certificate renewal and verify live HTTPS.'],
+    ['active', true, 90, false, 'Configuration recorded. Verify live DNS, HTTPS and restore readiness.'],
+]);
+
+it('does not let a foreign deployment alter the current team website next step', function (): void {
+    $domain = websiteForTeam($this->team);
+    GitDeployment::query()->create(['team_id' => Team::factory()->create()->getKey(), 'domain_id' => $domain->getKey(),
+        'repository_url' => 'https://private.test/other.git', 'repository_type' => 'other', 'deploy_path' => '/private', 'status' => 'failed']);
+    Livewire::test(Websites::class)->assertSee('Next: configure hosting, or ask your team administrator.')
+        ->assertDontSee('Next: review failed deployments before publishing another release.');
+});

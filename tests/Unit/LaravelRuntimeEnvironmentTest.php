@@ -45,7 +45,7 @@ it('does not print invalid dotenv content in errors', function (): void {
 it('rejects infrastructure credentials rather than forwarding them to tenants', function (string $key): void {
     file_put_contents($this->environmentFile, $key.'=private-token');
     expect(fn () => (new LaravelRuntimeEnvironment())->build($this->runtimeSettings))->toThrow(InvalidArgumentException::class, 'credentials');
-})->with(['GITHUB_TOKEN', 'GITLAB_TOKEN', 'KUBECONFIG', 'HOSTING_KUBERNETES_TOKEN', 'DB_ROOT_PASSWORD']);
+})->with(['GITHUB_TOKEN', 'GITLAB_TOKEN', 'GH_TOKEN', 'CI_JOB_TOKEN', 'ACTIONS_RUNTIME_TOKEN', 'KUBECONFIG', 'HOSTING_KUBERNETES_TOKEN', 'DB_ROOT_PASSWORD']);
 
 it('rejects site URLs containing credentials', function (): void {
     $this->runtimeSettings['app_url'] = 'https://private-user@site.example.test';

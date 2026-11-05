@@ -39,7 +39,7 @@ final class LaravelRuntimeEnvironment
         foreach ($values as $name => $value) {
             $this->ensure((bool) preg_match('/^[A-Z][A-Z0-9_]*$/D', $name)
                 && is_string($value) && ! str_contains($value, "\0"), 'Use uppercase dotenv keys and string values.');
-            $this->ensure(! preg_match('/^(?:GITHUB_|GITLAB_|CI_|KUBE|HOSTING_KUBERNETES_|DB_ROOT_|MYSQL_ROOT_)/', $name), 'Do not import CI, cluster-administrator or database-root credentials into tenant applications.');
+            $this->ensure(! preg_match('/^(?:GITHUB_|GITLAB_|GH_|CI_|ACTIONS_|KUBE|HOSTING_KUBERNETES_|DB_ROOT_|MYSQL_ROOT_)/', $name), 'Do not import CI, cluster-administrator or database-root credentials into tenant applications.');
         }
 
         // Environment variables override the mounted dotenv file in Laravel's immutable repository.

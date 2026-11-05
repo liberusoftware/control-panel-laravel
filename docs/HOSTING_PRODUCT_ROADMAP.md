@@ -22,6 +22,7 @@ The reference baseline was reviewed on 2026-09-06:
 - Ignore revoked certificates and cross-team certificate/deployment records when computing these indicators.
 - Show management links only when the resource is registered in the current panel, its policy allows the operation and its current-team scoping agrees with the selected team.
 - Use database aggregates instead of loading secrets or querying relationships once per website.
+- Show the next configuration or recovery step beneath each website name, prioritizing archived/suspended state, pending setup, failed deployments, hosting configuration and certificate renewal. Guidance does not claim live DNS, HTTPS or restore verification.
 
 These are configuration indicators, not uptime probes. The overview does not assert that a certificate is installed, that renewal works, or that a backup is recoverable. Customer accounts without the management resource get a read-only overview; adding a domain still requires their team administrator. No module is forcibly enabled by this change.
 
@@ -45,6 +46,32 @@ The first real recovery executor is documented in [Encrypted local-file backups]
 | P1 | Reseller and delegated hosting | Hosting packages, account delegation and teams | Enforce quotas and delegated permissions on both API and UI operations; test suspension, renewal and billing retries with provider sandboxes. |
 | P2 | Container and Kubernetes operations | Workloads, networks, secrets, clusters, ingress and autoscaling | Prove resource isolation, network policy, deployment readiness, rollback and node-failure recovery on disposable infrastructure. |
 | P2 | Fleet health and remediation | Monitoring, incidents, OS adapters and automation | Correlate timestamped observed health with configuration; proposed remediation includes scope and risk; retries and audit trails are tested. |
+
+
+## Deployment and migration implementation evidence
+
+The deployment adapters now support CNPG PostgreSQL, MariaDB Galera, Redis/Valkey
+clusters, tenant workload isolation, Laravel runtime Secrets and migration jobs,
+PowerDNS publication/readback, and configuration of existing Stalwart instances.
+Secure node/service onboarding and the panel's external database/replicated queue
+profile are documented in [installation](INSTALLATION.md) and
+[Kubernetes onboarding](../k8s/ONBOARDING.md). The external profile uses verified TLS,
+explicit network scopes and redundant application/Horizon/Reverb consumers; it does
+not automatically turn arbitrary endpoints, storage or ingress into HA services.
+
+[Migration preparation](MIGRATION_PREPARATION.md) now covers Virtualmin 8 GPL/Pro
+source inventory, scoped/pinned backup transfer, bounded tar/gzip safety checks,
+private staging and Virtualmin/cPanel layout recognition. Preparation reports keep
+service import and DNS mutation explicitly false. Native account conversion,
+SQL/mail import, complete DirectAdmin/Plesk layout conversion, independent domain
+proof and resumable cutover/rollback remain implementation work. End-user deployment
+and migration journeys still need a policy-tested UI over those executors.
+
+Local test contracts and offline manifests are evidence of implemented boundaries,
+not live infrastructure validation. The checkout remains code/test-only: node loss,
+mail/database recovery, TLS issuance, full migration and assembled browser journeys
+must pass their own live/disposable-environment acceptance gates before production
+parity claims.
 
 ## Release standard
 

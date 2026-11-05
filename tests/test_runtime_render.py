@@ -86,14 +86,16 @@ class RuntimeRenderTest(unittest.TestCase):
             self.assertIsNone(body['metadata']['annotations']['traefik.ingress.kubernetes.io/router.entrypoints'])
         self.assertIn('kubernetes.io/metadata.name: custom-ingress', (self.root / 'base/network-policy.yaml').read_text())
 
-    def test_dotenv_import_refuses_administrator_credentials(self):
+    def test_dotenv_import_refuses_administrator_and_ci_credentials(self):
         source = self.root / 'source.env'
-        source.write_text('DB_ROOT_PASSWORD=private-administrator-password\n')
-        source.chmod(0o600)
         os.environ['APP_ENV_FILE'] = str(source)
-        with self.assertRaises(ValueError):
-            self.render()
-        self.assertFalse((self.root / 'production.env').exists())
+        for key in ['DB_ROOT_PASSWORD', 'CI_JOB_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN', 'ACTIONS_RUNTIME_TOKEN', 'KUBECONFIG']:
+            with self.subTest(key=key):
+                source.write_text(key + '=private-administrator-password\n')
+                source.chmod(0o600)
+                with self.assertRaises(ValueError):
+                    self.render()
+                self.assertFalse((self.root / 'production.env').exists())
 
     def test_rejects_unknown_seed_policy_before_rendering(self):
         with self.assertRaises(ValueError):

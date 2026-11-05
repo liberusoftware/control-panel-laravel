@@ -6,6 +6,7 @@ beforeEach(function (): void {
     $this->projectRoot = dirname(__DIR__);
     $this->sandbox = sys_get_temp_dir().'/panel-deployment-'.bin2hex(random_bytes(8));
     mkdir($this->sandbox.'/bin', 0700, true);
+    $this->sandbox = realpath($this->sandbox);
     $this->stubCommand = function (string $name, string $body): void {
         $path = $this->sandbox.'/bin/'.$name;
         file_put_contents($path, "#!/bin/sh\nset -eu\n".$body."\n");

@@ -87,7 +87,8 @@ class Websites extends Page implements HasTable
         return $table
             ->query(fn (): Builder => $this->websitesQuery())
             ->columns([
-                TextColumn::make('hostname')->label('Website')->searchable()->sortable()->wrap(),
+                TextColumn::make('hostname')->label('Website')->searchable()->sortable()->wrap()
+                    ->description(fn (Domain $record): string => $this->nextStep($record)),
                 TextColumn::make('status')->badge()
                     ->formatStateUsing(fn (DomainStatus $state): string => ucfirst($state->value))
                     ->color(fn (DomainStatus $state): string => match ($state) {
@@ -128,6 +129,23 @@ class Websites extends Page implements HasTable
             ->emptyStateHeading('No websites found')
             ->emptyStateDescription('Add a domain to start hosting, or clear your search and filters. If you cannot add domains, ask your team administrator.')
             ->emptyStateIcon('heroicon-o-globe-alt');
+    }
+
+    protected function nextStep(Domain $record): string
+    {
+        $expiry = $record->getAttribute('certificate_expires_at');
+
+        return match (true) {
+            $record->getAttribute('status') === DomainStatus::Archived => 'Archived. Ask your administrator about recovery or a new website.',
+            $record->getAttribute('status') === DomainStatus::Suspended => 'Suspended. Contact your team administrator before deploying.',
+            $record->getAttribute('status') === DomainStatus::Pending => 'Next: complete account and hosting configuration.',
+            $record->getAttribute('failed_deployments_count') > 0 => 'Next: review failed deployments before publishing another release.',
+            $record->getAttribute('active_hosts_count') === 0 => 'Next: configure hosting, or ask your team administrator.',
+            $expiry === null => 'Next: record or request HTTPS, then verify the live website.',
+            $expiry <= now()->toDateTimeString() => 'Next: renew the recorded HTTPS certificate and check installation.',
+            $expiry <= now()->addDays(30)->toDateTimeString() => 'Next: check certificate renewal and verify live HTTPS.',
+            default => 'Configuration recorded. Verify live DNS, HTTPS and restore readiness.',
+        };
     }
 
     protected function certificateSummary(Domain $record): string

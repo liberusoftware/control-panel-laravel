@@ -161,7 +161,7 @@ def render(root, overlay, image, seed_policy):
         contents = protected_bytes(source)
         if b'\0' in contents:
             raise ValueError('Production environment files must not contain NUL bytes.')
-        if re.search(rb'(?m)^\s*(?:export\s+)?(?:GITHUB_[A-Z0-9_]*|GITLAB_[A-Z0-9_]*|KUBE[A-Z0-9_]*|DB_ROOT_PASSWORD|MYSQL_ROOT_PASSWORD|HOSTING_KUBERNETES_[A-Z0-9_]*)\s*=', contents):
+        if re.search(rb'(?m)^\s*(?:export\s+)?(?:GITHUB_[A-Z0-9_]*|GITLAB_[A-Z0-9_]*|GH_[A-Z0-9_]*|CI_[A-Z0-9_]*|ACTIONS_[A-Z0-9_]*|KUBE[A-Z0-9_]*|DB_ROOT_PASSWORD|MYSQL_ROOT_PASSWORD|HOSTING_KUBERNETES_[A-Z0-9_]*)\s*=', contents):
             raise ValueError('Production dotenv imports must exclude CI and administrator credentials.')
         (root / 'production.env').write_bytes(contents)
         (root / 'production.env').chmod(0o600)
