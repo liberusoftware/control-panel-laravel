@@ -265,3 +265,40 @@ The source project and its lockfile are not rewritten by publication. Different
 projects publishing the same directory name share a destination repository;
 coordinate their package contents. Run the publisher's local tests with
 `python3 -m unittest discover -s .github/scripts -p 'test_sync_packages.py'`.
+
+### Publishing DNS to PowerDNS nodes
+
+The optional `hosting:publish-dns primary` operator command publishes an allowlisted
+inventory zone to two to eight PowerDNS Authoritative nodes through their HTTPS
+APIs. Configure the `HOSTING_DNS_*` values in `.env.example`, use a shared Redis
+cache (`CACHE_STORE=redis`), and keep the DNS module enabled. URLs are the API
+origins, such as `https://dns-admin.example.net`, without `/api/v1`. Each API key
+belongs to its own node. Additional sources and clusters belong in
+`config/hosting-dns.php`, under operator control.
+
+```bash
+php artisan hosting:publish-dns primary --dry-run
+php artisan hosting:publish-dns primary
+```
+
+The zone must contain at least two distinct apex NS records. Record owners use
+`@`, relative labels, or fully qualified names ending in a dot. MX records use
+the inventory priority field; SRV content contains priority, weight, port and
+hostname. TXT content is plain text; the publisher escapes and chunks it.
+Unsigned Native zones are supported. DNSSEC and primary/secondary transfer
+configuration are intentionally rejected until dedicated support is implemented.
+
+The executor creates missing zones with a stable ownership marker and refuses
+existing zones with another account marker. Do not point it at existing manually
+managed zones: it owns **all non-SOA RRsets** in each managed zone and removes
+records absent from the inventory. SOA records remain server-managed. Dry-run
+checks connectivity and ownership without writing. Every node must pass preflight
+before publication starts. Each write is followed by API read-back; partial
+failures are reported, recorded in DNS checks, and can be reconciled by rerunning.
+There is no atomic commit across independent DNS servers.
+
+These checks verify API configuration, not authoritative UDP/TCP responses,
+registrar delegation, DNSSEC, resolver propagation, or automatic server failover.
+Host and monitor the DNS servers separately and test actual DNS service before
+using them for production domains. Never expose the PowerDNS administration API
+or its credentials to hosting users.
