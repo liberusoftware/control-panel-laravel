@@ -2,6 +2,7 @@
 
 namespace App\Hosting\Kubernetes;
 
+use App\Hosting\ProtectedFile;
 use Dotenv\Dotenv;
 use InvalidArgumentException;
 use Throwable;
@@ -15,14 +16,8 @@ final class LaravelRuntimeEnvironment
     {
         $path = $settings['environment_file'] ?? null;
         $this->ensure(is_string($path) && str_starts_with($path, '/') && is_file($path) && is_readable($path), 'Choose an existing protected production environment file.');
-        for ($parent = $path; $parent !== '/'; $parent = dirname($parent)) {
-            $this->ensure(! is_link($parent), 'Production environment files must not traverse symbolic links.');
-        }
-        $info = stat($path);
-        $this->ensure($info !== false && ($info['mode'] & 0077) === 0 && $info['size'] <= 65536
-            && (! function_exists('posix_geteuid') || $info['uid'] === posix_geteuid()), 'Production environment files must be operator-owned, private and at most 64 KiB.');
+        $contents = ProtectedFile::read($path, 65536);
         try {
-            $contents = file_get_contents($path);
             $values = Dotenv::parse($contents);
         } catch (Throwable) {
             throw new InvalidArgumentException('The production environment file has invalid dotenv syntax.');

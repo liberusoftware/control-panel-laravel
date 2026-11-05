@@ -6,6 +6,7 @@ use App\Hosting\Kubernetes\KubernetesProvisioner;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use InvalidArgumentException;
 use Liberu\ControlPanel\ControlCore\Actions\WriteAuditEntry;
@@ -19,7 +20,7 @@ use Liberu\ControlPanel\Kubernetes\Models\Cluster;
 use Throwable;
 
 #[Signature('hosting:deploy-data-cluster {source : Operator-owned database source alias} {--dry-run : Check the operator API and resource ownership without changing resources}')]
-#[Description('Provision persistent PostgreSQL, Redis or Valkey clusters on an allowlisted Kubernetes cluster')]
+#[Description('Provision persistent PostgreSQL, MariaDB, Redis or Valkey clusters on an allowlisted Kubernetes cluster')]
 class DeployDataCluster extends Command
 {
     public function handle(KubernetesProvisioner $provisioner, WriteAuditEntry $audit): int
@@ -40,7 +41,7 @@ class DeployDataCluster extends Command
         }
         $database = Database::query()->whereKey($source['database_id'])->where('team_id', $source['team_id'])->first();
         $engine = $database === null ? null : DatabaseEngine::query()->whereKey($database->getAttribute('engine_id'))->where('team_id', $source['team_id'])->where('active', true)->first();
-        $cluster = Cluster::query()->whereKey($source['cluster_id'])->where('team_id', $source['team_id'])->first();
+        $cluster = Cluster::query()->whereKey($source['cluster_id'])->where('team_id', $source['team_id'])->whereIn('status', ['pending', 'active'])->first();
         $connection = config('hosting-kubernetes.connections.'.$source['connection']);
         if ($database === null || $engine === null || $cluster === null || ! is_array($connection)
             || ! in_array($database->getAttribute('status'), [DatabaseStatus::Provisioning, DatabaseStatus::Active], true)
@@ -65,7 +66,11 @@ class DeployDataCluster extends Command
             $driver = $engine->getAttribute('driver') === 'pgsql' ? 'postgresql' : $engine->getAttribute('driver');
             $result = $provisioner->deployDataCluster((string) $database->getAttribute('team_id'), (string) $database->getKey(), $driver, [...$source['settings'], 'database' => $database->getAttribute('name')], $connection, (bool) $this->option('dry-run'));
             $fresh = $database->fresh();
-            $unchanged = $fresh !== null && $fresh->getAttribute('team_id') === $database->getAttribute('team_id') && $fresh->getAttribute('engine_id') === $database->getAttribute('engine_id') && $fresh->getAttribute('name') === $database->getAttribute('name') && $fresh->getAttribute('status') === $database->getAttribute('status');
+            $freshEngine = $engine->fresh();
+            $freshCluster = $cluster->fresh();
+            $unchanged = $fresh !== null && $fresh->getAttribute('team_id') === $database->getAttribute('team_id') && $fresh->getAttribute('engine_id') === $database->getAttribute('engine_id') && $fresh->getAttribute('name') === $database->getAttribute('name') && $fresh->getAttribute('status') === $database->getAttribute('status')
+                && $freshEngine !== null && Arr::only($freshEngine->getAttributes(), ['team_id', 'driver', 'version', 'host', 'port', 'active']) === Arr::only($engine->getAttributes(), ['team_id', 'driver', 'version', 'host', 'port', 'active'])
+                && $freshCluster !== null && Arr::only($freshCluster->getAttributes(), ['team_id', 'endpoint', 'status']) === Arr::only($cluster->getAttributes(), ['team_id', 'endpoint', 'status']);
             $result['ready'] = $result['ready'] && $unchanged;
             $result['inventory_unchanged'] = $unchanged;
             $audit->execute('hosting.data-cluster.provisioned', (string) $database->getAttribute('team_id'), null, 'database', (string) $database->getKey(), $result);

@@ -6,7 +6,7 @@ return [
     'sources' => [],
     // 'site' => ['team_id' => 'team-id', 'cluster_id' => 'cluster-uuid', 'workload_id' => 'workload-uuid',
     //     'connection' => 'production', 'settings' => ['allowed_images' => ['registry.example/site@sha256:...'],
-    //     'runtime_class' => 'gvisor', 'network_policy_enforced' => true, 'replicas' => 1, 'port' => 8080]],
+    //     'runtime_class' => 'gvisor', 'network_policy_enforced' => true, 'max_replicas' => 3, 'port' => 8080]],
     // Database sources use the same team/cluster binding plus database_id and validated engine-specific settings.
     'data_sources' => [],
     'connections' => [

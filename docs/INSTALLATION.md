@@ -380,3 +380,224 @@ Laravel/PHP, support UID/GID 10000 and initialize writable storage directories. 
 adapter mounts `/var/www/html/.env` read-only, persistent `storage` and temporary
 `bootstrap/cache`. Migration-enabled tenant storage requires RWX. Keep secrets in
 operator-private configuration, not committed PHP source or cached build artifacts.
+
+### MariaDB Galera tenant clusters
+
+The post-v5.1.0 work adds the `mariadb` driver to `hosting:deploy-data-cluster`.
+Use an explicitly MariaDB engine record; a MySQL engine is not silently converted.
+Install the community `mariadb-operator` and its matching CRDs using the new
+`mariadb-operator` service-profile slot. The generated resource was compared with
+operator **26.10.2**'s `k8s.mariadb.com/v1alpha1` schema offline. Pin compatible chart,
+server and operator images rather than assuming arbitrary MariaDB images work.
+
+The existing data source shape applies, with these additional protected settings:
+
+```php
+'root_password' => '...', // distinct from the application's password; >=32 characters
+'operator_image' => 'registry.example/mariadb-operator@sha256:...',
+'allowed_operator_images' => ['registry.example/mariadb-operator@sha256:...'],
+```
+
+Three database members require separate schedulable nodes and durable storage. The
+plan enables Galera, primary failover, encrypted state transfer and mandatory client
+TLS; it separates `app-admin` root credentials from the restricted `app` database
+user. Galera helper images are pinned and automatic helper replacement is disabled.
+Ordinary reconciliation refuses both server/helper image upgrades and credential
+changes; those require an explicit reviewed migration. Recovery/init jobs receive
+bounded resources, and a disruption budget permits at most one unavailable member.
+
+Clients use the operator's `app-primary` ClusterIP service in the generated data
+namespace, TCP 3306, and user `app` with their approved application password. Obtain
+and distribute the operator-generated CA bundle through an authorized secret-delivery
+path, verify the service hostname and never disable certificate verification.
+The data source must allow the client's namespace; the client needs corresponding
+TCP 3306 egress. Galera membership/state-transfer/agent ports stay inside the data
+namespace or the approved operator namespace. Its instance agent additionally needs
+the explicitly allowed Kubernetes API address.
+
+Readiness requires a current operator Ready condition and three current-generation
+StatefulSet members with the expected database, agent and init images and revision.
+This is control-plane evidence, not a failover benchmark. Live SQL/TLS checks,
+quorum-loss/recovery tests and backup restores remain required on disposable nodes.
+Do not import a MySQL data directory into MariaDB: source-version SQL features,
+collations, authentication plugins and engine compatibility need migration analysis.
+
+### Virtualmin 8 source inspection (migration preflight)
+
+`hosting:inspect-migration-source` can inspect a Virtualmin 8 GPL or Pro server
+using verified HTTPS and a private JSON credential file. It is a preflight tool:
+**it does not back up, transfer, import, change DNS or cut over services**. Full
+source-panel migration is still being implemented. cPanel, Plesk and DirectAdmin
+are not yet accepted by this command.
+
+Create an operator-owned credential file containing only `username` and `password`,
+mode 0600/0400, outside Git and image build contexts. Configure a protected source
+binding in `config/hosting-migrations.php`, with provider `virtualmin8`, the owning
+`team_id`, its destination `cluster_id`, HTTPS `url`, `credentials_file` and approved
+`domains`. Add `ca_certificate` when using a private source CA; verify its fingerprint
+out of band and never disable certificate checking. Configure private source bindings
+at deployment time; do not commit real credentials or credential-bearing config caches.
+
+```bash
+php artisan hosting:inspect-migration-source legacy
+```
+
+Use explicit domain names for partial migrations. The single `['*']` domain entry
+requires operator approval that this team owns the entire source server. Parent and
+alias-target domains must be approved together. The reader verifies Virtualmin 8
+version/edition, checks identity/path metadata, rejects duplicate or cyclic identities,
+and removes plaintext/hashed account passwords from returned inventory. Its audit
+entry stores only provider/version/edition and domain counts, with `imported=false`.
+An inventory success is not evidence that web, mail, DNS, database or account data
+has been migrated.
+
+The shared PHP protected-file reader accepts operator-owned private regular files,
+and root-owned group-readable Secret files when the process belongs to that group.
+It rejects world access, group writes, symbolic/hard links, changed file identities
+and oversized input. For non-root Kubernetes control-plane containers, use a read-only
+Secret `subPath` mount, `defaultMode: 0440` and the intended process `fsGroup`.
+Use canonical paths such as `/run/secrets/legacy.json`; projected symlink paths and
+symlinked OS path aliases are intentionally rejected. The same reader protects tenant
+Laravel dotenv inputs; do not give tenants access to the control-plane credential mount.
+
+### Management API telemetry privacy
+
+The host's Telescope policy excludes Kubernetes, PowerDNS, Stalwart JMAP and
+Virtualmin management API client entries, including proxy-prefixed paths. These
+responses can include base64 Kubernetes Secrets or source account passwords and must
+not become debugging records. Authorization/API-key/cookie headers are redacted for
+other HTTP client entries too. This policy applies in local development as well as
+production when Telescope is enabled. Separate third-party HTTP logging middleware
+must likewise omit management credentials and response bodies; this policy governs
+Telescope storage, not arbitrary external loggers.
+
+Provisioning now rejects suspended/archived Kubernetes destinations and rechecks
+cluster and engine ownership/lifecycle after remote operations before recording
+readiness. Tenant deployment uses the workload's canonical desired replica count,
+with an operator `max_replicas` cap (one to three, default three). A scalable tenant
+storage claim uses RWX from the first deployment, so increasing replicas does not
+attempt an immutable RWO-to-RWX claim change. A generic single-instance workload
+can explicitly use `max_replicas=1` for RWO storage; migration-enabled Laravel
+workloads still require RWX. Existing populated RWO claims need a reviewed data
+migration before scaling; the adapter does not delete or silently replace them.
+
+Source inspection can also use the existing encrypted node credential store instead
+of a file. Register a team-owned source node with its actual hostname, then an API
+credential on that node with the administrator username/password, an expiry time,
+and metadata `provider=virtualmin8` plus `origin=https://source.example.com:10000`.
+Bind `node_id` and `credential_id` in the approved source alias and omit
+`credentials_file`. The host checks team/node ownership, active credential status,
+expiry and the exact approved origin before requests and again before accepting the
+inspection result. Revoked credentials are not silently reused; plaintext secrets
+are neither copied to source inventory nor placed in audit records.
+
+The developing migration transport also includes `scripts/migration-source.py`, a
+restricted SSH helper for **existing** private native backups. It supports only
+manifest and checksum-pinned byte-stream operations. It does not create backups,
+execute caller commands, extract archives, delete source files or perform imports.
+The provider labels (Virtualmin/cPanel/Plesk/DirectAdmin) identify the supplied bytes;
+they do not certify that those providers' backup formats have been converted.
+A root-owned policy approves exact archive paths and domains, a per-file size limit,
+and an expiry no more than seven days away. Use a dedicated SSH key with a fixed
+forced command, `restrict`, no forwarding and no PTY; never grant an ordinary shell
+with that transport key. Keep policy/archive files private and remove the dedicated
+key after the migration session. Installing this helper on a real source server is
+an operator action; it has only been tested locally so far.
+
+Example policy shape (replace paths and the Unix expiry timestamp). Generate a fresh
+one-day expiry with `python3 -c 'import time; print(int(time.time()) + 86400)'`;
+the illustrative timestamp below is not a usable permanent policy:
+
+```json
+{
+  "provider": "virtualmin8",
+  "expires_at": 1900000000,
+  "max_archive_bytes": 10737418240,
+  "archives": {"example.com": "/private-backups/example.com.tar.gz"}
+}
+```
+
+`App\Hosting\Migrations\NativeBackupTransport` now implements the receiving side:
+SSH identity and host-key pinning, bounded manifest/output, byte count and SHA256
+verification, successful process exit, and exclusive publication of a new 0600
+artifact in an operator-owned 0700 staging directory. Errors, timeouts and truncated
+streams discard temporary files. It disables inherited SSH configuration, agents,
+forwarding and proxy commands. Its caller must independently match the returned
+provider and every domain against the approved source scope before downloading.
+This is an internal transport service, not a tenant-accessible migration endpoint.
+It requires `/usr/bin/ssh` (OpenSSH) on its Linux management runner; the stock panel
+image does not currently include that optional migration-runner prerequisite.
+
+The helper aborts when policy expiry, source identity or integrity checks fail.
+A transport manifest explicitly reports `imported=false`; no end-to-end
+importer/cutover command is available yet. Received native archives contain account
+secrets and private mail/site/database data: keep staging private, encrypt retained
+artifacts using an approved backup workflow, and never extract or execute source
+restore scripts in the control-plane container. Native format conversion and domain
+ownership verification are still required before any import or DNS change.
+
+To prepare a source **after reviewing its backup and SSH policies**, install the
+reviewed helper on that source as a root-owned executable at
+`/usr/local/libexec/control-panel-migration-source` and keep the policy in a
+root-owned 0700 directory, for example `/etc/control-panel-migration/policy.json`
+(mode 0600). Install only the public half of a dedicated short-lived transfer key
+in a root authorized-keys entry with a fixed server-side command:
+
+```text
+restrict,command="/usr/local/libexec/control-panel-migration-source --policy /etc/control-panel-migration/policy.json" ssh-ed25519 PUBLIC_KEY migration-session
+```
+
+The SSH server must permit this forced command for the dedicated key while refusing
+an ordinary shell for it. Do not weaken a server's global root-login policy for this
+example; use a reviewed management access arrangement or offline backup transfer
+when source policy forbids it. Add a `from="RUNNER_ADDRESS"` restriction when the
+runner has a stable source address. The helper ignores the requested SSH command
+and accepts only its bounded JSON protocol on stdin. Archive and policy paths must
+be canonical, root-owned private regular files without hard links or symbolic
+links. Pin the source host key obtained through an independently trusted channel;
+blindly accepting `ssh-keyscan` output is not host authentication. Revoke the key
+and remove the expiring policy when the transfer session ends.
+
+`hosting:collect-migration-backups` connects the transport to approved source aliases.
+On a Linux management runner with OpenSSH, create an operator-owned 0700 staging
+directory and set `HOSTING_MIGRATION_STAGING_ROOT` to its canonical absolute path.
+Add a `transport` block to the source binding (API inspection credentials are
+separate and are not used for SSH):
+
+```php
+// Within the approved source alias in config/hosting-migrations.php:
+'provider' => 'virtualmin8', // or cpanel, plesk, directadmin for native byte collection
+// team_id, cluster_id and domains remain mandatory.
+'domains' => ['example.com'],
+'transport' => [
+    'host' => 'source.example.com',
+    'username' => 'root',
+    'port' => 22,
+    'identity_file' => '/protected/migration-identity',
+    'known_hosts_file' => '/protected/migration-known-hosts',
+    'max_archive_bytes' => 10737418240,
+    'timeout' => 1800,
+],
+```
+
+```bash
+php artisan hosting:collect-migration-backups legacy
+```
+
+The command checks destination ownership/lifecycle, the exact provider, complete
+approved domain coverage, aggregate size and free disk space before streaming.
+Only explicitly approved domains are downloaded; `['*']` approves all manifest
+entries. The default aggregate cap is 1 GiB; adjust `max_collection_bytes` in the
+operator configuration for larger reviewed migrations (maximum 1 TiB). Individual
+transfers also enforce their own byte limits. A failed transfer or a destination
+change discards the entire incomplete collection and produces no success audit.
+Successful collections contain a sanitized `manifest.json` and domain-hashed
+`.native` filenames. The audit records collection ID, provider, counts and bytes,
+with `imported=false`; source paths, credentials and backup bodies are omitted.
+
+These are sensitive **unencrypted staging files**, not encrypted retained snapshots.
+Use a dedicated encrypted filesystem/private volume, protect its lifecycle, encrypt
+any retained copy, and remove staging after review. The command does not validate
+provider archive contents, convert accounts, provision services, change DNS or
+claim a completed migration. No source server or live target was contacted during
+this code/test-only implementation.

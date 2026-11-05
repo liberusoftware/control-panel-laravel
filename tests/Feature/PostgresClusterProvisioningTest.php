@@ -12,7 +12,9 @@ use Liberu\ControlPanel\ControlCore\Models\AuditEntry;
 use Liberu\ControlPanel\Databases\Actions\CreateDatabase;
 use Liberu\ControlPanel\Databases\DatabasesServiceProvider;
 use Liberu\ControlPanel\Databases\Models\DatabaseEngine;
+use Liberu\ControlPanel\Kubernetes\Actions\ArchiveCluster;
 use Liberu\ControlPanel\Kubernetes\Actions\RegisterCluster;
+use Liberu\ControlPanel\Kubernetes\Actions\SuspendCluster;
 use Liberu\ControlPanel\Kubernetes\KubernetesServiceProvider;
 
 beforeEach(function (): void {
@@ -40,6 +42,7 @@ beforeEach(function (): void {
     $this->remote = [];
     $this->operatorAvailable = true;
     $this->ready = true;
+    $this->onDataApplied = null;
     $this->stale = false;
     Http::preventStrayRequests();
     Http::fake(function (Request $request) {
@@ -69,6 +72,9 @@ beforeEach(function (): void {
         }
         if (str_contains($request->url(), 'dryRun=All')) {
             return Http::response($body);
+        }
+        if (in_array($body['kind'], ['Cluster', 'RedisCluster', 'ValkeyCluster'], true) && $this->onDataApplied !== null) {
+            ($this->onDataApplied)();
         }
         $this->remote[$path] = $body;
 
@@ -151,3 +157,22 @@ it('rejects a database source bound to another tenant before contacting Kubernet
     $this->artisan('hosting:deploy-data-cluster fixture')->assertFailed();
     Http::assertNothingSent();
 });
+
+it('refuses suspended and archived targets before data cluster provisioning', function (string $action): void {
+    app($action)->execute($this->cluster);
+    $this->artisan('hosting:deploy-data-cluster fixture')->assertFailed();
+    Http::assertNothingSent();
+})->with([SuspendCluster::class, ArchiveCluster::class]);
+
+it('does not report readiness after the database engine or cluster changes during provisioning', function (string $change): void {
+    $this->onDataApplied = function () use ($change): void {
+        if ($change === 'cluster') {
+            app(SuspendCluster::class)->execute($this->cluster);
+        } else {
+            $this->engine->forceFill(['active' => false])->save();
+        }
+    };
+    $this->artisan('hosting:deploy-data-cluster fixture')->assertFailed();
+    $audit = AuditEntry::query()->where('event', 'hosting.data-cluster.provisioned')->firstOrFail();
+    expect($audit->getAttribute('context'))->toMatchArray(['ready' => false, 'inventory_unchanged' => false]);
+})->with(['cluster', 'engine']);

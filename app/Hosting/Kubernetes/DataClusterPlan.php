@@ -11,7 +11,7 @@ final class DataClusterPlan
      */
     public function build(string $teamId, string $databaseId, string $driver, array $settings): array
     {
-        $this->ensure($teamId !== '' && $databaseId !== '' && in_array($driver, ['postgresql', 'redis', 'valkey'], true), 'A team-owned PostgreSQL, Redis or Valkey database is required.');
+        $this->ensure($teamId !== '' && $databaseId !== '' && in_array($driver, ['postgresql', 'mariadb', 'redis', 'valkey'], true), 'A team-owned PostgreSQL, MariaDB, Redis or Valkey database is required.');
         $image = $settings['image'] ?? '';
         $this->ensure(is_string($image) && (bool) preg_match('/^[a-z0-9][a-z0-9.:\/_-]*@sha256:[a-f0-9]{64}$/D', $image)
             && in_array($image, $settings['allowed_images'] ?? [], true), 'Use an operator-approved immutable database image digest.');
@@ -24,7 +24,7 @@ final class DataClusterPlan
         $this->ensure(is_string($password) && strlen($password) >= 32 && strlen($password) <= 1000 && ! preg_match('/[\x00-\x20\x7f]/', $password), 'Configure a stable database password of at least 32 characters without whitespace.');
         $shards = $settings['shards'] ?? 3;
         $this->ensure(is_int($shards) && $shards >= 3 && $shards <= 9, 'Redis and Valkey clusters need between three and nine primary shards.');
-        $instances = $driver === 'postgresql' ? 3 : $shards * 2;
+        $instances = in_array($driver, ['postgresql', 'mariadb'], true) ? 3 : $shards * 2;
         $owner = substr(hash('sha256', $teamId.':'.$databaseId.':'.$driver), 0, 32);
         $namespace = 'data-'.$owner;
         $labels = ['app.kubernetes.io/managed-by' => 'liberu', 'hosting.liberu.dev/owner' => $owner];
@@ -39,9 +39,9 @@ final class DataClusterPlan
             $plan[] = ['path' => $path, 'body' => ['apiVersion' => $api, 'kind' => $kind, 'metadata' => $meta, ...$fields]];
         };
         $add($prefix.'/resourcequotas/app', 'v1', 'ResourceQuota', ['spec' => ['hard' => [
-            'pods' => (string) ($instances + 2), 'requests.storage' => ($instances * $storage).'Gi',
+            'pods' => (string) ($driver === 'mariadb' ? 8 : $instances + 2), 'requests.storage' => ($instances * $storage).'Gi',
             'persistentvolumeclaims' => (string) ($instances * 2), 'requests.cpu' => (string) $instances,
-            'limits.cpu' => (string) ($instances * 2), 'requests.memory' => $instances.'Gi', 'limits.memory' => ($instances * 2).'Gi',
+            'limits.cpu' => (string) ($instances * ($driver === 'mariadb' ? 3 : 2)), 'requests.memory' => $instances.'Gi', 'limits.memory' => ($instances * ($driver === 'mariadb' ? 3 : 2)).'Gi',
             'services.nodeports' => '0', 'services.loadbalancers' => '0',
         ]]]);
         $operatorNamespace = $settings['operator_namespace'] ?? '';
@@ -50,13 +50,20 @@ final class DataClusterPlan
         foreach ([$operatorNamespace, ...$clients] as $name) {
             $this->ensure(is_string($name) && (bool) preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/D', $name), 'Configure an operator namespace and explicit client namespace names.');
         }
-        $port = $driver === 'postgresql' ? 5432 : 6379;
-        $internalPorts = $driver === 'postgresql' ? [5432, 8000] : [6379, 16379];
+        $port = match ($driver) {
+            'postgresql' => 5432, 'mariadb' => 3306, default => 6379
+        };
+        $internalPorts = match ($driver) {
+            'postgresql' => [5432, 8000], 'mariadb' => [3306, 4444, 4567, 4568, 5555], default => [6379, 16379]
+        };
         $toPorts = fn (array $ports): array => array_map(fn (int $value): array => ['protocol' => 'TCP', 'port' => $value], $ports);
         $ingress = [
             ['from' => [['podSelector' => (object) []]], 'ports' => $toPorts($internalPorts)],
             ['from' => [['namespaceSelector' => ['matchLabels' => ['kubernetes.io/metadata.name' => $operatorNamespace]]]], 'ports' => $toPorts($internalPorts)],
         ];
+        if ($driver === 'mariadb') {
+            $ingress[] = ['from' => [['podSelector' => (object) []]], 'ports' => [['protocol' => 'UDP', 'port' => 4567]]];
+        }
         foreach ($clients as $client) {
             $ingress[] = ['from' => [['namespaceSelector' => ['matchLabels' => ['kubernetes.io/metadata.name' => $client]]]], 'ports' => $toPorts([$port])];
         }
@@ -64,9 +71,12 @@ final class DataClusterPlan
             ['to' => [['podSelector' => (object) []]], 'ports' => $toPorts($internalPorts)],
             ['to' => [['namespaceSelector' => ['matchLabels' => ['kubernetes.io/metadata.name' => 'kube-system']], 'podSelector' => ['matchLabels' => ['k8s-app' => 'kube-dns']]]], 'ports' => [['protocol' => 'UDP', 'port' => 53], ['protocol' => 'TCP', 'port' => 53]]],
         ];
-        if ($driver === 'postgresql') {
+        if ($driver === 'mariadb') {
+            $egress[] = ['to' => [['podSelector' => (object) []]], 'ports' => [['protocol' => 'UDP', 'port' => 4567]]];
+        }
+        if (in_array($driver, ['postgresql', 'mariadb'], true)) {
             $apiIp = $settings['api_server_ip'] ?? '';
-            $this->ensure(is_string($apiIp) && filter_var($apiIp, FILTER_VALIDATE_IP) !== false, 'Configure the Kubernetes API service IP for PostgreSQL instance-manager access.');
+            $this->ensure(is_string($apiIp) && filter_var($apiIp, FILTER_VALIDATE_IP) !== false, 'Configure the Kubernetes API service IP for the database operator instance agent.');
             $egress[] = ['to' => [['ipBlock' => ['cidr' => $apiIp.(str_contains($apiIp, ':') ? '/128' : '/32')]]], 'ports' => $toPorts([443, 6443])];
         }
         $add('/apis/networking.k8s.io/v1/namespaces/'.$namespace.'/networkpolicies/app', 'networking.k8s.io/v1', 'NetworkPolicy', ['spec' => [
@@ -86,6 +96,39 @@ final class DataClusterPlan
                 'storage' => ['size' => $storage.'Gi', 'storageClass' => $storageClass],
                 'affinity' => ['enablePodAntiAffinity' => true, 'podAntiAffinityType' => 'required', 'topologyKey' => 'kubernetes.io/hostname'],
                 'postgresql' => ['synchronous' => ['method' => 'any', 'number' => 1, 'dataDurability' => 'required'], 'pg_hba' => ['hostnossl all all all reject']],
+                'resources' => ['requests' => ['cpu' => '500m', 'memory' => '512Mi'], 'limits' => ['cpu' => '2', 'memory' => '2Gi']],
+            ]]);
+        } elseif ($driver === 'mariadb') {
+            $adminPassword = $settings['root_password'] ?? '';
+            $operatorImage = $settings['operator_image'] ?? '';
+            $database = $settings['database'] ?? '';
+            $this->ensure(is_string($adminPassword) && strlen($adminPassword) >= 32 && strlen($adminPassword) <= 1000
+                && ! preg_match('/[\x00-\x20\x7f]/', $adminPassword) && $adminPassword !== $password, 'MariaDB requires a distinct stable administrator password of at least 32 characters.');
+            $this->ensure(is_string($operatorImage) && (bool) preg_match('/^[a-z0-9][a-z0-9.:\/_-]*@sha256:[a-f0-9]{64}$/D', $operatorImage)
+                && in_array($operatorImage, $settings['allowed_operator_images'] ?? [], true), 'Pin and allowlist the compatible MariaDB operator image used by its agent and init container.');
+            $this->ensure(is_string($database) && (bool) preg_match('/^[a-z][a-z0-9_]{0,63}$/D', $database), 'Use a MariaDB database name containing lowercase letters, digits and underscores.');
+            $add($prefix.'/secrets/app-admin', 'v1', 'Secret', ['metadata' => [...$meta, 'name' => 'app-admin'], 'type' => 'Opaque', 'data' => ['root-password' => base64_encode($adminPassword)]]);
+            $security = ['allowPrivilegeEscalation' => false, 'runAsNonRoot' => true, 'runAsUser' => 999, 'capabilities' => ['drop' => ['ALL']]];
+            $helper = ['requests' => ['cpu' => '100m', 'memory' => '128Mi'], 'limits' => ['cpu' => '250m', 'memory' => '256Mi']];
+            $affinity = ['podAntiAffinity' => ['requiredDuringSchedulingIgnoredDuringExecution' => [[
+                'topologyKey' => 'kubernetes.io/hostname', 'labelSelector' => ['matchExpressions' => [['key' => 'statefulset.kubernetes.io/pod-name', 'operator' => 'Exists']]],
+            ]]]];
+            $add('/apis/k8s.mariadb.com/v1alpha1/namespaces/'.$namespace.'/mariadbs/app', 'k8s.mariadb.com/v1alpha1', 'MariaDB', ['spec' => [
+                'image' => $image, 'imagePullPolicy' => 'Always', 'replicas' => 3, 'rootEmptyPassword' => false,
+                'rootPasswordSecretKeyRef' => ['name' => 'app-admin', 'key' => 'root-password'],
+                'database' => $database, 'username' => 'app', 'passwordSecretKeyRef' => ['name' => 'app', 'key' => 'password'],
+                'storage' => ['size' => $storage.'Gi', 'storageClassName' => $storageClass],
+                'tls' => ['enabled' => true, 'required' => true, 'galeraSSTEnabled' => true],
+                'galera' => ['enabled' => true, 'sst' => 'mariabackup', 'primary' => ['autoFailover' => true],
+                    'config' => ['reuseStorageVolume' => true],
+                    'agent' => ['image' => $operatorImage, 'imagePullPolicy' => 'Always', 'resources' => $helper, 'securityContext' => $security],
+                    'initContainer' => ['image' => $operatorImage, 'imagePullPolicy' => 'Always', 'resources' => $helper, 'securityContext' => $security],
+                    'initJob' => ['resources' => $helper], 'recovery' => ['enabled' => true, 'minClusterSize' => '50%', 'job' => ['resources' => $helper]],
+                ],
+                'securityContext' => $security, 'podSecurityContext' => ['runAsNonRoot' => true, 'runAsUser' => 999, 'runAsGroup' => 999, 'fsGroup' => 999, 'seccompProfile' => ['type' => 'RuntimeDefault']],
+                'affinity' => $affinity, 'podDisruptionBudget' => ['maxUnavailable' => 1],
+                'updateStrategy' => ['type' => 'ReplicasFirstPrimaryLast', 'autoUpdateDataPlane' => false],
+                'service' => ['type' => 'ClusterIP'], 'primaryService' => ['type' => 'ClusterIP'], 'secondaryService' => ['type' => 'ClusterIP'],
                 'resources' => ['requests' => ['cpu' => '500m', 'memory' => '512Mi'], 'limits' => ['cpu' => '2', 'memory' => '2Gi']],
             ]]);
         } else {

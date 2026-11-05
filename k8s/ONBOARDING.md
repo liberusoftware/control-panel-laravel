@@ -122,7 +122,7 @@ The explicit context is used for every cluster operation. Review it, then:
 ```
 
 Supported component slots are `storage`, `sandbox-runtime`, `ingress`, `cert-manager`,
-`postgres-operator`, `redis-operator`, `valkey-operator`, `dns` and `mail`. Put dependencies
+`postgres-operator`, `mariadb-operator`, `redis-operator`, `valkey-operator`, `dns` and `mail`. Put dependencies
 first and declare them with `depends_on`. Pin images and configure secure values
 using each publisher's documentation. Prefer maintained ingress implementations such
 as Traefik. Provision ingress addresses and a ready cert-manager ClusterIssuer before
@@ -147,7 +147,7 @@ mail delivery automatically.
 - Storage must survive host loss and support the access mode required by each service.
   The panel's shared storage requires RWX. Database volumes need durable block storage,
   independent backups and a tested restore procedure.
-- Install CNPG for PostgreSQL, the compatible OT Redis operator for Redis Cluster,
+- Install CNPG for PostgreSQL, mariadb-operator for explicitly MariaDB Galera targets, the compatible OT Redis operator for Redis Cluster,
   and the official Valkey operator for Valkey Cluster. Pin compatible operator/CRD
   and database images. Redis requires capacity for separate primaries and followers;
   the default required anti-affinity needs six schedulable nodes. Supply valid TLS

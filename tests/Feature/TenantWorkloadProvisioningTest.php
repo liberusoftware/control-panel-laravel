@@ -9,8 +9,10 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Liberu\ControlPanel\ControlCore\ControlCoreServiceProvider;
 use Liberu\ControlPanel\ControlCore\Models\AuditEntry;
+use Liberu\ControlPanel\Kubernetes\Actions\ArchiveCluster;
 use Liberu\ControlPanel\Kubernetes\Actions\RegisterCluster;
 use Liberu\ControlPanel\Kubernetes\Actions\RegisterKubernetesAsset;
+use Liberu\ControlPanel\Kubernetes\Actions\SuspendCluster;
 use Liberu\ControlPanel\Kubernetes\KubernetesServiceProvider;
 
 beforeEach(function (): void {
@@ -28,6 +30,7 @@ beforeEach(function (): void {
     $this->plan = app(TenantWorkloadPlan::class)->build('team-a', $this->workload->getKey(), $this->image, $this->settings);
     $this->remote = [];
     $this->ready = true;
+    $this->onDeploymentApplied = null;
     $this->migrationReady = true;
     $this->migrationFailed = false;
     $this->runtimeAvailable = true;
@@ -80,6 +83,9 @@ beforeEach(function (): void {
         }
         if (str_contains($request->url(), 'dryRun=All')) {
             return Http::response($body);
+        }
+        if ($body['kind'] === 'Deployment' && $this->onDeploymentApplied !== null) {
+            ($this->onDeploymentApplied)();
         }
         $this->remote[$path] = $body;
 
@@ -335,3 +341,30 @@ it('refuses a second release while a previous migration is running', function ()
     expect(fn () => provisionTenantFixture($this))->toThrow(RuntimeException::class, 'still running');
     expect($this->remote)->toBe($before);
 });
+
+it('refuses suspended and archived clusters before any workload request', function (string $action): void {
+    app($action)->execute($this->cluster);
+    $this->artisan('hosting:deploy-workload test')->assertFailed();
+    Http::assertNothingSent();
+})->with([SuspendCluster::class, ArchiveCluster::class]);
+
+it('does not report success if the cluster is suspended during workload provisioning', function (): void {
+    $this->onDeploymentApplied = fn () => app(SuspendCluster::class)->execute($this->cluster);
+    $this->artisan('hosting:deploy-workload test')->assertFailed();
+    $audit = AuditEntry::query()->where('event', 'hosting.workload.provisioned')->firstOrFail();
+    expect($audit->getAttribute('context'))->toMatchArray(['ready' => false, 'inventory_unchanged' => false]);
+});
+
+it('enforces the approved cap against canonical desired workload replicas', function (): void {
+    $this->workload->forceFill(['replicas' => 2])->save();
+    config(['hosting-kubernetes.sources.test.settings.max_replicas' => 1]);
+    $this->artisan('hosting:deploy-workload test')->assertFailed();
+    Http::assertNothingSent();
+});
+
+it('provisions scalable persistent web storage before the first scale operation', function (int $cap, string $mode): void {
+    $plan = app(TenantWorkloadPlan::class)->build('team-a', $this->workload->getKey(), $this->image,
+        [...$this->settings, 'storage_gi' => 2, 'storage_class' => 'durable', 'max_replicas' => $cap]);
+    $claim = collect($plan)->firstWhere('body.kind', 'PersistentVolumeClaim');
+    expect($claim['body']['spec']['accessModes'])->toBe([$mode]);
+})->with([[1, 'ReadWriteOnce'], [3, 'ReadWriteMany']]);

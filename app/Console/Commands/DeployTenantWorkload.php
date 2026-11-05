@@ -34,7 +34,7 @@ class DeployTenantWorkload extends Command
 
             return self::FAILURE;
         }
-        $cluster = Cluster::query()->whereKey($source['cluster_id'])->where('team_id', $source['team_id'])->first();
+        $cluster = Cluster::query()->whereKey($source['cluster_id'])->where('team_id', $source['team_id'])->whereIn('status', ['pending', 'active'])->first();
         $workload = KubernetesWorkload::query()->whereKey($source['workload_id'])->where('team_id', $source['team_id'])->where('cluster_id', $source['cluster_id'])->first();
         $connection = config('hosting-kubernetes.connections.'.$source['connection']);
         if ($cluster === null || $workload === null || $workload->getAttribute('kind') !== 'Deployment' || ! is_array($connection)
@@ -57,9 +57,15 @@ class DeployTenantWorkload extends Command
                 return self::FAILURE;
             }
             $image = $workload->getAttribute('image');
-            $result = $provisioner->deploy((string) $workload->getAttribute('team_id'), (string) $workload->getKey(), $image, $source['settings'], $connection, (bool) $this->option('dry-run'));
+            $replicas = $workload->getAttribute('replicas');
+            $result = $provisioner->deploy((string) $workload->getAttribute('team_id'), (string) $workload->getKey(), $image, [...$source['settings'], 'replicas' => $replicas], $connection, (bool) $this->option('dry-run'));
             $fresh = $workload->fresh();
-            $unchanged = $fresh !== null && $fresh->getAttribute('team_id') === $workload->getAttribute('team_id') && $fresh->getAttribute('cluster_id') === $workload->getAttribute('cluster_id') && $fresh->getAttribute('image') === $image && $fresh->getAttribute('kind') === $workload->getAttribute('kind');
+            $freshCluster = $cluster->fresh();
+            $unchanged = $fresh !== null && $fresh->getAttribute('team_id') === $workload->getAttribute('team_id') && $fresh->getAttribute('cluster_id') === $workload->getAttribute('cluster_id') && $fresh->getAttribute('image') === $image && $fresh->getAttribute('kind') === $workload->getAttribute('kind')
+                && $fresh->getAttribute('replicas') === $replicas && $freshCluster !== null
+                && $freshCluster->getAttribute('team_id') === $cluster->getAttribute('team_id')
+                && $freshCluster->getAttribute('endpoint') === $cluster->getAttribute('endpoint')
+                && $freshCluster->getAttribute('status') === $cluster->getAttribute('status');
             $result['ready'] = $result['ready'] && $unchanged;
             $result['inventory_unchanged'] = $unchanged;
             $audit->execute('hosting.workload.provisioned', (string) $workload->getAttribute('team_id'), null, 'kubernetes-workload', (string) $workload->getKey(), $result);

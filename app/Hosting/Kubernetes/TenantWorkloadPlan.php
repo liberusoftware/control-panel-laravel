@@ -22,8 +22,10 @@ final class TenantWorkloadPlan
         }
         $this->ensure(($settings['network_policy_enforced'] ?? false) === true, 'An operator must confirm that the cluster enforces NetworkPolicy.');
         $replicas = $settings['replicas'] ?? 1;
+        $maximumReplicas = $settings['max_replicas'] ?? 3;
+        $this->ensure(is_int($maximumReplicas) && $maximumReplicas >= 1 && $maximumReplicas <= 3, 'Approve a replica limit between one and three.');
         $port = $settings['port'] ?? 8080;
-        $this->ensure(is_int($replicas) && $replicas >= 1 && $replicas <= 3, 'Replica count must be between one and three.');
+        $this->ensure(is_int($replicas) && $replicas >= 1 && $replicas <= $maximumReplicas, 'Replica count must be between one and the approved maximum (at most three).');
         $this->ensure(is_int($port) && $port >= 1024 && $port <= 65535, 'The workload port must be an unprivileged TCP port.');
         $owner = substr(hash('sha256', $teamId.':'.$workloadId), 0, 32);
         $namespace = 'tenant-'.$owner;
@@ -94,7 +96,7 @@ final class TenantWorkloadPlan
             $storageClass = $settings['storage_class'] ?? '';
             $this->ensure(is_string($storageClass) && (bool) preg_match('/^[a-z0-9][a-z0-9.-]{0,252}$/D', $storageClass), 'An operator-selected StorageClass is required for persistent data.');
             $add($prefix.'/persistentvolumeclaims/app', 'v1', 'PersistentVolumeClaim', ['spec' => [
-                'storageClassName' => $storageClass, 'accessModes' => [($replicas > 1 || isset($settings['laravel'])) ? 'ReadWriteMany' : 'ReadWriteOnce'],
+                'storageClassName' => $storageClass, 'accessModes' => [($maximumReplicas > 1 || isset($settings['laravel'])) ? 'ReadWriteMany' : 'ReadWriteOnce'],
                 'resources' => ['requests' => ['storage' => $storageGi.'Gi']],
             ]]);
             $volumes[] = ['name' => 'data', 'persistentVolumeClaim' => ['claimName' => 'app']];

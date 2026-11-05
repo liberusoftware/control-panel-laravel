@@ -101,7 +101,7 @@ final readonly class KubernetesProvisioner
      */
     public function deployDataCluster(string $teamId, string $databaseId, string $driver, array $settings, array $connection, bool $dryRun = false): array
     {
-        if (! in_array($driver, ['postgresql', 'redis', 'valkey'], true)) {
+        if (! in_array($driver, ['postgresql', 'mariadb', 'redis', 'valkey'], true)) {
             throw new InvalidArgumentException('Select a supported database cluster driver.');
         }
         $plan = $this->dataPlans->build($teamId, $databaseId, $driver, $settings);
@@ -130,6 +130,9 @@ final readonly class KubernetesProvisioner
         $status = $state['status'] ?? [];
         $ready = match ($driver) {
             'postgresql' => $conditionReady('Ready') && ($status['instances'] ?? 0) === 3 && ($status['readyInstances'] ?? 0) === 3 && is_string($status['currentPrimary'] ?? null) && $status['currentPrimary'] !== '',
+            'mariadb' => $conditionReady('Ready') && ($status['replicas'] ?? 0) === 3
+                && in_array($status['currentPrimary'] ?? '', ['app-0', 'app-1', 'app-2'], true)
+                && $this->mariaDbStatefulSetReady($client, $result['namespace'], $state, $settings['image'], $settings['operator_image']),
             'valkey' => $conditionReady('Ready') && $conditionReady('ClusterFormed') && $conditionReady('SlotsAssigned')
                 && ($status['state'] ?? '') === 'Ready' && ($status['readyShards'] ?? 0) === $resource['body']['spec']['shards'],
             'redis' => ($status['state'] ?? '') === 'Ready' && ($status['readyLeaderReplicas'] ?? 0) === $resource['body']['spec']['clusterSize']
@@ -167,6 +170,29 @@ final readonly class KubernetesProvisioner
         return true;
     }
 
+    /** @param array<string, mixed> $cluster */
+    private function mariaDbStatefulSetReady(PendingRequest $client, string $namespace, array $cluster, string $image, string $operatorImage): bool
+    {
+        $response = $client->get('/apis/apps/v1/namespaces/'.$namespace.'/statefulsets/app');
+        $uid = $cluster['metadata']['uid'] ?? null;
+        if (! $response->successful() || ! is_string($uid) || $uid === '') {
+            return false;
+        }
+        $state = $response->json();
+        $generation = $state['metadata']['generation'] ?? 0;
+        $images = array_column($state['spec']['template']['spec']['containers'] ?? [], 'image');
+        $expected = [$image, $operatorImage];
+        sort($images);
+        sort($expected);
+
+        return $generation > 0 && in_array($uid, array_column($state['metadata']['ownerReferences'] ?? [], 'uid'), true)
+            && ($state['status']['observedGeneration'] ?? 0) >= $generation && ($state['spec']['replicas'] ?? 0) === 3
+            && ($state['status']['readyReplicas'] ?? 0) === 3 && ($state['status']['updatedReplicas'] ?? 0) === 3
+            && is_string($state['status']['currentRevision'] ?? null) && $state['status']['currentRevision'] !== ''
+            && $state['status']['currentRevision'] === ($state['status']['updateRevision'] ?? null)
+            && $images === $expected && array_column($state['spec']['template']['spec']['initContainers'] ?? [], 'image') === [$operatorImage];
+    }
+
     /**
      * @param  list<array{path: string, body: array<string, mixed>}>  $plan
      * @return array<string, mixed>
@@ -187,10 +213,13 @@ final readonly class KubernetesProvisioner
             if ($resource['body']['kind'] === 'Secret' && (! is_array($response->json('data')) || count($response->json('data')) !== count($resource['body']['data']) || ! $this->contains($response->json('data'), $resource['body']['data']))) {
                 throw new RuntimeException('Existing credentials differ. Rotate credentials explicitly; no secret was overwritten.');
             }
-            if (in_array($resource['body']['kind'], ['RedisCluster', 'ValkeyCluster', 'Cluster'], true)) {
+            if (in_array($resource['body']['kind'], ['RedisCluster', 'ValkeyCluster', 'Cluster', 'MariaDB'], true)) {
                 $expectedImage = $resource['body']['spec']['imageName'] ?? $resource['body']['spec']['image'] ?? $resource['body']['spec']['kubernetesConfig']['image'];
                 $existingImage = $response->json('spec.imageName') ?? $response->json('spec.image') ?? $response->json('spec.kubernetesConfig.image');
-                if ($expectedImage !== $existingImage) {
+                $helperChanged = $resource['body']['kind'] === 'MariaDB' && (
+                    $response->json('spec.galera.agent.image') !== $resource['body']['spec']['galera']['agent']['image']
+                    || $response->json('spec.galera.initContainer.image') !== $resource['body']['spec']['galera']['initContainer']['image']);
+                if ($expectedImage !== $existingImage || $helperChanged) {
                     throw new RuntimeException('Database image upgrades require an explicit reviewed migration. No cluster image was changed.');
                 }
             }

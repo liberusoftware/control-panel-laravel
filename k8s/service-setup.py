@@ -39,7 +39,7 @@ def load_profile(filename, allow_unpinned=False):
     components = profile.get("components", [])
     require(isinstance(components, list) and 0 < len(components) <= 16, "Select one to sixteen service components.")
     seen = set()
-    allowed = {"ingress", "cert-manager", "postgres-operator", "redis-operator", "valkey-operator", "dns", "mail", "storage", "sandbox-runtime"}
+    allowed = {"ingress", "cert-manager", "postgres-operator", "mariadb-operator", "redis-operator", "valkey-operator", "dns", "mail", "storage", "sandbox-runtime"}
     namespaces = {}
     releases = set()
     for component in components:
