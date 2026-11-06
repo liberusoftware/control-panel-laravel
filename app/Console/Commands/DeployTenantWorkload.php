@@ -15,7 +15,7 @@ use Liberu\ControlPanel\Kubernetes\Models\Cluster;
 use Liberu\ControlPanel\Kubernetes\Models\KubernetesWorkload;
 use Throwable;
 
-#[Signature('hosting:deploy-workload {source : Operator-owned workload source alias} {--dry-run : Validate the plan and remote ownership without changing resources}')]
+#[Signature('hosting:deploy-workload {source : Operator-owned workload source alias} {--release= : Select an operator-allowlisted imported web release, including a previous release for web-only rollback} {--dry-run : Validate the plan and remote ownership without changing resources}')]
 #[Description('Apply a restricted, sandboxed tenant workload to an allowlisted Kubernetes cluster')]
 class DeployTenantWorkload extends Command
 {
@@ -58,7 +58,12 @@ class DeployTenantWorkload extends Command
             }
             $image = $workload->getAttribute('image');
             $replicas = $workload->getAttribute('replicas');
-            $result = $provisioner->deploy((string) $workload->getAttribute('team_id'), (string) $workload->getKey(), $image, [...$source['settings'], 'replicas' => $replicas], $connection, (bool) $this->option('dry-run'));
+            $settings = [...$source['settings'], 'replicas' => $replicas];
+            $release = $this->option('release');
+            if ($release !== null) {
+                $settings['data_release'] = $release;
+            }
+            $result = $provisioner->deploy((string) $workload->getAttribute('team_id'), (string) $workload->getKey(), $image, $settings, $connection, (bool) $this->option('dry-run'));
             $fresh = $workload->fresh();
             $freshCluster = $cluster->fresh();
             $unchanged = $fresh !== null && $fresh->getAttribute('team_id') === $workload->getAttribute('team_id') && $fresh->getAttribute('cluster_id') === $workload->getAttribute('cluster_id') && $fresh->getAttribute('image') === $image && $fresh->getAttribute('kind') === $workload->getAttribute('kind')
@@ -68,6 +73,8 @@ class DeployTenantWorkload extends Command
                 && $freshCluster->getAttribute('status') === $cluster->getAttribute('status');
             $result['ready'] = $result['ready'] && $unchanged;
             $result['inventory_unchanged'] = $unchanged;
+            $result['data_release'] = $settings['data_release'] ?? null;
+            $result['runtime_uid'] = $settings['runtime_uid'] ?? 10000;
             $audit->execute('hosting.workload.provisioned', (string) $workload->getAttribute('team_id'), null, 'kubernetes-workload', (string) $workload->getKey(), $result);
             $this->table(['Kind', 'Name', 'Result'], array_map(fn (array $resource): array => [$resource['kind'], $resource['name'], $resource['status']], $result['resources']));
             if ($result['dry_run'] && $unchanged) {

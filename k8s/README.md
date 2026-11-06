@@ -10,8 +10,10 @@ plan; `--apply` is required to install nodes or service charts.
 | Install infrastructure | `./install.sh kubernetes-services --help` | Reviewed, checksum-pinned storage/runtime/ingress/operator charts |
 | Install the panel | `./install.sh kubernetes --help` | Panel pods, migration receipt, queue, shared storage and TLS ingress |
 | Provision tenant services | `php artisan hosting:deploy-data-cluster --help` | CNPG PostgreSQL, MariaDB Galera, Redis Cluster or Valkey Cluster |
+| Import reviewed web files | `python3 scripts/migration-web.py --help` | Offline versioned document-root import and resumable journal |
 | Publish tenant websites | `php artisan hosting:deploy-workload --help` | Sandbox, network policy, optional Laravel env/migration and HTTPS |
 | Configure mail | `php artisan hosting:configure-mail-cluster --help` | Shared-store configuration of existing Stalwart instances |
+| Select/roll back web release | `php artisan hosting:deploy-workload SOURCE --release=releases/HASH/public` | Allowlisted public subPath; preserves earlier release data |
 | Publish DNS | `php artisan hosting:publish-dns --help` | Ownership-checked PowerDNS publication/readback |
 
 Commands accepting source aliases require operator-owned, tenant-bound configuration;

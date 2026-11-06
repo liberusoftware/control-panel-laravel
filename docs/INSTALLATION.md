@@ -760,3 +760,15 @@ back up the existing key with the database before upgrades. Reverb listener/TLS
 configuration and stable keys are required settings, not proof of application-level
 WebSocket delivery; test publication and subscriptions through your real ingress
 before declaring a production rollout verified.
+
+
+### Imported web releases
+
+After native archive preparation, the [web import workflow](MIGRATION_PREPARATION.md#import-an-approved-web-document-root)
+can copy approved Virtualmin/cPanel document roots into new versioned offline tenant
+volumes with pinned payloads, non-root ownership and a resumable private journal.
+`hosting:deploy-workload --release=...` selects an exact allowlisted release, or a
+verified previous release for web-only rollback. Only its public subdirectory mounts
+into the sandboxed workload, read-only by default. SQL/mail/account conversion and
+public DNS cutover remain separate unfinished stages; a web import result does not
+claim a complete provider migration.

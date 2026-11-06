@@ -21,6 +21,8 @@ final class TenantWorkloadPlan
             $this->ensure(is_string($name) && (bool) preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/D', $name), 'Configure a sandbox RuntimeClass and ingress namespace.');
         }
         $this->ensure(($settings['network_policy_enforced'] ?? false) === true, 'An operator must confirm that the cluster enforces NetworkPolicy.');
+        $runtimeUid = $settings['runtime_uid'] ?? 10000;
+        $this->ensure(is_int($runtimeUid) && $runtimeUid >= 500 && $runtimeUid <= 65535, 'Select an approved non-root workload UID between 500 and 65535.');
         $replicas = $settings['replicas'] ?? 1;
         $maximumReplicas = $settings['max_replicas'] ?? 3;
         $this->ensure(is_int($maximumReplicas) && $maximumReplicas >= 1 && $maximumReplicas <= 3, 'Approve a replica limit between one and three.');
@@ -92,6 +94,14 @@ final class TenantWorkloadPlan
         ]]);
         $volumes = [['name' => 'tmp', 'emptyDir' => ['sizeLimit' => '256Mi']]];
         $mounts = [['name' => 'tmp', 'mountPath' => '/tmp']];
+        $dataRelease = $settings['data_release'] ?? null;
+        $dataReleaseReadOnly = $settings['data_release_read_only'] ?? true;
+        if ($dataRelease !== null) {
+            $this->ensure(is_bool($dataReleaseReadOnly), 'Choose an explicit boolean imported-release mount mode.');
+            $this->ensure($storageGi > 0 && ! isset($settings['laravel']) && is_string($dataRelease)
+                && (bool) preg_match('/^releases\/[a-f0-9]{64}\/public$/D', $dataRelease)
+                && in_array($dataRelease, $settings['allowed_data_releases'] ?? [], true), 'Approve an imported web release on persistent storage; Laravel image migrations use their own storage layout.');
+        }
         if ($storageGi > 0) {
             $storageClass = $settings['storage_class'] ?? '';
             $this->ensure(is_string($storageClass) && (bool) preg_match('/^[a-z0-9][a-z0-9.-]{0,252}$/D', $storageClass), 'An operator-selected StorageClass is required for persistent data.');
@@ -100,7 +110,7 @@ final class TenantWorkloadPlan
                 'resources' => ['requests' => ['storage' => $storageGi.'Gi']],
             ]]);
             $volumes[] = ['name' => 'data', 'persistentVolumeClaim' => ['claimName' => 'app']];
-            $mounts[] = ['name' => 'data', 'mountPath' => '/data'];
+            $mounts[] = ['name' => 'data', 'mountPath' => '/data', ...($dataRelease === null ? [] : ['subPath' => $dataRelease, 'readOnly' => $dataReleaseReadOnly])];
         }
         $imagePullSecrets = [];
         if (isset($settings['registry_auth'])) {
@@ -140,7 +150,7 @@ final class TenantWorkloadPlan
             'os' => ['name' => 'linux'], 'nodeSelector' => ['kubernetes.io/os' => 'linux'],
             'runtimeClassName' => $runtime, 'serviceAccountName' => 'app', 'automountServiceAccountToken' => false,
             'hostNetwork' => false, 'hostPID' => false, 'hostIPC' => false, 'enableServiceLinks' => false,
-            'securityContext' => ['runAsNonRoot' => true, 'runAsUser' => 10000, 'runAsGroup' => 10000, 'fsGroup' => 10000, 'seccompProfile' => ['type' => 'RuntimeDefault']],
+            'securityContext' => ['runAsNonRoot' => true, 'runAsUser' => $runtimeUid, 'runAsGroup' => $runtimeUid, ...($dataRelease === null ? ['fsGroup' => $runtimeUid] : []), 'seccompProfile' => ['type' => 'RuntimeDefault']],
             'containers' => [[
                 'name' => 'app', 'image' => $image, 'imagePullPolicy' => 'Always',
                 'ports' => [['name' => 'http', 'containerPort' => $port]],

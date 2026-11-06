@@ -61,7 +61,12 @@ not automatically turn arbitrary endpoints, storage or ingress into HA services.
 
 [Migration preparation](MIGRATION_PREPARATION.md) now covers Virtualmin 8 GPL/Pro
 source inventory, scoped/pinned backup transfer, bounded tar/gzip safety checks,
-private staging and Virtualmin/cPanel layout recognition. Preparation reports keep
+private staging and Virtualmin/cPanel layout recognition. Approved web document
+roots can now be copied into versioned offline tenant releases with private journals,
+checksum verification, multi-domain resume and non-overwriting failure recovery.
+Workload deployment selects exact allowlisted releases, with subPath isolation and
+explicit web-only rollback. These file operations do not convert databases or mail.
+Preparation reports keep
 service import and DNS mutation explicitly false. Native account conversion,
 SQL/mail import, complete DirectAdmin/Plesk layout conversion, independent domain
 proof and resumable cutover/rollback remain implementation work. End-user deployment

@@ -368,3 +368,52 @@ it('provisions scalable persistent web storage before the first scale operation'
     $claim = collect($plan)->firstWhere('body.kind', 'PersistentVolumeClaim');
     expect($claim['body']['spec']['accessModes'])->toBe([$mode]);
 })->with([[1, 'ReadWriteOnce'], [3, 'ReadWriteMany']]);
+
+it('mounts only the operator-approved imported web release and its non-root identity', function (): void {
+    $release = 'releases/'.str_repeat('a', 64).'/public';
+    $plan = (new TenantWorkloadPlan())->build('team', 'workload', $this->image,
+        [...$this->settings, 'storage_gi' => 2, 'storage_class' => 'durable', 'runtime_uid' => 1000,
+            'data_release' => $release, 'allowed_data_releases' => [$release]]);
+    $deployment = collect($plan)->first(fn (array $item): bool => $item['body']['kind'] === 'Deployment')['body'];
+    $pod = $deployment['spec']['template']['spec'];
+    $data = collect($pod['containers'][0]['volumeMounts'])->firstWhere('name', 'data');
+    expect($data)->toBe(['name' => 'data', 'mountPath' => '/data', 'subPath' => $release, 'readOnly' => true])
+        ->and($pod['securityContext']['runAsUser'])->toBe(1000)->and($pod['securityContext'])->not->toHaveKey('fsGroup');
+});
+
+it('refuses unapproved release paths, absent persistent storage and privileged runtime identities', function (string $problem): void {
+    $release = 'releases/'.str_repeat('a', 64).'/public';
+    $settings = [...$this->settings, 'storage_gi' => 2, 'storage_class' => 'durable',
+        'data_release' => $release, 'allowed_data_releases' => [$release]];
+    match ($problem) {
+        'unapproved' => $settings['allowed_data_releases'] = [],
+        'traversal' => $settings['data_release'] = 'releases/../private',
+        'no-storage' => $settings['storage_gi'] = 0,
+        'root' => $settings['runtime_uid'] = 0,
+        'system-user' => $settings['runtime_uid'] = 1,
+        'ambiguous-read-only' => $settings['data_release_read_only'] = 'false',
+    };
+    expect(fn () => (new TenantWorkloadPlan())->build('team', 'workload', $this->image, $settings))
+        ->toThrow(InvalidArgumentException::class);
+})->with(['unapproved', 'traversal', 'no-storage', 'root', 'system-user', 'ambiguous-read-only']);
+
+it('deploys and explicitly rolls back only approved web release paths with sanitized audit evidence', function (): void {
+    $previous = 'releases/'.str_repeat('a', 64).'/public';
+    $next = 'releases/'.str_repeat('b', 64).'/public';
+    config(['hosting-kubernetes.sources.test.settings' => [...$this->settings, 'storage_gi' => 2, 'storage_class' => 'durable',
+        'runtime_uid' => 1000, 'allowed_data_releases' => [$previous, $next]]]);
+    $this->artisan('hosting:deploy-workload', ['source' => 'test', '--release' => $next])->assertSuccessful();
+    $deployment = collect($this->remote)->first(fn (array $item): bool => $item['kind'] === 'Deployment');
+    expect(collect($deployment['spec']['template']['spec']['containers'][0]['volumeMounts'])->firstWhere('name', 'data')['subPath'])->toBe($next);
+    $this->artisan('hosting:deploy-workload', ['source' => 'test', '--release' => $previous])->assertSuccessful();
+    $deployment = collect($this->remote)->first(fn (array $item): bool => $item['kind'] === 'Deployment');
+    expect(collect($deployment['spec']['template']['spec']['containers'][0]['volumeMounts'])->firstWhere('name', 'data')['subPath'])->toBe($previous);
+    $entries = AuditEntry::query()->where('event', 'hosting.workload.provisioned')->get();
+    expect($entries)->toHaveCount(2)->and($entries->last()->getAttribute('context'))->toMatchArray(['data_release' => $previous, 'runtime_uid' => 1000, 'ready' => true]);
+});
+
+it('rejects a release override outside this workload allowlist before contacting Kubernetes', function (): void {
+    config(['hosting-kubernetes.sources.test.settings' => [...$this->settings, 'storage_gi' => 2, 'storage_class' => 'durable', 'allowed_data_releases' => []]]);
+    $this->artisan('hosting:deploy-workload', ['source' => 'test', '--release' => 'releases/'.str_repeat('c', 64).'/public'])->assertFailed();
+    Http::assertNothingSent();
+});

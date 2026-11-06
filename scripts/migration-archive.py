@@ -90,6 +90,19 @@ def member_path(value, root_directory=False):
     return '/'.join(parts)
 
 
+def symlink_target(target):
+    require(isinstance(target, str) and bool(target) and len(target.encode('utf-8', 'strict')) <= 1024
+            and not target.startswith('/') and '\\' not in target
+            and not any(ord(character) < 32 or ord(character) == 127 for character in target)
+            and not re.match(r'^[A-Za-z]:', target), 'Unsafe symbolic link target.')
+    named_component = False
+    for component in target.split('/'):
+        require(component != '..' or not named_component, 'Parent traversal after a symbolic link component is ambiguous.')
+        if component not in {'', '.', '..'}:
+            named_component = True
+    return target
+
+
 def private_directory(path):
     path = Path(path)
     metadata = path.lstat()
@@ -133,6 +146,7 @@ def validate_links(entries):
             if str(parent) != '.':
                 require(entries[str(parent)]['kind'] == 'directory', 'Archive members must not write through files or links.')
         if item['kind'] == 'symlink':
+            symlink_target(item['target'])
             destination = resolve(path, [])
             if entries[destination]['kind'] == 'directory':
                 graph[posixpath.dirname(path)].add(destination)
@@ -270,16 +284,7 @@ def scan_archive(filename, descriptor, maximum_bytes, maximum_entries, deadline,
                     if member.isdir():
                         add(path, {'kind': 'directory'})
                     elif member.issym():
-                        target = member.linkname
-                        require(isinstance(target, str) and bool(target) and len(target.encode('utf-8', 'strict')) <= 1024
-                                and not target.startswith('/') and '\\' not in target
-                                and not any(ord(character) < 32 or ord(character) == 127 for character in target)
-                                and not re.match(r'^[A-Za-z]:', target), 'Unsafe symbolic link target.')
-                        named_component = False
-                        for component in target.split('/'):
-                            require(component != '..' or not named_component, 'Parent traversal after a symbolic link component is ambiguous.')
-                            if component not in {'', '.', '..'}:
-                                named_component = True
+                        target = symlink_target(member.linkname)
                         add(path, {'kind': 'symlink', 'target': target})
                     else:
                         require(member.isfile() and not member.islnk(), 'Devices, hard links, sparse files and special archive types were refused.')
